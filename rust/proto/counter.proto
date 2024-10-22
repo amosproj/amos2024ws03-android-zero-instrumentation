@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package com.example.counter;
+
+import "google/protobuf/empty.proto";
+
+message Count {
+    uint32 count = 1;
+}
+
+message LoadProgramRequest {
+    string name = 1;
+}
+
+message LoadProgramResponse {
+    bool loaded = 1;
+}
+
+service Counter {
+    rpc LoadProgram(LoadProgramRequest) returns (LoadProgramResponse) {}
+    rpc ServerCount(google.protobuf.Empty) returns (stream Count) {}
+}

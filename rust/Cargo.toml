@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["xtask", "example", "example-common", "example-ebpf"]
-default-members = ["xtask", "example", "example-common"]
+members = ["xtask", "example", "example-common", "example-ebpf", "shared"]
+default-members = ["xtask", "example", "example-common", "shared"]
 
 [workspace.dependencies]
 aya = { version = "0.13.0", default-features = false }
