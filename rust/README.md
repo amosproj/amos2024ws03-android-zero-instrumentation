@@ -8,14 +8,18 @@
 1. (if cross-compiling) LLVM: (e.g.) `brew install llvm` (on macOS)
 1. (if cross-compiling) C toolchain: (e.g.) [`brew install filosottile/musl-cross/musl-cross`](https://github.com/FiloSottile/homebrew-musl-cross) (on macOS)
 1. bpf-linker: `cargo install bpf-linker` (`--no-default-features` on macOS)
+1. android rust toolchain: `rustup target add x86_64-linux_android`
+1. [Android NDK](https://developer.android.com/ndk)
+1. cargo ndk: `cargo install cargo-ndk`
 
 ## Build & Run
 
-Use `cargo build`, `cargo check`, etc. as normal. Run your program with `xtask run`.
+Use `cargo build`, `cargo check`, etc. as normal.
 
-Cargo build scripts are used to automatically build the eBPF correctly and include it in the
-program. When not using `xtask run`, eBPF code generation is skipped for a faster developer
-experience; this compromise necessitates the use of `xtask` to actually build the eBPF.
+- Run the server via `cargo xtask server`
+- Run the client via `cargo xtask client`
+- To run both on android, pass `--android`, e.g. `cargo xtask server --android -- --iface wlan0`, this will push the executable via `adb push` to `/data/local/tmp` 
+  and execute it via `su`
 
 ## Cross-compiling on macOS
 
