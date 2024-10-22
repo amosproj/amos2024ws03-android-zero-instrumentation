@@ -1,4 +1,5 @@
-mod run;
+mod server;
+mod client;
 
 use anyhow::Result;
 use clap::Parser;
@@ -11,13 +12,15 @@ pub struct Options {
 
 #[derive(Debug, Parser)]
 enum Command {
-    Run(run::Options),
+    Server(server::Options),
+    Client(client::Options),
 }
 
 fn main() -> Result<()> {
     let Options { command } = Parser::parse();
 
     match command {
-        Command::Run(opts) => run::run(opts),
+        Command::Server(opts) => server::run(opts),
+        Command::Client(opts) => client::run(opts),
     }
 }
