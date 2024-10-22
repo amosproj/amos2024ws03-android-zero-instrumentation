@@ -4,11 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow.workspace = true
-prost = "0.13.3"
+anyhow = { workspace = true }
+prost = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "signal"] }
-tonic = "0.12.3"
+tonic = { workspace = true }
 shared = { path = "../shared" }
-
-[build-dependencies]
-tonic-build = "0.12.3"

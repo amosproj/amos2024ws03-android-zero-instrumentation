@@ -438,7 +438,6 @@ dependencies = [
  "shared",
  "tokio",
  "tonic",
- "tonic-build",
 ]
 
 [[package]]
@@ -522,11 +521,9 @@ dependencies = [
  "log",
  "prost",
  "shared",
- "thiserror",
  "tokio",
  "tokio-stream",
  "tonic",
- "tonic-build",
  "xtask",
 ]
 

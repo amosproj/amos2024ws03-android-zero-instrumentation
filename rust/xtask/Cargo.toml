@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true, default-features = true }
-cargo_metadata.workspace = true
+cargo_metadata = { workspace = true }
 clap = { workspace = true, default-features = true, features = ["derive"] }
