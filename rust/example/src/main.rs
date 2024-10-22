@@ -1,11 +1,69 @@
 use anyhow::Context as _;
-use aya::{maps::{lpm_trie::Key, ring_buf::RingBufItem, PerCpuArray, Queue, RingBuf}, programs::{Xdp, XdpFlags}};
+use aya::{maps::{RingBuf}, programs::{Xdp, XdpFlags}, Ebpf};
 use clap::Parser;
+use shared::counter::{counter_server::{Counter, CounterServer}, Count, LoadProgramRequest, LoadProgramResponse};
 #[rustfmt::skip]
 use log::{debug, warn};
-use tokio::{io::unix::AsyncFd, join, signal};
-use aya::util::nr_cpus;
-use std::{os::fd::AsRawFd, time::Duration};
+use tokio::{io::unix::AsyncFd, sync::{mpsc, Mutex}};
+use tokio_stream::{wrappers::ReceiverStream, Stream};
+use tonic::{transport::Server, Request, Response, Status};
+use std::{net::ToSocketAddrs, pin::Pin, sync::Arc};
+
+struct CounterImpl {
+    iface: String,
+    ebpf: Arc<Mutex<Ebpf>>,
+}
+
+type ResponseStream = Pin<Box<dyn Stream<Item = Result<Count, Status>> + Send>>;
+
+impl CounterImpl {
+    pub fn new(iface: String, ebpf: Ebpf) -> CounterImpl {
+        CounterImpl { iface, ebpf: Arc::new(Mutex::new(ebpf)) }
+    }
+}
+
+#[tonic::async_trait]
+impl Counter for CounterImpl {
+    type ServerCountStream = ResponseStream;
+
+    async fn load_program(&self, req: Request<LoadProgramRequest>) -> Result<Response<LoadProgramResponse>, Status> {
+        let mut guard = self.ebpf.lock().await;
+        let program: &mut Xdp = guard.program_mut(&req.into_inner().name).unwrap().try_into().unwrap();
+        program.load().unwrap();
+        program.attach(&self.iface, XdpFlags::default())
+            .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE").unwrap();
+
+        Ok(Response::new(LoadProgramResponse { loaded: true }))
+    }
+
+    async fn server_count(&self, _: Request<()>) -> Result<Response<Self::ServerCountStream>, Status> {
+        let mut guard = self.ebpf.lock().await;
+        let events = RingBuf::try_from(guard.take_map("EVENTS").unwrap()).unwrap();
+        let mut poll = AsyncFd::new(events).unwrap(); 
+
+        let (tx, rx) = mpsc::channel(128);
+
+        tokio::spawn(async move {
+            loop {
+                let mut guard = poll.readable_mut().await.unwrap();
+                let ring_buf = guard.get_inner_mut();
+                while let Some(item) = ring_buf.next() {
+                    let sized = <[u8; 4]>::try_from(&*item).unwrap();
+                    let count = u32::from_le_bytes(sized);
+                    tx.send(Ok(Count { count })).await.unwrap();
+                }
+                guard.clear_ready();
+            }
+        });
+        
+
+        let output_stream = ReceiverStream::new(rx);
+
+        Ok(Response::new(
+            Box::pin(output_stream) as Self::ServerCountStream
+        ))
+    }
+}
 
 #[derive(Debug, Parser)]
 struct Opt {
@@ -43,25 +101,14 @@ async fn main() -> anyhow::Result<()> {
         warn!("failed to initialize eBPF logger: {}", e);
     }
     let Opt { iface } = opt;
-    let program: &mut Xdp = ebpf.program_mut("example").unwrap().try_into()?;
-    program.load()?;
-    program.attach(&iface, XdpFlags::default())
-        .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE")?;
 
-    let events = RingBuf::try_from(ebpf.map_mut("EVENTS").unwrap())?;
+    let server = CounterImpl::new(iface, ebpf);
 
-
-    let mut poll = AsyncFd::new(events)?;
-
-    loop {
-        let mut guard = poll.readable_mut().await?;
-        let ring_buf = guard.get_inner_mut();
-        while let Some(item) = ring_buf.next() {
-            let sized = <[u8; 4]>::try_from(&*item)?;
-            println!("Received: {:?}", u32::from_le_bytes(sized))
-        }
-        guard.clear_ready();
-    }
+    Server::builder()
+        .add_service(CounterServer::new(server))
+        .serve("[::1]:50051".to_socket_addrs().unwrap().next().unwrap())
+        .await
+        .unwrap();
 
     Ok(())
 }
