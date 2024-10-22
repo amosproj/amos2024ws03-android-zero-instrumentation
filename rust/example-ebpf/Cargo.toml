@@ -1,0 +1,18 @@
+[package]
+name = "example-ebpf"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+example-common = { path = "../example-common" }
+
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[build-dependencies]
+which = { workspace = true }
+xtask = { path = "../xtask" }
+
+[[bin]]
+name = "example"
+path = "src/main.rs"
