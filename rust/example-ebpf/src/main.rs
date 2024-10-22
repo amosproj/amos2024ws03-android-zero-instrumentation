@@ -1,8 +1,13 @@
 #![no_std]
 #![no_main]
 
-use aya_ebpf::{bindings::xdp_action, macros::xdp, programs::XdpContext};
-use aya_log_ebpf::info;
+use aya_ebpf::{bindings::xdp_action, macros::{map, xdp}, maps::{PerCpuArray, RingBuf}, programs::XdpContext};
+
+#[map(name="COUNTER")]
+static PACKET_COUNTER: PerCpuArray<u32> = PerCpuArray::with_max_entries(1, 0);
+
+#[map(name="EVENTS")]
+static EVENTS: RingBuf = RingBuf::with_byte_size(1024, 0);
 
 #[xdp]
 pub fn example(ctx: XdpContext) -> u32 {
@@ -12,8 +17,19 @@ pub fn example(ctx: XdpContext) -> u32 {
     }
 }
 
-fn try_example(ctx: XdpContext) -> Result<u32, u32> {
-    info!(&ctx, "received a packet");
+fn try_example(_: XdpContext) -> Result<u32, ()> {
+    unsafe {
+        let counter = PACKET_COUNTER.get_ptr_mut(0).ok_or(())?;
+        *counter += 1;
+        let mut entry = match EVENTS.reserve::<u32>(0) {
+            Some(entry) => entry,
+            None => return Ok(xdp_action::XDP_PASS)
+        };
+        
+        entry.write(*counter);
+        entry.submit(0);
+
+    }
     Ok(xdp_action::XDP_PASS)
 }
 
