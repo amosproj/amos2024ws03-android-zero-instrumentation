@@ -16,10 +16,9 @@ tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net"
 shared = { path = "../shared" }
 
 clap = { workspace = true, features = ["derive"] }
-prost = "0.13.3"
-tonic = "0.12.3"
-tokio-stream = "0.1.16"
-thiserror = "1.0.65"
+prost = { workspace = true }
+tonic = { workspace = true }
+tokio-stream = { workspace = true }
 [build-dependencies]
 cargo_metadata = { workspace = true }
 # TODO(https://github.com/rust-lang/cargo/issues/12375): this should be an artifact dependency, but
@@ -35,7 +34,6 @@ cargo_metadata = { workspace = true }
 # workflows with stable cargo; stable cargo outright refuses to load manifests that use unstable
 # features.
 example-ebpf = { path = "../example-ebpf" }
-tonic-build = "0.12.3"
 xtask = { path = "../xtask" }
 
 [[bin]]
