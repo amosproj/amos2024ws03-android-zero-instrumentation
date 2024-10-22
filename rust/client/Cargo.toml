@@ -1,0 +1,14 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+prost = "0.13.3"
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "signal"] }
+tonic = "0.12.3"
+shared = { path = "../shared" }
+
+[build-dependencies]
+tonic-build = "0.12.3"
