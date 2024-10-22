@@ -1,9 +1,11 @@
 use anyhow::Context as _;
-use aya::programs::{Xdp, XdpFlags};
+use aya::{maps::{lpm_trie::Key, ring_buf::RingBufItem, PerCpuArray, Queue, RingBuf}, programs::{Xdp, XdpFlags}};
 use clap::Parser;
 #[rustfmt::skip]
 use log::{debug, warn};
-use tokio::signal;
+use tokio::{io::unix::AsyncFd, join, signal};
+use aya::util::nr_cpus;
+use std::{os::fd::AsRawFd, time::Duration};
 
 #[derive(Debug, Parser)]
 struct Opt {
@@ -46,10 +48,20 @@ async fn main() -> anyhow::Result<()> {
     program.attach(&iface, XdpFlags::default())
         .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE")?;
 
-    let ctrl_c = signal::ctrl_c();
-    println!("Waiting for Ctrl-C...");
-    ctrl_c.await?;
-    println!("Exiting...");
+    let events = RingBuf::try_from(ebpf.map_mut("EVENTS").unwrap())?;
+
+
+    let mut poll = AsyncFd::new(events)?;
+
+    loop {
+        let mut guard = poll.readable_mut().await?;
+        let ring_buf = guard.get_inner_mut();
+        while let Some(item) = ring_buf.next() {
+            let sized = <[u8; 4]>::try_from(&*item)?;
+            println!("Received: {:?}", u32::from_le_bytes(sized))
+        }
+        guard.clear_ready();
+    }
 
     Ok(())
 }
