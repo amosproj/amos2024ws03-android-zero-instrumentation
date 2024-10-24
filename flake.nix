@@ -9,14 +9,31 @@
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    android-nixpkgs = {
+      url = "github:tadfisher/android-nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, fenix }:
+  outputs = { self, nixpkgs, fenix, android-nixpkgs }:
     let
       system = "x86_64-linux";
 
       pkgs = import nixpkgs { inherit system; };
       fenixPkgs = fenix.packages.${system};
+      mkAndroidSdk = android-nixpkgs.sdk.${system};
+
+      androidSdk = {
+        sdk = mkAndroidSdk (sdkPkgs: with sdkPkgs; [
+          cmdline-tools-latest
+          ndk-28-0-12433566
+          build-tools-35-0-0
+          platform-tools
+          platforms-android-35
+          emulator
+          system-images-android-35-default-x86-64
+        ]);
+      };
 
       rust = {
         # https://rust-lang.github.io/rustup-components-history/
@@ -34,6 +51,9 @@
           rust.nightlyToolchain
           protobuf
           bpf-linker
+          androidSdk.sdk
+          cargo-ndk
+          python3 
         ];
       };
     };
