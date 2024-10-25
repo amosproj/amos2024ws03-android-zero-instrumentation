@@ -9,6 +9,7 @@
         self.inputs.android-nixpkgs.overlays.default
         (prev: super: { n2c = inputs.nix2container.packages.${system}.nix2container; })
         (prev: super: { bashConfigs = import ./bash-configs.nix { pkgs = prev; }; })
+        (prev: super: { buildBom = inputs.bombon.lib.${system}.buildBom; })
       ];
     };
   };
