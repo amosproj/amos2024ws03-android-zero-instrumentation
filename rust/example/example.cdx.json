@@ -1,0 +1,514 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.3",
+  "version": 1,
+  "serialNumber": "urn:uuid:bbac2256-396c-4d75-9c3b-41740e643e45",
+  "metadata": {
+    "timestamp": "2024-10-25T16:26:22.008488614Z",
+    "tools": [
+      {
+        "vendor": "CycloneDX",
+        "name": "cargo-cyclonedx",
+        "version": "0.5.5"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example#0.1.0",
+      "name": "example",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:cargo/example@0.1.0?download_url=file://.",
+      "components": [
+        {
+          "type": "application",
+          "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example#0.1.0 bin-target-0",
+          "name": "example",
+          "version": "0.1.0",
+          "purl": "pkg:cargo/example@0.1.0?download_url=file://.#src/main.rs"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-common#0.1.0",
+      "name": "example-common",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:cargo/example-common@0.1.0?download_url=file://../example-common"
+    },
+    {
+      "type": "library",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-ebpf#0.1.0",
+      "name": "example-ebpf",
+      "version": "0.1.0",
+      "scope": "excluded",
+      "purl": "pkg:cargo/example-ebpf@0.1.0?download_url=file://../example-ebpf"
+    },
+    {
+      "type": "library",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/shared#0.1.0",
+      "name": "shared",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:cargo/shared@0.1.0?download_url=file://../shared"
+    },
+    {
+      "type": "library",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/xtask#0.1.0",
+      "name": "xtask",
+      "version": "0.1.0",
+      "scope": "excluded",
+      "purl": "pkg:cargo/xtask@0.1.0?download_url=file://../xtask"
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.91",
+      "name": "anyhow",
+      "version": "1.0.91",
+      "description": "Flexible concrete Error type built on std::error::Error",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c042108f3ed77fd83760a5fd79b53be043192bb3b9dba91d8c574c0ada7850c8"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/anyhow@1.0.91",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/anyhow"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/dtolnay/anyhow"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#aya-log@0.2.1",
+      "name": "aya-log",
+      "version": "0.2.1",
+      "description": "A logging library for eBPF programs.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b600d806c1d07d3b81ab5f4a2a95fd80f479a0d3f1d68f29064d660865f85f02"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/aya-log@0.2.1",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/aya-log"
+        },
+        {
+          "type": "website",
+          "url": "https://aya-rs.dev"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/aya-rs/aya"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#aya@0.13.0",
+      "name": "aya",
+      "version": "0.13.0",
+      "description": "An eBPF library with a focus on developer experience and operability.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7127cbe933572dfabb7a87d2c740f5b720c3e19b4d2b8c99a262ffa35c8761ff"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/aya@0.13.0",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/aya"
+        },
+        {
+          "type": "website",
+          "url": "https://aya-rs.dev"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/aya-rs/aya"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#cargo_metadata@0.18.1",
+      "name": "cargo_metadata",
+      "version": "0.18.1",
+      "description": "structured access to the output of `cargo metadata`",
+      "scope": "excluded",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2d886547e41f740c616ae73108f6eb70afe6d940c7bc697cb30f13daec073037"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/cargo_metadata@0.18.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/oli-obk/cargo_metadata"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.5.20",
+      "name": "clap",
+      "version": "4.5.20",
+      "description": "A simple to use, efficient, and full-featured Command Line Argument Parser",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b97f376d85a664d5837dbae44bf546e6477a679ff6610010f17276f686d867e8"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/clap@4.5.20",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/clap-rs/clap"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#env_logger@0.11.5",
+      "name": "env_logger",
+      "version": "0.11.5",
+      "description": "A logging implementation for `log` which is configured via an environment variable. ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e13fa619b91fb2381732789fc5de83b45675e882f66623b7d8cb4f643017018d"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/env_logger@0.11.5",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/rust-cli/env_logger"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.161",
+      "name": "libc",
+      "version": "0.2.161",
+      "description": "Raw FFI bindings to platform libraries like libc. ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8e9489c2807c139ffd9c1794f4af0ebe86a828db53ecdc7fea2111d0fed085d1"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/libc@0.2.161",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/libc/"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/rust-lang/libc"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/rust-lang/libc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#log@0.4.22",
+      "name": "log",
+      "version": "0.4.22",
+      "description": "A lightweight logging facade for Rust ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/log@0.4.22",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/log"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/rust-lang/log"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#prost@0.13.3",
+      "name": "prost",
+      "version": "0.13.3",
+      "description": "A Protocol Buffers implementation for the Rust Language.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7b0487d90e047de87f984913713b85c601c05609aad5b0df4b4573fbf69aa13f"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/prost@0.13.3",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/tokio-rs/prost"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#tokio-stream@0.1.16",
+      "name": "tokio-stream",
+      "version": "0.1.16",
+      "description": "Utilities to work with `Stream` and `tokio`. ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4f4e6ce100d0eb49a2734f8c0812bcd324cf357d21810932c5df6b96ef2b86f1"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/tokio-stream@0.1.16",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://tokio.rs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/tokio-rs/tokio"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.41.0",
+      "name": "tokio",
+      "version": "1.41.0",
+      "description": "An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications. ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "145f3413504347a2be84393cc8a7d2fb4d863b375909ea59f2158261aa258bbb"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/tokio@1.41.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://tokio.rs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/tokio-rs/tokio"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#tonic@0.12.3",
+      "name": "tonic",
+      "version": "0.12.3",
+      "description": "A gRPC over HTTP/2 implementation focused on high performance, interoperability, and flexibility. ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "877c5b330756d856ffcc4553ab34a5684481ade925ecc54bcd1bf02b1d0d4d52"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/tonic@0.12.3",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/tonic/0.12.3"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/hyperium/tonic"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/hyperium/tonic"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example#0.1.0",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.91",
+        "registry+https://github.com/rust-lang/crates.io-index#aya@0.13.0",
+        "registry+https://github.com/rust-lang/crates.io-index#aya-log@0.2.1",
+        "registry+https://github.com/rust-lang/crates.io-index#cargo_metadata@0.18.1",
+        "registry+https://github.com/rust-lang/crates.io-index#clap@4.5.20",
+        "registry+https://github.com/rust-lang/crates.io-index#env_logger@0.11.5",
+        "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-common#0.1.0",
+        "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-ebpf#0.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.161",
+        "registry+https://github.com/rust-lang/crates.io-index#log@0.4.22",
+        "registry+https://github.com/rust-lang/crates.io-index#prost@0.13.3",
+        "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/shared#0.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#tokio@1.41.0",
+        "registry+https://github.com/rust-lang/crates.io-index#tokio-stream@0.1.16",
+        "registry+https://github.com/rust-lang/crates.io-index#tonic@0.12.3",
+        "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/xtask#0.1.0"
+      ]
+    },
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-common#0.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-ebpf#0.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/shared#0.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/xtask#0.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.91",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#aya-log@0.2.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#aya@0.13.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#cargo_metadata@0.18.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#clap@4.5.20",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#env_logger@0.11.5",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#libc@0.2.161",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#log@0.4.22",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#prost@0.13.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#tokio-stream@0.1.16",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.41.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#tonic@0.12.3",
+      "dependsOn": []
+    }
+  ]
+}

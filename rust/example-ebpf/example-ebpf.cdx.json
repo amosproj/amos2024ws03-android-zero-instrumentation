@@ -1,0 +1,180 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.3",
+  "version": 1,
+  "serialNumber": "urn:uuid:eada8ea3-66d1-4b37-9657-91ab79d454cb",
+  "metadata": {
+    "timestamp": "2024-10-25T16:26:22.012720405Z",
+    "tools": [
+      {
+        "vendor": "CycloneDX",
+        "name": "cargo-cyclonedx",
+        "version": "0.5.5"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-ebpf#0.1.0",
+      "name": "example-ebpf",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:cargo/example-ebpf@0.1.0?download_url=file://.",
+      "components": [
+        {
+          "type": "library",
+          "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-ebpf#0.1.0 bin-target-0",
+          "name": "example_ebpf",
+          "version": "0.1.0",
+          "purl": "pkg:cargo/example-ebpf@0.1.0?download_url=file://.#src/lib.rs"
+        },
+        {
+          "type": "application",
+          "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-ebpf#0.1.0 bin-target-1",
+          "name": "example",
+          "version": "0.1.0",
+          "purl": "pkg:cargo/example-ebpf@0.1.0?download_url=file://.#src/main.rs"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-common#0.1.0",
+      "name": "example-common",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:cargo/example-common@0.1.0?download_url=file://../example-common"
+    },
+    {
+      "type": "library",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/xtask#0.1.0",
+      "name": "xtask",
+      "version": "0.1.0",
+      "scope": "excluded",
+      "purl": "pkg:cargo/xtask@0.1.0?download_url=file://../xtask"
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#aya-ebpf@0.1.1",
+      "name": "aya-ebpf",
+      "version": "0.1.1",
+      "description": "A library for writing eBPF programs",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d8dbaf5409a1a0982e5c9bdc0f499a55fe5ead39fe9c846012053faf0d404f73"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/aya-ebpf@0.1.1",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://aya-rs.dev"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/aya-rs/aya"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#aya-log-ebpf@0.1.1",
+      "name": "aya-log-ebpf",
+      "version": "0.1.1",
+      "description": "Logging for eBPF programs",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ae348f459df78a79e5cd5e164b6562b927033b97ca3b033605b341a474f44510"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/aya-log-ebpf@0.1.1",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://aya-rs.dev"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/aya-rs/aya"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#which@6.0.3",
+      "name": "which",
+      "version": "6.0.3",
+      "description": "A Rust equivalent of Unix command \"which\". Locate installed executable in cross platforms.",
+      "scope": "excluded",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b4ee928febd44d98f2f459a4a79bd4d928591333a494a10a868418ac1b39cf1f"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/which@6.0.3",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/which/"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/harryfei/which-rs.git"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-common#0.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-ebpf#0.1.0",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#aya-ebpf@0.1.1",
+        "registry+https://github.com/rust-lang/crates.io-index#aya-log-ebpf@0.1.1",
+        "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/example-common#0.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#which@6.0.3",
+        "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/xtask#0.1.0"
+      ]
+    },
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/xtask#0.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#aya-ebpf@0.1.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#aya-log-ebpf@0.1.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#which@6.0.3",
+      "dependsOn": []
+    }
+  ]
+}
