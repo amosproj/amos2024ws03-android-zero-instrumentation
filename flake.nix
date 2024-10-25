@@ -123,6 +123,13 @@
               mkWorker
               mkDoas
 
+              # github actions
+              # TODO: move them to another layer
+              pkgs.nodejs
+              pkgs.gnutar
+              pkgs.zstd
+              pkgs.gzip
+
               pkgs.bashInteractive
               pkgs.bashConfigs
             ];
