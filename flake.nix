@@ -61,7 +61,7 @@
               platform-tools
               platforms-android-35
               emulator
-              system-images-android-35-default-x86-64
+              system-images-android-33-default-x86-64
             ];
 
             rustPkgs = with pkgs.fenix; [
