@@ -1,0 +1,195 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.3",
+  "version": 1,
+  "serialNumber": "urn:uuid:fad03063-8876-46e0-a38c-8131fa4cabd6",
+  "metadata": {
+    "timestamp": "2024-10-25T16:26:22.014196748Z",
+    "tools": [
+      {
+        "vendor": "CycloneDX",
+        "name": "cargo-cyclonedx",
+        "version": "0.5.5"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/client#0.1.0",
+      "name": "client",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:cargo/client@0.1.0?download_url=file://.",
+      "components": [
+        {
+          "type": "application",
+          "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/client#0.1.0 bin-target-0",
+          "name": "client",
+          "version": "0.1.0",
+          "purl": "pkg:cargo/client@0.1.0?download_url=file://.#src/main.rs"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/shared#0.1.0",
+      "name": "shared",
+      "version": "0.1.0",
+      "scope": "required",
+      "purl": "pkg:cargo/shared@0.1.0?download_url=file://../shared"
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.91",
+      "name": "anyhow",
+      "version": "1.0.91",
+      "description": "Flexible concrete Error type built on std::error::Error",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c042108f3ed77fd83760a5fd79b53be043192bb3b9dba91d8c574c0ada7850c8"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT OR Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/anyhow@1.0.91",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/anyhow"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/dtolnay/anyhow"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#prost@0.13.3",
+      "name": "prost",
+      "version": "0.13.3",
+      "description": "A Protocol Buffers implementation for the Rust Language.",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7b0487d90e047de87f984913713b85c601c05609aad5b0df4b4573fbf69aa13f"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "purl": "pkg:cargo/prost@0.13.3",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/tokio-rs/prost"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.41.0",
+      "name": "tokio",
+      "version": "1.41.0",
+      "description": "An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications. ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "145f3413504347a2be84393cc8a7d2fb4d863b375909ea59f2158261aa258bbb"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/tokio@1.41.0",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://tokio.rs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/tokio-rs/tokio"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "registry+https://github.com/rust-lang/crates.io-index#tonic@0.12.3",
+      "name": "tonic",
+      "version": "0.12.3",
+      "description": "A gRPC over HTTP/2 implementation focused on high performance, interoperability, and flexibility. ",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "877c5b330756d856ffcc4553ab34a5684481ade925ecc54bcd1bf02b1d0d4d52"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "purl": "pkg:cargo/tonic@0.12.3",
+      "externalReferences": [
+        {
+          "type": "documentation",
+          "url": "https://docs.rs/tonic/0.12.3"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/hyperium/tonic"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/hyperium/tonic"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/client#0.1.0",
+      "dependsOn": [
+        "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.91",
+        "registry+https://github.com/rust-lang/crates.io-index#prost@0.13.3",
+        "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/shared#0.1.0",
+        "registry+https://github.com/rust-lang/crates.io-index#tokio@1.41.0",
+        "registry+https://github.com/rust-lang/crates.io-index#tonic@0.12.3"
+      ]
+    },
+    {
+      "ref": "path+file:///home/robin/git/amos2024ws03-android-zero-instrumentation/rust/shared#0.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#anyhow@1.0.91",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#prost@0.13.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#tokio@1.41.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "registry+https://github.com/rust-lang/crates.io-index#tonic@0.12.3",
+      "dependsOn": []
+    }
+  ]
+}
