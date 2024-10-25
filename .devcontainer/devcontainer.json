@@ -1,0 +1,7 @@
+{
+  "name": "Ziofa Builder",
+  "image": "ghcr.io/fhilgers/ziofa-builder:latest",
+  "features": {},
+  "remoteUser": "worker",
+  "updateRemoteUserUID": false
+}
