@@ -1,4 +1,4 @@
-package de.amosproj3.frontend.ui.theme
+package de.amosproj3.ziofa.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
