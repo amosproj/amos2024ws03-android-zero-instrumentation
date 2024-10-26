@@ -65,7 +65,11 @@
             ];
 
             rustPkgs = with pkgs.fenix; [
-              (combine [ latest.toolchain targets.x86_64-linux-android.latest.rust-std ])
+              (combine [
+                latest.toolchain
+                targets.x86_64-linux-android.latest.rust-std
+                targets.aarch64-linux-android.latest.rust-std
+              ])
             ];
 
             miscPkgs = with pkgs; [
