@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
+        android:name=".ZIOFAApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -10,13 +11,11 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.EBPFObservability"
-        tools:targetApi="31">
+        android:theme="@style/Theme.ZIOFA">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.EBPFObservability">
+            android:theme="@style/Theme.ZIOFA">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -1,4 +1,4 @@
-package de.amosproj3.frontend
+package de.amosproj3.ziofa
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,15 +10,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import de.amosproj3.frontend.ui.theme.EBPFObservabilityTheme
+import de.amosproj3.ziofa.ui.theme.ZIOFATheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EBPFObservabilityTheme {
+            ZIOFATheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
                         name = "AMOS",
