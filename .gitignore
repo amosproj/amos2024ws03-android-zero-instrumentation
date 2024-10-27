@@ -39,3 +39,5 @@ bin/
 /.direnv
 
 target
+
+**/sub_proj_sbom.json

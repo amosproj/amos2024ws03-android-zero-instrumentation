@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "amos2024ws03-android-zero-instrumentation"
+version = "0.1.0"
+description = "Python-proj for scripts used in development only"
+authors = ["Benedikt Zinn <benedikt.wh.zinn@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
