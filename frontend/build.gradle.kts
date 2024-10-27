@@ -1,10 +1,12 @@
+import com.android.build.gradle.internal.tasks.factory.dependsOn
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.org.cyclonedx.bom) apply true
-    alias(libs.plugins.com.github.benmaes.versions) apply true
+    alias(libs.plugins.com.github.benmanes.versions) apply true
     alias(libs.plugins.nl.littlerobots.versioncatalogueupdate) apply true
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.com.ncorti.ktfmt.gradle) apply true
@@ -34,4 +36,9 @@ tasks.cyclonedxBom {
     setIncludeBomSerialNumber(false)
     setIncludeLicenseText(true)
     setIncludeMetadataResolution(true)
+}
+
+tasks.register("combinedFormat"){
+    dependsOn(tasks.ktfmtFormat)
+    dependsOn(tasks.versionCatalogFormat)
 }

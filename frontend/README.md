@@ -15,5 +15,5 @@ To automatically update all dependencies, run
 `./gradlew versionCatalogUpdate` or `./gradlew vCU`
 
 ### Format and check formatting
-Format `./gradlew ktfmtFormat` <br/>
+Format `./gradlew combinedFormat` <br/>
 Check: `./gradlew ktfmtCheck`

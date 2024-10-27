@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "de.amosproj3.ziofa"
-    compileSdk = 34
+    compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "de.amosproj3.ziofa"
@@ -69,5 +70,6 @@ dependencies {
 
     compileOnly(libs.koin.core)
     implementation(libs.koin.android)
+    implementation(libs.koin.compose)
     testImplementation(libs.koin.test)
 }
