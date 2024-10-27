@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import de.amosproj3.ziofa.ui.theme.ZIOFATheme
+import org.koin.androidx.compose.KoinAndroidContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,11 +19,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ZIOFATheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "AMOS",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                KoinAndroidContext {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        Greeting(
+                            name = "AMOS",
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
             }
         }
