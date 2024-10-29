@@ -3,11 +3,12 @@ from typing import Optional, Tuple
 from pathlib import Path
 import subprocess
 
+sub_bom_file_name = "bom"
+output_file_name = "sbom"
 
-def generate_rust_sbom(path: Path) -> Optional[Path]:
-    output_file = "sub_proj_sbom"
+def generate_rust_sbom(path: Path):
     result = subprocess.run(
-        ["cargo", "cyclonedx", "--override-filename", str(output_file), "--format", "json", "--top-level"],
+        ["cargo", "cyclonedx", "--override-filename", str(sub_bom_file_name), "--format", "json", "--top-level"],
         cwd=path,
         capture_output=True,
         text=True
@@ -16,41 +17,48 @@ def generate_rust_sbom(path: Path) -> Optional[Path]:
     if not result.returncode == 0:
         # Something went wrong
         print(f"Error generating Rust SBOM for {str(path)}: {result.stderr}")
-        return None
+        return
 
     print(f"Generated SBOM for {str(path)}")
-    return path / (output_file + ".json")
+    return
 
 
-def generate_kotlin_sbom(path: Path) -> Optional[Path]:
+def generate_kotlin_sbom(path: Path):
     result = subprocess.run(
         ["./gradlew", "cyclonedxBom"],
         cwd=path,
         capture_output=True,
         text=True
     )
-    output_file = os.path.join(path, "build/reports/bom.xml")
-    if (not result.returncode == 0) or os.path.exists(output_file):
+    if (not result.returncode == 0):
         # Something went wrong again
         print(f"Error generating Kotlin SBOM for {path}: {result.stderr}")
-        return None
+        return
 
     print(f"Generated SBOM for {path}")
-    return output_file
+    return
 
 
-def generate_nix_sbom(path: Path) -> Path:
-    print("not yet impl")
+def generate_nix_sbom():
     result = subprocess.run(
-        nix_commands,
-        cwd=path,
+        ["nix", "build", ".#toolsSbom", "-o", sub_bom_file_name + ".json"],
         capture_output=True,
         text=True
     )
-    return None
+
+    if (not result.returncode == 0):
+        # Something went wrong
+        print(f"Error generating SBOM for nix: {result.stderr}")
+        return None
+
+    print(f"Generated SBOM for nix")
+
+    return
 
 
 def generate_sboms(path_for_recursive: list[Tuple[Path, bool]]) -> list[Path]:
+    generate_nix_sbom()
+
     sbom_able_projects = []
     print("Finding folders that an SBOM file can be generated for")
     for tgf_dir, recursive in path_for_recursive:
@@ -87,34 +95,50 @@ def generate_sboms(path_for_recursive: list[Tuple[Path, bool]]) -> list[Path]:
 
     return list(filter(lambda x: x, map(lambda x: x[0](x[1]), sbom_able_projects)))
 
+def merge_sboms(rel_sbom_files):
+    # Example usage:
+    # cyclonedx merge --input-files ./result.json ./rust/example-ebpf/example-ebpf.cdx.json --output-format json
+    result = subprocess.run(
+        ["cyclonedx", "merge", "--input-format", "json", "--output-format", "json", "--output-file", output_file_name + ".json", "--input-files"] + rel_sbom_files,
+        capture_output=True,
+        text=True
+    )
+
+    if not result.returncode == 0:
+        # Something went wrong
+        print(f"Error merging SBOMs: {result.stderr}")
+        return None
 
 def main():
     print("        START")
     print(" _______________________")
 
-    base_dir = Path(__file__).resolve().parent
+    # traverse back to base project folder
+    base_dir = Path(__file__).resolve().parent.parent
 
+    # usage:
     # directory (base_dir / "foo") | recursive (True/False)
     dirs_to_generate_sbom_for = [
         (base_dir / "rust", False),
-        # (base_dir / "src", True),
-        # (base_dir / "test", True),
     ]
 
     generate_sboms(dirs_to_generate_sbom_for)
 
-    # base_dir/exampl/sub_proj_sbom.json
-    # base_dir/sub_proj_sbom.json
-    sbom_files = base_dir.rglob("sub_proj_sbom.json")
+    # example paths:
+    # base_dir/exampl/bom.json
+    # base_dir/bom.json
+    sbom_files = base_dir.rglob(sub_bom_file_name + ".json")
 
     rel_sbom_files = list(map(lambda file: file.relative_to(base_dir), sbom_files))
 
-    # remove all sub_proj.sbom files
-    # for sbom_file in rel_sbom_files:
-    #     try:
-    #         os.unlink(sbom_file)
-    #     except FileNotFoundError:
-    #         pass
+    merge_sboms(rel_sbom_files)
+
+    # remove all bom.json files
+    for sbom_file in rel_sbom_files:
+        try:
+            os.unlink(sbom_file)
+        except FileNotFoundError:
+            pass
 
     print(" _______________________")
     print("        DONE")
