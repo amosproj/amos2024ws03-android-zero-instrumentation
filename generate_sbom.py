@@ -1,16 +1,13 @@
 import os
-import sys
 from typing import Optional, Tuple
 from pathlib import Path
 import subprocess
-import tempfile
-from typing import List
 
 
 def generate_rust_sbom(path: Path) -> Optional[Path]:
     output_file = "sub_proj_sbom"
     result = subprocess.run(
-        ["cargo", "cyclonedx", "--override-filename", str(output_file), "--format", "json"],
+        ["cargo", "cyclonedx", "--override-filename", str(output_file), "--format", "json", "--top-level"],
         cwd=path,
         capture_output=True,
         text=True
@@ -26,25 +23,31 @@ def generate_rust_sbom(path: Path) -> Optional[Path]:
 
 
 def generate_kotlin_sbom(path: Path) -> Optional[Path]:
-    print("not yet impl!")
+    result = subprocess.run(
+        ["./gradlew", "cyclonedxBom"],
+        cwd=path,
+        capture_output=True,
+        text=True
+    )
+    output_file = os.path.join(path, "build/reports/bom.xml")
+    if (not result.returncode == 0) or os.path.exists(output_file):
+        # Something went wrong again
+        print(f"Error generating Kotlin SBOM for {path}: {result.stderr}")
+        return None
+
+    print(f"Generated SBOM for {path}")
+    return output_file
+
+
+def generate_nix_sbom(path: Path) -> Path:
+    print("not yet impl")
+    result = subprocess.run(
+        nix_commands,
+        cwd=path,
+        capture_output=True,
+        text=True
+    )
     return None
-
-
-# result = subprocess.run(
-#     ["./gradlew", "cyclonedxBom"],
-#     cwd=path,
-#     capture_output=True,
-#     text=True,
-#     shell=True
-# )
-# output_file = os.path.join(path, "build/reports/bom.xml")
-# if (not result.returncode == 0) or os.path.exists(output_file):
-#     # Something went wrong again
-#     print(f"Error generating Kotlin SBOM for {path}: {result.stderr}")
-#     return None
-#
-# print(f"Generated SBOM for {path}")
-# return output_file
 
 
 def generate_sboms(path_for_recursive: list[Tuple[Path, bool]]) -> list[Path]:
@@ -82,56 +85,7 @@ def generate_sboms(path_for_recursive: list[Tuple[Path, bool]]) -> list[Path]:
     for _, path in sbom_able_projects:
         print(" -{}".format(str(path)))
 
-    l = list(filter(lambda x: x, map(lambda x: x[0](x[1]), sbom_able_projects)))
-
-    return l
-
-
-def merge_sboms(sbom_files: List[Path], output_file: Path):
-    if not sbom_files:
-        raise ValueError("The list of SBOM files to merge is empty.")
-
-    # If there's only one SBOM file, just copy it to the output file
-    if len(sbom_files) == 1:
-        output_file.write_text(sbom_files[0].read_text())
-        print(f"Only one SBOM provided, copied directly to {output_file}")
-        return
-
-    # Use a temporary directory to store intermediate merged files
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        tmp_dir_path = Path(tmp_dir)
-
-        # Start with the initial list of SBOM files
-        current_files = sbom_files
-
-        # Iteratively merge pairs of files until only one file remains
-        while len(current_files) > 1:
-            next_round_files = []
-
-            # Merge files in pairs
-            for i in range(0, len(current_files), 2):
-                if i + 1 < len(current_files):
-                    # If we have a pair, merge them
-                    left_file = current_files[i]
-                    right_file = current_files[i + 1]
-                    merged_file = tmp_dir_path / f"merged_{i // 2}.json"
-
-                    command = ["sbommerge", "-o", str(merged_file), str(left_file), str(right_file)]
-                    subprocess.run(command, check=True)
-
-                    # Add the merged file to the next round
-                    next_round_files.append(merged_file)
-                else:
-                    # If there's an odd file out, move it to the next round as is
-                    next_round_files.append(current_files[i])
-
-            # Move to the next round with the merged results
-            current_files = next_round_files
-
-        # The last remaining file is the fully merged SBOM
-        final_merged_file = current_files[0]
-        final_merged_file.rename(output_file)
-        print(f"SBOMs merged successfully into {output_file}")
+    return list(filter(lambda x: x, map(lambda x: x[0](x[1]), sbom_able_projects)))
 
 
 def main():
@@ -147,34 +101,23 @@ def main():
         # (base_dir / "test", True),
     ]
 
-    sbom_files = generate_sboms(dirs_to_generate_sbom_for)
+    generate_sboms(dirs_to_generate_sbom_for)
 
-    # base_dir/examo/sub_proj_sbom.json
+    # base_dir/exampl/sub_proj_sbom.json
     # base_dir/sub_proj_sbom.json
     sbom_files = base_dir.rglob("sub_proj_sbom.json")
 
     rel_sbom_files = list(map(lambda file: file.relative_to(base_dir), sbom_files))
 
-    all_good: bool
-    if sbom_files:
-        output_name = "proj_sbom"
-        print("Merging SBOM files...")
-        all_good = merge_sboms(rel_sbom_files, output_name)
-        print("Done merging SBOMs.")
-    else:
-        print("No SBOM files generated. Something went horribly wrong ;)")
-        all_good = False
-
     # remove all sub_proj.sbom files
-    for sbom_file in sbom_files:
-        try:
-            os.unlink(sbom_file)
-        except FileNotFoundError:
-            pass
+    # for sbom_file in rel_sbom_files:
+    #     try:
+    #         os.unlink(sbom_file)
+    #     except FileNotFoundError:
+    #         pass
 
     print(" _______________________")
     print("        DONE")
-    sys.exit(0 if all_good else -1)
 
 
 if __name__ == "__main__":
