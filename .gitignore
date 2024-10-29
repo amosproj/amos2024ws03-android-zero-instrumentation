@@ -40,4 +40,4 @@ bin/
 
 target
 
-**/sub_proj_sbom.json
+sbom.json
