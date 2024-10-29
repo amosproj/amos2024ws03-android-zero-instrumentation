@@ -76,6 +76,7 @@
               cargo-ndk
               protobuf
               bpf-linker
+              cyclonedx-cli
             ];
 
             combined =
