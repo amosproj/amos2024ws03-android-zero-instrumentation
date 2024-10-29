@@ -20,9 +20,13 @@
       url = "github:nlewo/nix2container";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    bombon = {
+      url = "github:nikstur/bombon";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = inputs@{ self, nixpkgs, fenix, android-nixpkgs, nix2container, flake-parts, ... }:
+  outputs = inputs@{ self, nixpkgs, fenix, android-nixpkgs, nix2container, bombon, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         ./nix/overlay-module.nix
@@ -76,6 +80,7 @@
               cargo-ndk
               protobuf
               bpf-linker
+              cyclonedx-cli
             ];
 
             combined =
@@ -157,14 +162,19 @@
             };
           };
 
+          toolsDevShell = pkgs.mkShell {
+            packages = packageGroups.combined;
+          };
+
         in
         {
           devShells = {
-            default = pkgs.mkShell { packages = packageGroups.combined; };
+            default = toolsDevShell;
           };
           packages = {
             dockerBuilderBase = builderBase;
             dockerBuilder = builder;
+            toolsSbom = pkgs.buildBom toolsDevShell { };
           };
         };
     };
