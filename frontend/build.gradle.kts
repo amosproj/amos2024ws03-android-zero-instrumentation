@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.

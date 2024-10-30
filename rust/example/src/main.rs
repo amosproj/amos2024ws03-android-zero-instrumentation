@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use anyhow::Context as _;
 use aya::{maps::{RingBuf}, programs::{Xdp, XdpFlags}, Ebpf};
 use clap::Parser;

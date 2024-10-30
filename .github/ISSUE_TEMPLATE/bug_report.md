@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2024 The AMOS Projects
+
+SPDX-License-Identifier: MIT
+-->
+
 ---
 name: Bug report
 about: Create a report to help us improve

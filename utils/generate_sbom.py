@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2024 Benedikt Zinn <benediskt.wh.zinn@gmail.com>
+# SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
 import os
 from typing import Tuple
 from pathlib import Path

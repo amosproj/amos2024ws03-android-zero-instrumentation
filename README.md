@@ -1,4 +1,12 @@
+<!--
+SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Zero Instrumentation Observability for Android (AMOS WS 2024)
+
+[![REUSE status](https://api.reuse.software/badge/github.com/amosproj/amos2024ws03-android-zero-instrumentation)](https://api.reuse.software/info/github.com/amosproj/amos2024ws03-android-zero-instrumentation)
 
 
 ## Building
