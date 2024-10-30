@@ -34,3 +34,10 @@ bin/
 
 # MacOS
 .DS_Store
+
+# Direnv
+/.direnv
+
+target
+
+sbom.json
