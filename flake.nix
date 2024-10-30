@@ -184,6 +184,56 @@
               (cd "$ROOT" && python utils/generate_sbom.py)
             '';
 
+          rustCiPreamble = ''
+            export PATH=${pkgs.lib.makeBinPath (with pkgs; [ protobuf clang ] ++ packageGroups.rustPkgs)}:$PATH
+            set -euo pipefail
+          '';
+          frontendCiPreamble =
+            let
+              minimalSdkPkgs = with pkgs.androidSdkPackages; [ cmdline-tools-latest build-tools-35-0-0 platforms-android-35 platform-tools ];
+              minimalSdk = pkgs.androidSdk (_: minimalSdkPkgs);
+            in
+            ''
+              export PATH=${pkgs.lib.makeBinPath (with pkgs; [ openjdk21 minimalSdk ])}:$PATH;
+              export ANDROID_SDK_ROOT=${minimalSdk}/share/android-sdk
+              export ANDROID_HOME=$ANDROID_SDK_ROOT
+              set -euo pipefail
+            '';
+
+          rustLint = pkgs.writeShellScriptBin "rust-lint" ''
+            ${rustCiPreamble}
+            (cd rust && cargo clippy)
+          '';
+
+          rustBuildTest = pkgs.writeShellScriptBin "rust-build-test" ''
+            ${rustCiPreamble}
+            (cd rust && cargo build && cargo test)
+          '';
+
+          reuseLint = pkgs.writeShellScriptBin "reuse-lint" ''
+            ${pkgs.reuse}/bin/reuse lint
+          '';
+
+          gradleLint = pkgs.writeShellScriptBin "gradle-lint" ''
+            ${frontendCiPreamble}
+            (
+              cd frontend
+              ./gradlew ktfmtCheck
+              ./gradlew versionCatalogUpdate && git diff --exit-code
+              ./gradlew lint
+            )
+          '';
+
+          gradleBuildTest = pkgs.writeShellScriptBin "gradle-build-test" ''
+            ${frontendCiPreamble}
+            (
+              cd frontend
+              ./gradlew build
+              ./gradlew test
+            )
+          '';
+
+
         in
         {
           devShells = {
@@ -194,6 +244,8 @@
             dockerBuilder = builder;
             toolsSbom = pkgs.buildBom toolsDevShell { };
             generateSbom = generateSbom;
+
+            inherit rustLint rustBuildTest reuseLint gradleLint gradleBuildTest;
           };
         };
     };
