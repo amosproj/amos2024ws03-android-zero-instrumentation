@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+name: "Setup Gradle Cache"
+description: "Sets up a cache for Gradle builds"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Gradle cache
+      uses: burrunan/gradle-cache-action@v1
+      with:
+        build-root-directory: frontend
