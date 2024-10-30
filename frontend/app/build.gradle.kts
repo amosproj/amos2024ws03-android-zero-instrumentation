@@ -16,7 +16,7 @@ android {
     defaultConfig {
         applicationId = "de.amosproj3.ziofa"
         minSdk = 33
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = rootProject.version.toString()
 
@@ -24,6 +24,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+    }
+
+    lint {
+        ignoreWarnings = false
     }
 
     buildTypes {
