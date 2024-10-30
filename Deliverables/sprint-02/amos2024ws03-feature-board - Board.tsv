@@ -1,0 +1,18 @@
+Title	URL	Assignees	Status	Estimated size	Real size
+Brain Storming Architecture	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/3		Sprint Backlog	3	
+Define Project Goals / Project Features	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/2		Sprint Backlog	3	
+Preperation of CI	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/6		Sprint Backlog	3	
+Brain Storming eBPF Use Cases	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/1		Sprint Backlog	2	
+Preperation of Kotlin	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/7	clabrous, luca-dot-sh	Awaiting Review	3	
+License and Copyright Agreement	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/18	fhilgers	In Progress	2	
+scope(ui) find timeseries visualization library (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/21	clabrous, luca-dot-sh	In Progress	2	
+architecture document	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/10		In Progress	3	
+bill of materials	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/9	BenediktZinn, der-whity, Mr-Kanister	In Progress	3	
+Docker Container	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/11	fhilgers	Awaiting Review	3	
+scope(build) aarch64 als target	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/23	fhilgers	Awaiting Review	1	
+scope(build) android 13 instead of 15	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/24	fhilgers	Awaiting Review	1	
+Team Decision	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/8	BenediktZinn, clabrous, der-whity, ffranzgitHub, fhilgers, luca-dot-sh, Mr-Kanister	Awaiting Review	1	
+scope(ebpf/daemon) uprobe	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/19		Product Backlog	-1	
+scope(daemon) get information about android processes to list/find/search them (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/20		Product Backlog	-1	
+scope(ui) show information about which apps are available (depends on the daemon search functionality)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/25		Product Backlog	-1	
+scope(ebpf) unix domain socket traffic analysis (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/22		Product Backlog	-1	
