@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Tuple
+from typing import Tuple
 from pathlib import Path
 import subprocess
 
