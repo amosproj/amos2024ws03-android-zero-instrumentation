@@ -73,17 +73,17 @@ def generate_sboms(path_for_recursive: list[Tuple[Path, bool]]) -> list[Path]:
 
                 if 'Cargo.toml' in files:
                     sbom_able_projects.append((generate_rust_sbom, root_path))
-                elif 'build.gradle' in files:
+                elif 'build.gradle.kts' in files:
                     sbom_able_projects.append((generate_kotlin_sbom, root_path))
         else:
             files_of_dir = os.listdir(tgf_dir)
 
             if 'Cargo.toml' in files_of_dir:
                 sbom_able_projects.append((generate_rust_sbom, tgf_dir))
-            elif 'build.gradle' in files_of_dir:
+            elif 'build.gradle.kts' in files_of_dir:
                 sbom_able_projects.append((generate_kotlin_sbom, tgf_dir))
             else:
-                print("??? No 'Cargo.toml' or 'build.gradle' in none-recursive-search dir")
+                print("??? No 'Cargo.toml' or 'build.gradle.kts' in none-recursive-search dir")
 
     if not sbom_able_projects:
         print("!!!   No projects found")
@@ -120,6 +120,7 @@ def main():
     # directory (base_dir / "foo") | recursive (True/False)
     dirs_to_generate_sbom_for = [
         (base_dir / "rust", False),
+        (base_dir / "frontend", False),
     ]
 
     generate_sboms(dirs_to_generate_sbom_for)
