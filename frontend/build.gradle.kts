@@ -29,7 +29,7 @@ tasks.dependencyUpdates.configure {
 tasks.cyclonedxBom {
     setIncludeConfigs(listOf("releaseRuntimeClasspath"))
     setProjectType("application")
-    setSchemaVersion("1.6")
+    setSchemaVersion("1.5")
     setDestination(project.file("build/reports"))
     setOutputName("bom")
     setOutputFormat("json")
