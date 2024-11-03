@@ -81,6 +81,7 @@
               protobuf
               bpf-linker
               cyclonedx-cli
+              cargo-cyclonedx
             ];
 
             combined =
@@ -166,6 +167,17 @@
             packages = packageGroups.combined;
           };
 
+          generateSbom =
+            let
+              PATH = pkgs.lib.makeBinPath (with packageGroups; base ++ sdkBase ++ rustPkgs ++ miscPkgs);
+            in
+            pkgs.writeShellScriptBin "generate-sbom.sh" ''
+              set -Euo pipefail
+              ROOT="$(${pkgs.git}/bin/git rev-parse --show-toplevel)"
+              export PATH="${PATH}:$PATH"
+              (cd "$ROOT" && python utils/generate_sbom.py)
+            '';
+
         in
         {
           devShells = {
@@ -175,6 +187,7 @@
             dockerBuilderBase = builderBase;
             dockerBuilder = builder;
             toolsSbom = pkgs.buildBom toolsDevShell { };
+            generateSbom = generateSbom;
           };
         };
     };
