@@ -24,8 +24,6 @@ impl CounterImpl {
 
 #[tonic::async_trait]
 impl Counter for CounterImpl {
-    type ServerCountStream = ResponseStream;
-
     async fn load_program(&self, req: Request<LoadProgramRequest>) -> Result<Response<LoadProgramResponse>, Status> {
         let mut guard = self.ebpf.lock().await;
         let program: &mut Xdp = guard.program_mut(&req.into_inner().name).unwrap().try_into().unwrap();
@@ -36,10 +34,12 @@ impl Counter for CounterImpl {
         Ok(Response::new(LoadProgramResponse { loaded: true }))
     }
 
+    type ServerCountStream = ResponseStream;
+
     async fn server_count(&self, _: Request<()>) -> Result<Response<Self::ServerCountStream>, Status> {
         let mut guard = self.ebpf.lock().await;
         let events = RingBuf::try_from(guard.take_map("EVENTS").unwrap()).unwrap();
-        let mut poll = AsyncFd::new(events).unwrap(); 
+        let mut poll = AsyncFd::new(events).unwrap();
 
         let (tx, rx) = mpsc::channel(128);
 
@@ -55,7 +55,7 @@ impl Counter for CounterImpl {
                 guard.clear_ready();
             }
         });
-        
+
 
         let output_stream = ReceiverStream::new(rx);
 
