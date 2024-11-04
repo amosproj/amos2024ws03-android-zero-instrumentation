@@ -5,13 +5,14 @@ use shared::ziofa::{
 };
 use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
 use tonic::{transport::Server, Request, Response, Status};
+use tokio::sync::mpsc;
 
 #[derive(Default)]
 pub struct ZiofaImpl {}
 
 #[tonic::async_trait]
 impl Ziofa for ZiofaImpl {
-    async fn list_ebpf_programs(
+    async fn list_ebpf_programs (
         &self,
         _: Request<()>,
     ) -> Result<Response<ListEbpfProgramsResponse>, Status> {
@@ -32,28 +33,29 @@ impl Ziofa for ZiofaImpl {
 
     type LoadEbpfProgramStream = ReceiverStream<Result<LoadEbpfProgramResponse, Status>>;
 
-    async fn load_ebpf_program(
+    async fn load_ebpf_program (
         &self,
         request: Request<LoadEbpfProgramRequest>,
     ) -> Result<Response<Self::LoadEbpfProgramStream>, Status> {
         // get all requested programs
         let programs = request.into_inner().programs;
+        let (tx, rx) = mpsc::channel(5);
 
         // load each requested program
-        for program in programs {
-            let name = program.name;
-            
-            if (name == "ebpf_program1") {
-                let ret = dummy_functions::ebpf_program1();
-                
-            } else if (name == "ebpf_program2") {
-                let ret = dummy_functions::ebpf_program2();
-                
-            } else {
-                
-            }
-        }
+        tokio::spawn(async move {
+            for program in programs {
+                let name = program.name;
 
+                if (name == "ebpf_program1") {
+                    let ret = dummy_functions::ebpf_program1(&tx);
+                } else if (name == "ebpf_program2") {
+                    let ret = dummy_functions::ebpf_program2(&tx);
+                } else {
+                }
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 }
 

@@ -26,8 +26,8 @@ message EbpfProgram {
 }
 
 message ProgramResponse1 {
-    
+    uint64 time = 1;
 }
 message ProgramResponse2 {
-
+    string time = 1;
 }
