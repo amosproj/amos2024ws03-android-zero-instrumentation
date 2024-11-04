@@ -3,9 +3,9 @@ use shared::ziofa::ziofa_server::{Ziofa, ZiofaServer};
 use shared::ziofa::{
     EbpfProgram, ListEbpfProgramsResponse, LoadEbpfProgramRequest, LoadEbpfProgramResponse,
 };
-use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
-use tonic::{transport::Server, Request, Response, Status};
 use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
+use tonic::{transport::Server, Request, Response, Status};
 
 #[derive(Default)]
 pub struct ZiofaImpl {}
@@ -39,17 +39,17 @@ impl Ziofa for ZiofaImpl {
     ) -> Result<Response<Self::LoadEbpfProgramStream>, Status> {
         // get all requested programs
         let programs = request.into_inner().programs;
-        let (tx, rx) = mpsc::channel(5);
+        let (tx, rx) = mpsc::channel(1);
 
         // load each requested program
         tokio::spawn(async move {
             for program in programs {
                 let name = program.name;
 
-                if (name == "ebpf_program1") {
-                    let ret = dummy_functions::ebpf_program1(&tx);
-                } else if (name == "ebpf_program2") {
-                    let ret = dummy_functions::ebpf_program2(&tx);
+                if "ebpf_program1" == name {
+                    dummy_functions::ebpf_program1(&tx).await;
+                } else if name == "ebpf_program2" {
+                    dummy_functions::ebpf_program2(&tx).await;
                 } else {
                 }
             }

@@ -5,7 +5,7 @@ use tokio::sync::mpsc::Sender;
 use tonic::Status;
 
 pub async fn ebpf_program1(tx: &Sender<Result<LoadEbpfProgramResponse, Status>>) {
-    for i in 1..10 {
+    for _ in 1..10 {
         // get current millis
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -27,7 +27,7 @@ pub async fn ebpf_program1(tx: &Sender<Result<LoadEbpfProgramResponse, Status>>)
 }
 
 pub async fn ebpf_program2(tx: &Sender<Result<LoadEbpfProgramResponse, Status>>) {
-    for i in 1..10 {
+    for _ in 1..10 {
         // get current millis
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
