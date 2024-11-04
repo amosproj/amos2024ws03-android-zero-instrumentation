@@ -1,8 +1,7 @@
-use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
-use tonic::{transport::Server, Request, Response, Status};
 use crate::main_helpers;
-use shared::ziofa::{ListEbpfProgramsRequest, ListEbpfProgramsResponse, EbpfProgram};
 use shared::ziofa::ziofa_server::{Ziofa, ZiofaServer};
+use shared::ziofa::{EbpfProgram, ListEbpfProgramsResponse};
+use tonic::{transport::Server, Request, Response, Status};
 
 #[derive(Default)]
 pub struct ZiofaImpl {}
@@ -10,15 +9,14 @@ pub struct ZiofaImpl {}
 #[tonic::async_trait]
 impl Ziofa for ZiofaImpl {
     async fn list_ebpf_programs(
-        &self,
-        request: Request<ListEbpfProgramsRequest>,
+        &self, _: Request<()>
     ) -> Result<Response<ListEbpfProgramsResponse>, Status> {
         let ret = vec![
-            EbpfProgram{
+            EbpfProgram {
                 id: 1,
                 description: format!("Test1")
             },
-            EbpfProgram{
+            EbpfProgram {
                 id: 2,
                 description: format!("Test2")
             }

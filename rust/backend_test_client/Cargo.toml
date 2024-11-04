@@ -1,0 +1,9 @@
+[package]
+name = "backend_test_client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tonic = { workspace = true }
+shared = { path = "../shared"}
+tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }

@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package ziofa;
 
-service Ziofa {
-    rpc ListEbpfPrograms(ListEbpfProgramsRequest) returns (ListEbpfProgramsResponse) {}
-}
+import "google/protobuf/empty.proto";
 
-message ListEbpfProgramsRequest {}
+service Ziofa {
+    rpc ListEbpfPrograms(google.protobuf.Empty) returns (ListEbpfProgramsResponse) {}
+}
 
 message ListEbpfProgramsResponse {
     repeated EbpfProgram program = 1;

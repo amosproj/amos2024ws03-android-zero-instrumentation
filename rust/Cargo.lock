@@ -326,6 +326,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "backend_test_client"
+version = "0.1.0"
+dependencies = [
+ "shared",
+ "tokio",
+ "tonic",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
