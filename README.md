@@ -4,10 +4,11 @@ SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 SPDX-License-Identifier: MIT
 -->
 
-# Zero Instrumentation Observability for Android (AMOS WS 2024)
+# Zero Instrumentation Observability for Android™[^1] (AMOS WS 2024)
 
 [![REUSE status](https://api.reuse.software/badge/github.com/amosproj/amos2024ws03-android-zero-instrumentation)](https://api.reuse.software/info/github.com/amosproj/amos2024ws03-android-zero-instrumentation)
 
+<img src="Deliverables/sprint-01/team-logo.svg" width="224">
 
 ## Building
 
@@ -34,3 +35,5 @@ It is currently hosted in the github registry under `ghcr.io/fhilgers/ziofa-buil
 
 For a working emulator inside the docker image, you will need some form of X11 forwarding.
 Installing nix and using the development shell is the recommended approach for development.
+
+[^1]: Android is a trademark of Google LLC. The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.
