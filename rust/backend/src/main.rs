@@ -1,4 +1,3 @@
-mod ebpf_info;
 mod main_helpers;
 mod server;
 
@@ -11,6 +10,6 @@ async fn main() {
     // apparently needed...
     main_helpers::bump_rlimit();
 
-    server::server_forever().await;
+    server::serve_forever().await;
 }
 

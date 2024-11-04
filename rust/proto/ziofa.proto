@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package ziofa;
+
+service Ziofa {
+    rpc ListEbpfPrograms(ListEbpfProgramsRequest) returns (ListEbpfProgramsResponse) {}
+}
+
+message ListEbpfProgramsRequest {}
+
+message ListEbpfProgramsResponse {
+    repeated EbpfProgram program = 1;
+}
+
+message EbpfProgram {
+    uint32 id = 1;
+    string description = 2;
+}
