@@ -94,6 +94,8 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
     testImplementation(libs.koin.test)
+    implementation(libs.jackwharton.timber)
+    implementation(libs.androidx.navigation.compose)
 }
 
 tasks.cyclonedxBom {

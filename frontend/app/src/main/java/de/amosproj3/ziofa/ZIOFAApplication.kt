@@ -12,6 +12,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
+import timber.log.Timber
 
 class ZIOFAApplication : Application() {
 
@@ -22,6 +23,7 @@ class ZIOFAApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Timber.plant(Timber.DebugTree()) // start Timber logging
 
         startKoin {
             androidLogger()
