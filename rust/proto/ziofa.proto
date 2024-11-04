@@ -1,18 +1,33 @@
 syntax = "proto3";
 
-package ziofa;
-
 import "google/protobuf/empty.proto";
+package ziofa;
 
 service Ziofa {
     rpc ListEbpfPrograms(google.protobuf.Empty) returns (ListEbpfProgramsResponse) {}
+    rpc LoadEbpfProgram(LoadEbpfProgramRequest) returns (stream LoadEbpfProgramResponse) {}
 }
 
 message ListEbpfProgramsResponse {
-    repeated EbpfProgram program = 1;
+    repeated EbpfProgram programs = 1;
+}
+
+message LoadEbpfProgramRequest {
+    repeated EbpfProgram programs = 1;
+}
+message LoadEbpfProgramResponse {
+    optional ProgramResponse1 pr1 = 1;
+    optional ProgramResponse2 pr2 = 2;
 }
 
 message EbpfProgram {
-    uint32 id = 1;
+    string name = 1;
     string description = 2;
+}
+
+message ProgramResponse1 {
+    
+}
+message ProgramResponse2 {
+
 }

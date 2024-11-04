@@ -1,5 +1,6 @@
 mod main_helpers;
 mod server;
+mod dummy_functions;
 
 use tokio;
 #[tokio::main]
