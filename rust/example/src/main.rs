@@ -15,6 +15,8 @@ use tokio_stream::{wrappers::ReceiverStream, Stream};
 use tonic::{transport::Server, Request, Response, Status};
 use std::{net::ToSocketAddrs, pin::Pin, sync::Arc};
 
+mod counter;
+
 struct CounterImpl {
     iface: String,
     ebpf: Arc<Mutex<Ebpf>>,

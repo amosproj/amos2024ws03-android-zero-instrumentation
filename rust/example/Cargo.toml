@@ -13,6 +13,7 @@ edition.workspace = true
 
 [dependencies]
 example-common = { path = "../example-common", features = ["user"] }
+aya-wrapper = { path = "../aya-wrapper" }
 
 anyhow = { workspace = true, default-features = true }
 aya = { workspace = true }
@@ -27,6 +28,8 @@ clap = { workspace = true, features = ["derive"] }
 prost = { workspace = true }
 tonic = { workspace = true }
 tokio-stream = { workspace = true }
+thiserror = "1.0.68"
+async-stream = "0.3.6"
 [build-dependencies]
 cargo_metadata = { workspace = true }
 # TODO(https://github.com/rust-lang/cargo/issues/12375): this should be an artifact dependency, but
@@ -43,6 +46,10 @@ cargo_metadata = { workspace = true }
 # features.
 example-ebpf = { path = "../example-ebpf" }
 xtask = { path = "../xtask" }
+
+[dev-dependencies]
+aya-wrapper = { path = "../aya-wrapper", features = ["mocks"]}
+eventfd = "0.2.0"
 
 [[bin]]
 name = "example"

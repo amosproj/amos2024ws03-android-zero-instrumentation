@@ -1,0 +1,15 @@
+[package]
+name = "aya-wrapper"
+version = "0.1.0"
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+aya = { workspace = true }
+aya-obj = "0.2.1"
+mockall = { workspace = true, features = ["nightly"] }
+slotmap = "1.0.7"
+
+[features]
+mocks = []
