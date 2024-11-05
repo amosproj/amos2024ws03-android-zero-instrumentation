@@ -12,14 +12,11 @@ pub async fn ebpf_program1(tx: Sender<Result<EbpfStreamObject, Status>>) {
             .unwrap()
             .as_millis();
 
-        let obj = Some(shared::ziofa::ebpf_stream_object::Concrete::Concrete1(
-            ConcreteEbpfStreamObject1 {
-                time: time as u64
-            }));
+        let obj = ConcreteEbpfStreamObject1 {
+                    time: time as u64
+                };
 
-        tx.send(Ok(EbpfStreamObject {
-            concrete: obj
-        }))
+        tx.send(Ok(obj.create_stream_object()))
         .await
         .unwrap();
 
@@ -37,13 +34,12 @@ pub async fn ebpf_program2(tx: Sender<Result<EbpfStreamObject, Status>>) {
             .unwrap()
             .as_millis();
 
-        let obj = Some(shared::ziofa::ebpf_stream_object::Concrete::Concrete2(
-            ConcreteEbpfStreamObject2{
-                time: time.to_string()
-            }));
+        let obj = ConcreteEbpfStreamObject2{
+                    time: time.to_string()
+                };
 
         // send packet to client
-        tx.send(Ok(EbpfStreamObject { concrete: obj }))
+        tx.send(Ok(obj.create_stream_object()))
         .await
         .unwrap();
 
