@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2024 The AMOS Projects
+
+SPDX-License-Identifier: MIT
+-->
+
 ---
 name: Feature request
 about: Suggest new feature (using user story)

@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+version = 1
+
+[[annotations]]
+path = [
+    "frontend/app/src/main/res/**",
+]
+SPDX-License-Identifier = "CC-BY-4.0"
+SPDX-FileCopyrightText = "2024 Luca Bretting <luca.bretting@fau.de>"
+
+[[annotations]]
+path = [
+    "frontend/gradlew",
+    "frontend/gradlew.bat",
+    "frontend/gradle/wrapper/gradle-wrapper.jar",
+]
+SPDX-License-Identifier = "Apache-2.0"
+SPDX-FileCopyrightText = "2015 the original author or authors"
+
+[[annotations]]
+path = [
+    "Deliverables/**",
+]
+SPDX-License-Identifier = "CC-BY-4.0"
+SPDX-FileCopyrightText = "2024 The AMOS Projects"
+
+
+[[annotations]]
+path = [
+    "poetry.lock",
+    "flake.lock",
+    "rust/Cargo.lock",
+]
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"

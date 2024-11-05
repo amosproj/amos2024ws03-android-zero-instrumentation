@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+# SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
 {
   description = "A very basic flake";
 
@@ -82,6 +87,7 @@
               bpf-linker
               cyclonedx-cli
               cargo-cyclonedx
+              reuse
             ];
 
             combined =

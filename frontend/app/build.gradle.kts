@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
