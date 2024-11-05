@@ -35,7 +35,7 @@ async fn main() {
             Some(x) => x.time,
             None => "nothing".parse().unwrap()
         };
-        println!("pr2: {}", pr1_str);
+        println!("pr1: {}", pr1_str);
         let pr2_str = match pr2{
             Some(x) => x.time,
             None => "nothing".parse().unwrap()

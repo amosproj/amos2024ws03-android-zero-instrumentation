@@ -41,3 +41,5 @@ bin/
 target
 
 sbom.json
+
+.codebuddy/
