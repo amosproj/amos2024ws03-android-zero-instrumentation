@@ -29,3 +29,4 @@ gradle.rootProject{
     version="0.1"
 }
 include(":app")
+include(":client")
