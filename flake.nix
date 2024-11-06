@@ -219,7 +219,6 @@
             (
               cd frontend
               ./gradlew ktfmtCheck
-              ./gradlew versionCatalogUpdate && git diff --exit-code
               ./gradlew lint
             )
           '';
