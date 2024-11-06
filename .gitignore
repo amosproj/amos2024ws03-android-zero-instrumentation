@@ -32,10 +32,6 @@ dist/
 .idea/
 out/
 
-# Eclipse IDE
-.project
-bin/
-
 # MacOS
 .DS_Store
 

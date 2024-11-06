@@ -4,16 +4,31 @@
 #
 # SPDX-License-Identifier: MIT
 
+[lib]
+name = "client"
+crate-type = ["cdylib", "rlib"]
+
 [package]
 name = "client"
 version = "0.1.0"
 license.workspace = true
 repository.workspace = true
 edition.workspace = true
+default-run = "client"
 
 [dependencies]
 anyhow = { workspace = true }
 prost = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "signal"] }
 tonic = { workspace = true }
-shared = { path = "../shared" }
+tokio = { workspace = true, features = [ "rt-multi-thread" ] }
+tokio-stream = { workspace = true }
+thiserror = { workspace = true }
+uniffi = { workspace = true, optional = true, features = ["tokio"] }
+shared = { workspace = true }
+
+[features]
+uniffi = [ "dep:uniffi" ]
+
+[[bin]]
+name = "client"
+path = "src/bin/cli.rs"
