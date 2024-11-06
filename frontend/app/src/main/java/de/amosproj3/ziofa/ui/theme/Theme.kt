@@ -4,7 +4,6 @@
 
 package de.amosproj3.ziofa.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -42,7 +41,8 @@ fun ZIOFATheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val colorScheme = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    
+    val colorScheme =
+        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+
     MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }

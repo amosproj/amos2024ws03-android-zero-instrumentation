@@ -185,15 +185,16 @@
             '';
 
           rustCiPreamble = ''
-            export PATH=${pkgs.lib.makeBinPath (with pkgs; [ protobuf clang ] ++ packageGroups.rustPkgs)}:$PATH
+            export PATH=${pkgs.lib.makeBinPath (with pkgs; [ protobuf clang cargo-ndk bpf-linker ] ++ packageGroups.rustPkgs)}:$PATH
             set -euo pipefail
           '';
           frontendCiPreamble =
             let
-              minimalSdkPkgs = with pkgs.androidSdkPackages; [ cmdline-tools-latest build-tools-35-0-0 platforms-android-35 platform-tools ];
+              minimalSdkPkgs = with pkgs.androidSdkPackages; [ cmdline-tools-latest build-tools-35-0-0 platforms-android-35 platform-tools ndk-28-0-12433566 ];
               minimalSdk = pkgs.androidSdk (_: minimalSdkPkgs);
             in
             ''
+              ${rustCiPreamble}
               export PATH=${pkgs.lib.makeBinPath (with pkgs; [ openjdk21 minimalSdk ])}:$PATH;
               export ANDROID_SDK_ROOT=${minimalSdk}/share/android-sdk
               export ANDROID_HOME=$ANDROID_SDK_ROOT
@@ -205,9 +206,26 @@
             (cd rust && cargo clippy)
           '';
 
-          rustBuildTest = pkgs.writeShellScriptBin "rust-build-test" ''
+          rustTest = pkgs.writeShellScriptBin "rust-test" ''
             ${rustCiPreamble}
-            (cd rust && cargo build && cargo test)
+            (cd rust && cargo test)
+          '';
+          
+          rustBuildRelease = pkgs.writeShellScriptBin "rust-build-release" ''
+            ${frontendCiPreamble}
+            export AYA_BUILD_EBPF=true
+            (
+              cd rust
+              cargo ndk --target x86_64 build --package example --release
+              cargo ndk --target arm64-v8a build --package example --release
+              cargo ndk --target x86_64 build --package client --features uniffi --release
+              cargo ndk --target arm64-v8a build --package client --features uniffi --release
+              mkdir -p /tmp/outputs/
+              cp target/x86_64-linux-android/release/example /tmp/outputs/daemon-x86_64-linux-android
+              cp target/x86_64-linux-android/release/libclient.so /tmp/outputs/libclient-x86_64-linux-android.so
+              cp target/aarch64-linux-android/release/example /tmp/outputs/daemon-aarch64-linux-android
+              cp target/aarch64-linux-android/release/libclient.so /tmp/outputs/libclient-aarch64-linux-android.so
+            )
           '';
 
           reuseLint = pkgs.writeShellScriptBin "reuse-lint" ''
@@ -223,12 +241,21 @@
             )
           '';
 
-          gradleBuildTest = pkgs.writeShellScriptBin "gradle-build-test" ''
+          gradleTest = pkgs.writeShellScriptBin "gradle-build-test" ''
             ${frontendCiPreamble}
             (
               cd frontend
-              ./gradlew build
-              ./gradlew test
+              ./gradlew check
+            )
+          '';
+
+          gradleBuildRelease = pkgs.writeShellScriptBin "gradle-build-release" ''
+            ${frontendCiPreamble}
+            (
+              cd frontend
+              ./gradlew app:assembleRelease
+              mkdir -p /tmp/outputs
+              cp app/build/outputs/apk/release/app-*-release-unsigned.apk /tmp/outputs
             )
           '';
 
@@ -244,7 +271,7 @@
             toolsSbom = pkgs.buildBom toolsDevShell { };
             generateSbom = generateSbom;
 
-            inherit rustLint rustBuildTest reuseLint gradleLint gradleBuildTest;
+            inherit rustLint rustTest reuseLint gradleLint gradleTest rustBuildRelease gradleBuildRelease;
           };
         };
     };

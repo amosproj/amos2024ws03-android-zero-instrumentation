@@ -22,6 +22,7 @@ android {
     namespace = "de.amosproj3.ziofa.client"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
+    ndkVersion = "28.0.12433566"
 
     defaultConfig {
         minSdk = 33

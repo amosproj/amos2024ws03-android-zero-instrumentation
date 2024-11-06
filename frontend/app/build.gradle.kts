@@ -12,6 +12,7 @@ android {
     namespace = "de.amosproj3.ziofa"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
+    ndkVersion = "28.0.12433566"
 
     defaultConfig {
         applicationId = "de.amosproj3.ziofa"
@@ -23,6 +24,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            isUniversalApk = false
+            reset()
+            include("x86_64", "arm64-v8a")
         }
     }
 
