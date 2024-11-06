@@ -27,12 +27,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.client.Client
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.ui.theme.ZIOFATheme
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -40,7 +38,7 @@ import org.koin.androidx.compose.KoinAndroidContext
 
 class MainActivity : ComponentActivity() {
 
-    private val clientFactory : ClientFactory by inject()
+    private val clientFactory: ClientFactory by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,10 +56,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Counter(
-    clientFactory: ClientFactory,
-    modifier: Modifier = Modifier,
-) {
+fun Counter(clientFactory: ClientFactory, modifier: Modifier = Modifier) {
     var client by remember { mutableStateOf<Client?>(null) }
     var waiting by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -70,9 +65,7 @@ fun Counter(
 
     LaunchedEffect(client) {
         client?.loadProgram("example")
-        client?.serverCount?.collect {
-            maybeCount = it
-        }
+        client?.serverCount?.collect { maybeCount = it }
     }
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.fillMaxSize()) {
@@ -82,27 +75,23 @@ fun Counter(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
                     onClick = {
-                        waiting = true;
-                        error = null;
+                        waiting = true
+                        error = null
                         scope.launch {
                             try {
                                 client = clientFactory.connect(scope, "http://[::1]:50051")
                             } catch (e: Exception) {
                                 error = e.message
                             }
-                            waiting = false;
+                            waiting = false
                         }
                     },
-                    enabled = !waiting
+                    enabled = !waiting,
                 ) {
                     Text("Connect")
                 }
-                error?.let {
-                    Text(it, style = LocalTextStyle.current.copy(color = Color.Red))
-                }
+                error?.let { Text(it, style = LocalTextStyle.current.copy(color = Color.Red)) }
             }
-
         }
     }
-
 }

@@ -1,3 +1,5 @@
+import com.android.utils.TraceUtils.simpleId
+
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -16,6 +18,14 @@ plugins {
     alias(libs.plugins.rust.android) apply false
 }
 
+
+subprojects {
+    apply { plugin(rootProject.libs.plugins.com.ncorti.ktfmt.gradle.get().pluginId) }
+
+    ktfmt {
+        kotlinLangStyle()
+    }
+}
 
 fun isNonStable(version: String): Boolean {
     val stableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase().contains(it) }

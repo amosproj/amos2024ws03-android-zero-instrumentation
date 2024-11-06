@@ -26,9 +26,7 @@ class ZIOFAApplication : Application() {
         startKoin {
             androidLogger()
             androidContext(this@ZIOFAApplication)
-            modules(
-                appModule
-            )
+            modules(appModule)
         }
     }
 }

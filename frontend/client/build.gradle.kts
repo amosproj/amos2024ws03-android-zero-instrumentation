@@ -4,7 +4,7 @@ import org.gradle.internal.extensions.stdlib.capitalized
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.rust.android) apply true
+    alias(libs.plugins.rust.android)
 }
 
 val rustDir = rootProject.file("../rust")
