@@ -1,10 +1,13 @@
+# SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+#
+# SPDX-License-Identifier: MIT
 [versions]
 activityCompose = "1.9.3"
 # @pin incompatible otherwise
 agp = "8.6.0"
 benmanes-versions = "0.51.0"
-composeBom = "2024.10.00"
-coreKtx = "1.13.1"
+composeBom = "2024.10.01"
+coreKtx = "1.15.0"
 cyclonedx = "1.10.0"
 espressoCore = "3.6.1"
 junit = "4.13.2"
@@ -12,8 +15,10 @@ junitVersion = "1.2.1"
 koin = "4.0.0"
 kotlin = "2.0.21"
 ktfmt = "0.20.1"
-lifecycleRuntimeKtx = "2.8.6"
+lifecycleRuntimeKtx = "2.8.7"
 versioncatalogueupdate = "0.8.5"
+rust-android = "0.9.4"
+jna = "5.15.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -34,6 +39,7 @@ koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-test = { module = "io.insert-koin:koin-test-junit4", version.ref = "koin" }
+jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -43,3 +49,5 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 nl-littlerobots-versioncatalogueupdate = { id = "nl.littlerobots.version-catalog-update", version.ref = "versioncatalogueupdate" }
 org-cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rust-android" }

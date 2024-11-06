@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,11 +12,12 @@ android {
     namespace = "de.amosproj3.ziofa"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
+    ndkVersion = "28.0.12433566"
 
     defaultConfig {
         applicationId = "de.amosproj3.ziofa"
         minSdk = 33
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = rootProject.version.toString()
 
@@ -20,6 +25,19 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            isUniversalApk = false
+            reset()
+            include("x86_64", "arm64-v8a")
+        }
+    }
+
+    lint {
+        ignoreWarnings = false
     }
 
     buildTypes {
@@ -67,6 +85,8 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation(project(":client"))
 
     compileOnly(libs.koin.core)
     implementation(libs.koin.android)

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Frontend App for Zero Instrumentation Observability for Android
 
 ## Important Gradle tasks

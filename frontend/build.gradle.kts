@@ -1,4 +1,8 @@
-import com.android.build.gradle.internal.tasks.factory.dependsOn
+import com.android.utils.TraceUtils.simpleId
+
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
@@ -10,8 +14,18 @@ plugins {
     alias(libs.plugins.nl.littlerobots.versioncatalogueupdate) apply true
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.com.ncorti.ktfmt.gradle) apply true
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.rust.android) apply false
 }
 
+
+subprojects {
+    apply { plugin(rootProject.libs.plugins.com.ncorti.ktfmt.gradle.get().pluginId) }
+
+    ktfmt {
+        kotlinLangStyle()
+    }
+}
 
 fun isNonStable(version: String): Boolean {
     val stableKeyword = listOf("RELEASE", "FINAL", "GA").any { version.uppercase().contains(it) }
@@ -29,7 +43,7 @@ tasks.dependencyUpdates.configure {
 tasks.cyclonedxBom {
     setIncludeConfigs(listOf("releaseRuntimeClasspath"))
     setProjectType("application")
-    setSchemaVersion("1.6")
+    setSchemaVersion("1.5")
     setDestination(project.file("build/reports"))
     setOutputName("bom")
     setOutputFormat("json")
