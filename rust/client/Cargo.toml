@@ -32,3 +32,8 @@ uniffi = [ "dep:uniffi" ]
 [[bin]]
 name = "client"
 path = "src/bin/cli.rs"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+required-features = ["uniffi", "uniffi/cli"]
