@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 import com.nishtahir.CargoBuildTask
 import org.gradle.internal.extensions.stdlib.capitalized
 

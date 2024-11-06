@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use shared::counter::{counter_client::CounterClient, LoadProgramRequest};
 use tokio_stream::{Stream, StreamExt};
 use tonic::transport::Channel;
