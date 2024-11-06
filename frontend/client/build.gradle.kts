@@ -62,10 +62,20 @@ cargo {
     }
 }
 
+val desktopLibsJar = tasks.register<Jar>("desktopLibsJar") {
+    archiveBaseName = "desktop"
+
+    dependsOn(tasks.getByName("cargoBuild"))
+
+    from(layout.buildDirectory.dir("rustJniLibs/desktop").get().asFile)
+    destinationDirectory.set(layout.buildDirectory.file("rustJniLibs").get().asFile)
+}
+
 dependencies {
 
     implementation(libs.jna) { artifact { type = "aar" } }
     testImplementation(libs.jna)
+    testImplementation(files(desktopLibsJar))
 
     implementation(libs.androidx.core.ktx)
     testImplementation(libs.junit)
