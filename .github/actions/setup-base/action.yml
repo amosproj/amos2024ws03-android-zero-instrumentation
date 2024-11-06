@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+name: "Setup Base"
+description: "Sets up nix and checks out the repository"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@main
+    - name: Restore and cache Nix store
+      uses: DeterminateSystems/magic-nix-cache-action@main

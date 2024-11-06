@@ -184,6 +184,100 @@
               (cd "$ROOT" && python utils/generate_sbom.py)
             '';
 
+          rustCiPreamble = ''
+            export PATH=${pkgs.lib.makeBinPath (with pkgs; [ protobuf clang cargo-ndk bpf-linker ] ++ packageGroups.rustPkgs)}:$PATH
+            set -euo pipefail
+          '';
+          frontendCiPreamble =
+            let
+              minimalSdkPkgs = with pkgs.androidSdkPackages; [ cmdline-tools-latest build-tools-35-0-0 platforms-android-35 platform-tools ndk-28-0-12433566 ];
+              minimalSdk = pkgs.androidSdk (_: minimalSdkPkgs);
+            in
+            ''
+              ${rustCiPreamble}
+              export PATH=${pkgs.lib.makeBinPath (with pkgs; [ openjdk21 minimalSdk ])}:$PATH;
+              export ANDROID_SDK_ROOT=${minimalSdk}/share/android-sdk
+              export ANDROID_HOME=$ANDROID_SDK_ROOT
+              set -euo pipefail
+            '';
+
+          rustLint = pkgs.writeShellScriptBin "rust-lint" ''
+            ${rustCiPreamble}
+            (cd rust && cargo clippy)
+          '';
+
+          rustTest = pkgs.writeShellScriptBin "rust-test" ''
+            ${rustCiPreamble}
+            (cd rust && cargo test)
+          '';
+
+          rustBuildRelease = pkgs.writeShellScriptBin "rust-build-release" ''
+            ${frontendCiPreamble}
+            export AYA_BUILD_EBPF=true
+            (
+              cd rust
+              cargo ndk --target x86_64 build --package example --release
+              cargo ndk --target arm64-v8a build --package example --release
+              cargo ndk --target x86_64 build --package client --features uniffi --release
+              cargo ndk --target arm64-v8a build --package client --features uniffi --release
+              mkdir -p /tmp/outputs/
+              cp target/x86_64-linux-android/release/example /tmp/outputs/daemon-x86_64-linux-android
+              cp target/x86_64-linux-android/release/libclient.so /tmp/outputs/libclient-x86_64-linux-android.so
+              cp target/aarch64-linux-android/release/example /tmp/outputs/daemon-aarch64-linux-android
+              cp target/aarch64-linux-android/release/libclient.so /tmp/outputs/libclient-aarch64-linux-android.so
+            )
+          '';
+
+          reuseLint = pkgs.writeShellScriptBin "reuse-lint" ''
+            ${pkgs.reuse}/bin/reuse lint
+          '';
+
+          gradleLint = pkgs.writeShellScriptBin "gradle-lint" ''
+            ${frontendCiPreamble}
+            (
+              cd frontend
+              ./gradlew ktfmtCheck
+              ./gradlew lint
+            )
+          '';
+
+          gradleTest = pkgs.writeShellScriptBin "gradle-build-test" ''
+            ${frontendCiPreamble}
+            (
+              cd frontend
+              ./gradlew check
+            )
+          '';
+
+          gradleBuildRelease = pkgs.writeShellScriptBin "gradle-build-release" ''
+            ${frontendCiPreamble}
+            (
+              cd frontend
+              ./gradlew app:assembleRelease
+              mkdir -p /tmp/outputs
+              cp app/build/outputs/apk/release/app-*-release-unsigned.apk /tmp/outputs
+            )
+          '';
+          
+          buildDemo = pkgs.writeShellScriptBin "build-demo" ''
+            ${frontendCiPreamble}
+            mkdir -p dist/
+            (
+              cd frontend
+              ./gradlew app:assembleDebug
+            )
+            (
+              cd rust
+              export AYA_BUILD_EBPF=true
+              cargo ndk --target x86_64 build --package example
+              cargo ndk --target arm64-v8a build --package example
+            )
+            cp frontend/app/build/outputs/apk/debug/*.apk ./dist/
+            cp rust/target/x86_64-linux-android/debug/example ./dist/daemon-x86_64-linux-android
+            cp rust/target/aarch64-linux-android/debug/example ./dist/daemon-arm64-v8a-linux-android
+          '';
+
+
         in
         {
           devShells = {
@@ -194,6 +288,8 @@
             dockerBuilder = builder;
             toolsSbom = pkgs.buildBom toolsDevShell { };
             generateSbom = generateSbom;
+
+            inherit rustLint rustTest reuseLint gradleLint gradleTest rustBuildRelease gradleBuildRelease buildDemo;
           };
         };
     };
