@@ -210,7 +210,7 @@
             ${rustCiPreamble}
             (cd rust && cargo test)
           '';
-          
+
           rustBuildRelease = pkgs.writeShellScriptBin "rust-build-release" ''
             ${frontendCiPreamble}
             export AYA_BUILD_EBPF=true
@@ -258,6 +258,24 @@
               cp app/build/outputs/apk/release/app-*-release-unsigned.apk /tmp/outputs
             )
           '';
+          
+          buildDemo = pkgs.writeShellScriptBin "build-demo" ''
+            ${frontendCiPreamble}
+            mkdir -p dist/
+            (
+              cd frontend
+              ./gradlew app:assembleDebug
+            )
+            (
+              cd rust
+              export AYA_BUILD_EBPF=true
+              cargo ndk --target x86_64 build --package example
+              cargo ndk --target arm64-v8a build --package example
+            )
+            cp frontend/app/build/outputs/apk/debug/*.apk ./dist/
+            cp rust/target/x86_64-linux-android/debug/example ./dist/daemon-x86_64-linux-android
+            cp rust/target/aarch64-linux-android/debug/example ./dist/daemon-arm64-v8a-linux-android
+          '';
 
 
         in
@@ -271,7 +289,7 @@
             toolsSbom = pkgs.buildBom toolsDevShell { };
             generateSbom = generateSbom;
 
-            inherit rustLint rustTest reuseLint gradleLint gradleTest rustBuildRelease gradleBuildRelease;
+            inherit rustLint rustTest reuseLint gradleLint gradleTest rustBuildRelease gradleBuildRelease buildDemo;
           };
         };
     };
