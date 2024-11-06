@@ -1,11 +1,18 @@
+import com.nishtahir.CargoBuildTask
 import org.gradle.internal.extensions.stdlib.capitalized
 
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.rust.android) apply true
 }
 
+val rustDir = rootProject.file("../rust")
+val linuxTarget = "linux-x86-64"
+val rustTargets = listOf("arm64", "x86_64", linuxTarget)
+val rustLibName = "client" // This has to match the name in the Cargo.toml
 fun generatedDir(subdir: String) = layout.buildDirectory.file("generated/source/uniffi/${subdir}/java").get().asFile
+
 
 android {
     namespace = "de.amosproj3.ziofa.client"
@@ -46,6 +53,15 @@ android {
     }
 }
 
+cargo {
+    module = rustDir.path
+    libname = rustLibName
+    targets = rustTargets
+    features {
+        defaultAnd(arrayOf("uniffi"))
+    }
+}
+
 dependencies {
 
     implementation(libs.jna) { artifact { type = "aar" } }
@@ -78,6 +94,14 @@ afterEvaluate {
         }
 
         tasks.getByName("compile${variant.name.capitalized()}Kotlin").dependsOn(task)
+    }
+
+    val cargoBuild = tasks.getByName("cargoBuild")
+    android.libraryVariants.forEach { variant ->
+        val productFlavor = variant.productFlavors.map { it.name.capitalized() }.joinToString { "" }
+        val buildType = variant.buildType.name.capitalized()
+
+        tasks.getByName("generate${productFlavor}${buildType}Assets").dependsOn(cargoBuild)
     }
 }
 

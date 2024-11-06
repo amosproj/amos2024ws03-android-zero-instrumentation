@@ -18,6 +18,7 @@ kotlin = "2.0.21"
 ktfmt = "0.20.1"
 lifecycleRuntimeKtx = "2.8.6"
 versioncatalogueupdate = "0.8.5"
+rust-android = "0.9.4"
 jna = "5.15.0"
 
 [libraries]
@@ -50,3 +51,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 nl-littlerobots-versioncatalogueupdate = { id = "nl.littlerobots.version-catalog-update", version.ref = "versioncatalogueupdate" }
 org-cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rust-android" }
