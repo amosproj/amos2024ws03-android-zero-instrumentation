@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-import com.android.build.gradle.internal.tasks.factory.dependsOn
-
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 plugins {
@@ -14,6 +12,7 @@ plugins {
     alias(libs.plugins.nl.littlerobots.versioncatalogueupdate) apply true
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.com.ncorti.ktfmt.gradle) apply true
+    alias(libs.plugins.android.library) apply false
 }
 
 
