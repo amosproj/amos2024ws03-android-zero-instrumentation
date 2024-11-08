@@ -1,0 +1,72 @@
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.com>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <68117355+Mr-Kanister@users.noreply.github.com>
+//
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+package ziofa;
+
+service Ziofa {
+    rpc CheckServer(google.protobuf.Empty) returns (CheckServerResponse) {}
+    rpc ListEbpfPrograms(google.protobuf.Empty) returns (EbpfProgrammList) {}
+    rpc ListProcesses(google.protobuf.Empty) returns (ProcessList) {}
+
+    rpc InitStream(google.protobuf.Empty) returns (stream EbpfStreamObject) {}      // all Responses genereated by the ebpf-programms are send via this stream
+
+    rpc LoadEbpfPrograms(EbpfProgrammList) returns (EbpfProgrammStatusList) {}
+    rpc UnloadEbpfProgramms(EbpfProgrammList) returns (EbpfProgrammStatusList) {}
+}
+
+message EbpfProgrammList {
+    repeated EbpfProgram programs = 1;
+}
+message EbpfProgrammStatusList {
+    repeated EbpfProgrammStatus programs = 1;
+}
+
+message CheckServerResponse {
+    // TODO
+}
+
+message ProcessList {
+    repeated Process processes = 1;
+}
+
+message Process {
+    uint32 pid = 1;
+    string package = 2;
+}
+
+message EbpfProgrammStatus {
+    EbpfProgram program = 1;
+    EbpfLoadingStatus status = 2;
+    optional string error_message = 3;       // only valid when status = ERROR
+}
+
+enum EbpfLoadingStatus {
+    UNCHANGED = 0;
+    ADDED = 1;
+    DROPPED = 2;
+    ERROR = 3;
+}
+
+message EbpfProgram {
+    string name = 1;
+    optional string description = 2; // description only required for client
+}
+
+message EbpfStreamObject{
+    oneof concrete {
+        ConcreteEbpfStreamObject1 concrete1 = 1;
+        ConcreteEbpfStreamObject2 concrete2 = 2;
+    }
+}
+
+message ConcreteEbpfStreamObject1 {
+    uint64 time = 1;
+}
+message ConcreteEbpfStreamObject2 {
+    string time = 1;
+}
