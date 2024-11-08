@@ -1,0 +1,51 @@
+=== eBPF client (User)
+
+==== Overview
+
+* spawns eBPF-Program
+* communicates with eBPF maps to access and process collected meta-data
+* full system capabilities such as any other privileged application
+
+==== Requirements
+
+===== Functional
+
+* accept runtime configuration via configuration-file when starting
+* configuration is changeable during runtime
+* load/ unload eBPF programs on configuration change
+* provides a list of all known observability features to clients, by evaluating Linux Kernel build flags
+* caches some events (50MB) until first client connects
+* transform data received from eBPF maps to specified format for an observability feature
+* streams observability features to clients (UI) on request
+* collects data even without connected clients
+
+===== Non functional 
+
+* low memory/ CPU footprint
+* use Rust programming language/ runtime for development 
+* (cross)-compilable from Linux amd64 host
+* runs on `aarch64` and `x86_64`
+* build with frame-pointer enabled and dwarf debug symbols
+* logging of critical events via `logd`
+
+==== Use-Case
+
+===== Enable `app-jni-leak` for an application
+
+Precondition:
+
+* observability feature `app-jni-leak` enabled
+
+Action:
+
+* client tells eBPF client to observe JNI references for PID|package 
+
+Expected behavior:
+
+* either load an eBPF program or re-configure a running eBPF program to collect JNI references data
+* on each change transform data passed via eBPF maps to specified observability feature format
+* transmit to client, if connected
+
+==== Future
+
+* pass data through to observability-pipeline (e.g. OTel collector)

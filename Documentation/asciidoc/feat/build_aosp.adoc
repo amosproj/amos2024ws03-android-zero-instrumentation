@@ -1,0 +1,157 @@
+## Build AOSP with custom kernel
+
+WARNING: WORK IN PROGRESS
+
+### Commands
+
+.Check whether tracing syscalls is enabled on an Android device
+```
+zcat /proc/config.gz| grep CONFIG_BPF_SYSCALL
+```
+
+.Build kernel
+```
+tools/bazel run //common:kernel_x86_64_dist
+tools/bazel run //common-modules/virtual-device:virtual_device_x86_64_dist
+```
+
+.Change x86 emulator to use build kernel (</data/home/<user>/test-aosp>/device/generic/goldfish/board/kernel/x86_64.mk)
+```
+#
+# Copyright (C) 2023 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# we do NOT support OTA - suppress the build warning
+PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
+
+TARGET_KERNEL_USE ?= 6.6
+KERNEL_ARTIFACTS_PATH := \
+   # CHANGE THIS DIRECTORY TO CUSTOM KERNEL
+   /data/home/<user>/android-kernel_6_6/out/kernel_x86_64/dist/
+VIRTUAL_DEVICE_KERNEL_MODULES_PATH := \
+   # CHANGE THIS DIRECTORY TO CUSTOM VIRTUAL DEVICE KERNEL
+   /data/home/<user>/android-kernel_6_6/out/virtual_device_x86_64/dist/
+
+# The list of modules to reach the second stage. For performance reasons we
+# don't want to put all modules into the ramdisk.
+RAMDISK_KERNEL_MODULES := \
+    virtio_blk.ko \
+    virtio_console.ko \
+    virtio_dma_buf.ko \
+    virtio_pci.ko \
+    virtio_pci_legacy_dev.ko \
+    virtio_pci_modern_dev.ko \
+    virtio-rng.ko \
+# WITH COMMON MAINLINE `vmw_vsock_virtio_transport_common.ko` was not built. Commenting it out does not seem to cause any problems
+#    vmw_vsock_virtio_transport_common.ko \
+    vmw_vsock_virtio_transport.ko \
+    vsock.ko \
+
+BOARD_SYSTEM_KERNEL_MODULES := $(wildcard $(KERNEL_ARTIFACTS_PATH)/*.ko)
+
+BOARD_VENDOR_RAMDISK_KERNEL_MODULES := \
+    $(patsubst %,$(VIRTUAL_DEVICE_KERNEL_MODULES_PATH)/%,$(RAMDISK_KERNEL_MODULES))
+
+BOARD_VENDOR_KERNEL_MODULES := \
+    $(filter-out $(BOARD_VENDOR_RAMDISK_KERNEL_MODULES),\
+                 $(wildcard $(VIRTUAL_DEVICE_KERNEL_MODULES_PATH)/*.ko))
+
+BOARD_VENDOR_KERNEL_MODULES_BLOCKLIST_FILE := \
+    device/generic/goldfish/board/kernel/kernel_modules.blocklist
+
+# CHANGED BECAUSE IMAGE KERNEL IMAGE FOR X86 is called `bzImage`
+EMULATOR_KERNEL_FILE := $(KERNEL_ARTIFACTS_PATH)/bzImage
+```
+
+./data/home/<user>/android-kernel_6_6/common-modules/virtual-device/virtual_device.fragment
+```
+CONFIG_FTRACE=y
+CONFIG_TRACEPOINTS=y
+CONFIG_HAVE_SYSCALL_TRACEPOINTS=y
+CONFIG_FTRACE_SYSCALLS=y
+```
+
+Change `virtual_device.fragment` by adding configurations in order to enable syscall tracing. It seems to not have a positive effect on a built kernel.
+
+.Check whether tracing syscall was enabled when building an kernel 
+```
+:~/android-kernel_6_6/out$ grep "CONFIG_FTRACE_SYSCALLS is not set" . -r
+
+./bazel/output_user_root/0679e4ef56b48e2edf247a5a618b695e/sandbox/sandbox_stash/SystemDlkmImage/1338/execroot/_main/out/android-mainline/common/.config:# CONFIG_FTRACE_SYSCALLS is not set
+./bazel/output_user_root/0679e4ef56b48e2edf247a5a618b695e/execroot/_main/bazel-out/k8-fastbuild/bin/common/kernel_x86_64/kernel_x86_64_dot_config:# CONFIG_FTRACE_SYSCALLS is not set
+./bazel/output_user_root/0679e4ef56b48e2edf247a5a618b695e/execroot/_main/bazel-out/k8-fastbuild/bin/common/kernel_x86_64_config/out_dir/.config:# CONFIG_FTRACE_SYSCALLS is not set
+./kernel_x86_64/dist/kernel_x86_64_dot_config:# CONFIG_FTRACE_SYSCALLS is not set
+./virtual_device_x86_64/dist/kernel_x86_64_dot_config:# CONFIG_FTRACE_SYSCALLS is not set
+```
+
+.???
+```
+# ADDING `CONFIG_FTRACE_SYSCALLS=y` did not help 
+/data/home/<user>/android-kernel_6_6/common/arch/x86/configs/x86_64_defconfig
+
+# ADDING `CONFIG_FTRACE_SYSCALLS=y` did not help 
+/data/home/<user>/android-kernel_6_6/common-modules/virtual-device/virtual_device.fragment
+```
+
+#### Troubleshooting
+
+.aosp error for lunch target `sdk_car_x86_64-ap2a-userdebug` with ` common-android-mainline` kernel
+```
+FAILED: ninja: '/data/home/<user>/android-kernel_6_6/out/virtual_device_x86_64/dist/vmw_vsock_virtio_transport_common.ko', needed by 'ou
+t/target/product/emulator_car64_x86_64/obj/PACKAGING/depmod_vendor_ramdisk_stripped_intermediates/vmw_vsock_virtio_transport_common.ko', m
+issing and no known rule to make it
+13:27:54 ninja failed with: exit status 1
+```
+
+Kernel was not build with `vmw_vsock_virtio_transport_common.ko`, most likely integrated in `bzImage`. Resolving this issue by commenting out `vmw_vsock_virtio_transport_common.ko` in `</data/home/<user>/test-aosp>/device/generic/goldfish/board/kernel/x86_64.mk`.
+
+.Changing `/data/home/<user>/android-kernel_6_6/common/arch/x86/configs/gki_defconfig` throws an error when building the kernel
+```
+:~/android-kernel_6_6$ tools/bazel run //common:kernel_x86_64_dist
+INFO: Analyzed target //common:kernel_x86_64_dist (0 packages loaded, 0 targets configured).
+ERROR: /data/home/<user>/android-kernel_6_6/common/BUILD.bazel:268:14: Creating kernel config (lto=default) //common:kernel_x86_64_config failed: (Exit 1): bash failed: error executing KernelConfig command (from target //common:kernel_x86_64_config) /bin/bash -c ... (remaining 1 argument skipped)
+
+Use --sandbox_debug to see verbose messages from the sandbox and retain the sandbox build root for debugging
+--- common/arch/x86/configs/gki_defconfig	2024-11-08 15:06:16.877476528 +0000
++++ /data/home/<user>/android-kernel_6_6/out/bazel/output_user_root/0679e4ef56b48e2edf247a5a618b695e/sandbox/linux-sandbox/493/execroot/_main/out/android-mainline/common/defconfig	2024-11-08 15:15:09.288148010 +0000
+@@ -1,4 +1,3 @@
+-CONFIG_FTRACE_SYSCALLS=y
+ CONFIG_UAPI_HEADER_TEST=y
+ CONFIG_KERNEL_LZ4=y
+ CONFIG_AUDIT=y
+@@ -674,6 +673,7 @@
+ CONFIG_WQ_WATCHDOG=y
+ CONFIG_SCHEDSTATS=y
+ CONFIG_PROVE_LOCKING=y
++CONFIG_FTRACE_SYSCALLS=y
+ CONFIG_HIST_TRIGGERS=y
+ CONFIG_UNWINDER_FRAME_POINTER=y
+ CONFIG_KUNIT=m
+ERROR: savedefconfig does not match common/arch/x86/configs/gki_defconfig
+Target //common:kernel_x86_64_dist failed to build
+Use --verbose_failures to see the command lines of failed build steps.
+INFO: Elapsed time: 6.382s, Critical Path: 5.77s
+INFO: 2 processes: 2 internal.
+ERROR: Build did NOT complete successfully
+```
+
+A resolution is not available yet.
+
+### Links
+
+https://source.android.com/docs/setup/build/building-kernels[Build Kernel]
+https://android.googlesource.com/kernel/build/+/refs/heads/main/kleaf/docs/kernel_config.md#defconfig-fragments[Custom BUILD FLAGS]
+https://source.android.com/docs/setup/reference/bazel-support[Kernel branches]
+https://www.codeinsideout.com/android/build-kernel-module/

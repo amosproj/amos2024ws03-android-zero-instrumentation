@@ -1,0 +1,53 @@
+== Technical knowledge-based
+
+=== Check Kernel build config for flags
+
+.Check whether `CONFIG_BPF_SYSCALL` is enabled
+```bash
+# zcat /proc/config.gz| grep CONFIG_BPF_SYSCALL
+```
+
+The value is set to `=y` if enabled
+```
+CONFIG_BPF_SYSCALL=y
+```
+
+or 
+
+```
+# CONFIG_BPF_SYSCALL is not set
+```
+
+if not enabled. `grep` might return no result, which means the flag is not enabled.
+
+=== Android emulator with enabled syscall-tracing
+
+By default `CONFIG_FTRACE_SYSCALLS` is disabled in all emulators (Google, AOSP) with pre-build Kernels.
+
+.`CONFIG_FTRACE_SYSCALLS` not enabled in default Android emulators
+```bash
+❯ adb -e shell
+emulator_car64_x86_64:/ $ zcat /proc/config.gz| grep CONFIG_FTRACE_SYSCALLS
+# CONFIG_FTRACE_SYSCALLS is not set
+emulator_car64_x86_64:/ $ uname -a
+Linux localhost 6.6.9-android15-0-g515a956763d8-ab11275718 #1 SMP PREEMPT Thu Jan  4 21:38:14 UTC 2024 x86_64 Toybox
+emulator_car64_x86_64:/ $ 
+```
+
+A default AOSP with a custom Kernel has to be used.
+
+=== Android `kprobes|uprobes`
+
+Check whether `kprobe`s or `uprobe`s are active. If disabled, setting `uprobe`s or `kprobe`s is not possible.
+
+.check whether `uprobe`s are enabled
+```bash
+# zcat /proc/config.gz| grep CONFIG_UPROBES
+CONFIG_UPROBES=y
+```
+
+.check whether `kprobe`s are enabled
+```bash
+# zcat /proc/config.gz| grep CONFIG_KPROBES
+CONFIG_KPROBES=y
+```

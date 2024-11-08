@@ -1,0 +1,112 @@
+=== Android UI
+
+_Real-time_ visualization of critical events for debugging purpose while system is in use
+
+==== Overview
+
+* configure eBPF programs
+* display critical events in an graphical interface
+
+==== Data
+
+An observability feature is defined as a single log or a metric (time-series).
+
+* (single) logs are well defined structs containing describing properties (e.g. Log(name=Process_Death, pid=1234, log_time=...))
+* Metrics are time-series based, thus visualized over time t
+** https://vector.dev/docs/about/under-the-hood/architecture/data-model/metric/#gauge[Gauge]
+** https://vector.dev/docs/about/under-the-hood/architecture/data-model/metric/#counter[Counter]
+** https://vector.dev/docs/about/under-the-hood/architecture/data-model/metric/#distribution[Distribution]
+** https://vector.dev/docs/about/under-the-hood/architecture/data-model/metric/#histogram[Histogram]
+
+==== Requirements
+
+===== General / Non-functional
+
+* optimized for landscape mode, preferable 1980x1080 (e.g. Android Car Emulator)
+* configuration is persisted on each change for later re-use (e.g. should restore settings after application re-start/ crash)
+* connects to observability pipeline by requesting only _configured_ events
+* communication with daemon responsible for applying configuration (e.g. attaching eBPF programs to applications)
+* caches events up to a limit of 50MB Java-Heap
+* logging of critical events (Exceptions) via `logd`
+
+===== Configuration
+
+This screen should provide a graphical interface to enable / disable certain observability features. 
+
+There is distinction between _global_ and _application specific_ observability features. Both categories are displayed within the same page.
+
+===== Application observability features
+
+All _running_ Android applications (processes) should be selectable for configuration by package-name (e.g. com.google.maps).
+
+* all installed application can be selected in order to attach an observability feature.
+* enabling/ Disabling observability features per application is possible
+* running applications are highlighted differently than currently not running
+* search an application by package-name.
+* filter by _RUNNING_ state
+* active observability features for an application are displayed _enabled_, if attached
+* ff an application dies and re-starts again, previously selected observability features should be re-attached again. Using the package-name instead of the PID would make re-attaching possible.
+* error is displayed, when enabling an observability feature per application is not possible due to reasons
+* observability features not applicable because of missing kernel features (e.g. `CONFIG_FTRACE_SYSCALLS`) are not selectable, but still displayed (e.g. greyed out)
+* disabled observability features (not applicable) should display a disable reason on touch as an toast
+
+NOTE: most likely the PID has to be resolved from the package-name
+
+NOTE: not quite sure whether loading an eBPF program per application makes sense
+
+===== Global observability features
+
+* all applicable features are displayed
+* global observability features are searchable by _name_
+* error is displayed, when enabling an observability feature is not possible due to reasons
+* observability features not applicable because of missing kernel features (e.g. `CONFIG_FTRACE_SYSCALLS` not set) are not selectable, but still displayed (e.g. greyed out)
+
+===== Overlay
+
+While using an application additional metadata is displayed over the application. This provides added value for testers, such as detecting possible issues in real-time (e.g. blocking-calls on main-thread)
+
+* metrics / logs selectable for visualization (global/ per-application)
+* selected logs / metrics are displayed as an overlay (z-index 0 -- over all other applications)
+* interaction (touch) with observed apps is still possible (touch events not handled by overlay)
+* exiting overlay-mode possible via touch-combo or other means
+* x-axis represents time with scale
+* logs (e.g. process_death) are displayed as dots (e.g. process_death -> cross/skull)
+* logs move along x-axis from right to left until leaving displayed time-window (e.g. Guitar Hero)
+* metrics such as _gauge_, _counter_, _histogram_ are displayed with different styles (distinguishability)
+* each metric should be annotated with a name (distinguishability)
+* if displaying annotations (e.g. name) is not feasible, a legend could be used instead.
+* at least one observability feature has to be selected to enter the overlay-mode
+* an _enabled_ overlay-mode is clearly recognizable by the user, if no events are rendered within a time-window
+
+WARNING: only events matching current time-window should be displayed. When connecting late to an observability-pipeline it might happen, that previous events not matching the current time-window are replied. Such events should not be displayed in the overlay-mode.
+
+===== Observability feature detail-view
+
+Selecting an observability feature should
+
+* displays all current and history events available for selected observability feature in a table (event-date, event-type, payload as String)
+* display all current and history events over time t (graph), just like described in section _Overlay_.
+* graph (overlay) and table components can be enabled or disabled in order to display both or only one component
+
+==== Use-Case
+
+===== Observe blocking calls from Main-Thread for application example.test.app
+
+Precondition:
+
+* feature `app-blocking-calls` is enabled and operational
+* `example.test.app` installed und running
+
+Action:
+
+* Search for installed `example.test.app` in _Configuration_ window
+* Enable `app-blocking-calls` observability feature for found `example.test.app`
+* Select overlay-mode
+* Select `app-blocking-calls` for application `example.test.app`
+* Start overlay-mode
+* Trigger blocking call in `example.test.app`
+
+Expected Behavior:
+
+* selected application is monitored for blocking calls
+* blocking calls are visualized in overlay

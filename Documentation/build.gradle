@@ -1,0 +1,31 @@
+plugins {
+    id("org.asciidoctor.jvm.convert") version ("4.0.3")
+    id("org.asciidoctor.jvm.pdf") version ("4.0.3")
+}
+
+repositories {
+    mavenCentral()
+}
+
+asciidoctorj {
+    modules {
+        pdf {
+            version '2.3.3'
+        }
+        diagram.use()
+        diagram {
+            version '2.2.3'
+        }
+    }
+}
+
+asciidoctor {
+    baseDirFollowsSourceFile()
+    outputOptions {
+        // PDF backend disabled due to long rendering times
+        // backends("pdf")
+        backends("html5")
+    }
+    setOutputDir(file("$buildDir/doc"))
+    sourceDir(file("asciidoc"))
+}
