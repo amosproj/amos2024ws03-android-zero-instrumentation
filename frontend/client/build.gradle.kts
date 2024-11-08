@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -9,6 +10,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.rust.android)
+    alias(libs.plugins.org.cyclonedx.bom)
 }
 
 val rustDir = rootProject.file("../rust")
@@ -86,6 +88,17 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+tasks.cyclonedxBom {
+    setSchemaVersion("1.5")
+    setIncludeConfigs(listOf("runtimeClasspath"))
+    setOutputName("bom")
+    setOutputFormat("json")
+    setDestination(project.file("build/reports"))
+    setIncludeBomSerialNumber(false)
+    setIncludeLicenseText(true)
+    setIncludeMetadataResolution(true)
 }
 
 afterEvaluate {
