@@ -1,0 +1,277 @@
+## Build x86 AOSP emulator with custom kernel config
+
+### Prerequisites
+
+* Linux x86_64 host
+* 256GB of free SSD space
+* 64GB of RAM
+* https://github.com/BurntSushi/ripgrep[`ripgrep`] | `grep`
+* https://developer.android.com/tools/adb?hl=de[`adb`]
+* repo (`sudo apt-get install repo`)
+
+NOTE: export `adb` from installed Android Tools (e.g. `<path>/Android/Sdk/platform-tools/adb`) instead of installing via `apt` (Ubuntu).
+
+### Commands
+
+.check whether tracing syscalls is enabled on an Android device
+[source,bash]
+----
+# adb -e shell -- zcat /proc/config.gz| grep CONFIG_BPF_SYSCALL
+----
+
+No result or `# CONFIG_FTRACE_SYSCALLS is not set` means tracing syscalls is not enabled.
+
+NOTE: `adb -e` assumes are running emulator.
+
+.checkout `common-android-mainline` Android kernel.
+[source,bash]
+----
+# mkdir aosp-kernel
+# cd aosp-kernel/
+# repo init -u https://android.googlesource.com/kernel/manifest -b common-android-mainline
+# repo sync
+----
+
+Repo branches can be found https://source.android.com/docs/setup/reference/bazel-support[here]. A clean checkout takes up to 30 minutes.
+
+NOTE: Building a kernel from branch repo branch `common-android15-6.6` or `common-android14-6.1` was possible, but building the AOSP failed or the emulator did not start. Not quite sure why https://source.android.com/docs/setup/reference/build-numbers#source-code-tags-and-builds[android-14.0.0_r74] does not work with kernel `6.1` and `6.6` if compiled manually.
+
+.enable `CONFIG_FTRACE_SYSCALLS` via `menueconfig` for `gki_defconfig`
+[source,bash]
+----
+# tools/bazel run //common:kernel_x86_64_config -- menuconfig
+INFO: Analyzed target //common:kernel_x86_64_config (0 packages loaded, 0 targets configured).
+INFO: Found 1 target...
+Target //common:kernel_x86_64_config up-to-date:
+  bazel-bin/common/kernel_x86_64_config/out_dir
+INFO: Elapsed time: 6.805s, Critical Path: 6.19s
+INFO: 2 processes: 1 internal, 1 linux-sandbox.
+INFO: Build completed successfully, 2 total actions
+INFO: Running command line: bazel-bin/common/kernel_x86_64_config/config.sh menuconfig
+Updated /home/user/Downloads/aosp-kernel/common/arch/x86/configs/gki_defconfig
+----
+
+In the menu follow following path: `Kernel hacking` -> `Tracers`. Now enable `Trace syscalls` by pressing _space_ on the keyboard. Navigate to `SAVE` with arrow-keys on the keyboard and press enter to save.
+
+See https://www.kernelconfig.io/config_ftrace_syscalls[CONFIG_FTRACE_SYSCALLS]
+
+.check whether `CONFIG_FTRACE_SYSCALLS` was enabled in `gki_defconfig`
+[source,bash]
+----
+# cat /home/user/Downloads/aosp-kernel/common/arch/x86/configs/gki_defconfig | grep FTRACE
+CONFIG_FTRACE_SYSCALLS=y
+----
+
+.run `savedefconfig` to save changes
+[source,bash]
+----
+# tools/bazel run //common:kernel_x86_64_config -- savedefconfig
+INFO: Analyzed target //common:kernel_x86_64_config (0 packages loaded, 0 targets configured).
+INFO: Found 1 target...
+Target //common:kernel_x86_64_config up-to-date:
+  bazel-bin/common/kernel_x86_64_config/out_dir
+INFO: Elapsed time: 6.583s, Critical Path: 6.13s
+INFO: 2 processes: 1 internal, 1 linux-sandbox.
+INFO: Build completed successfully, 2 total actions
+INFO: Running command line: bazel-bin/common/kernel_x86_64_config/config.sh savedefconfig
+Updated /home/user/Downloads/aosp-kernel/common/arch/x86/configs/gki_defconfig
+----
+
+Without running `savedefconfig` an error will be thrown when comparing `gki_defconfig` to default. See `savedefconfig does not match common/arch/x86/configs/gki_defconfig` error in the <<Troubleshooting>> section
+
+.check whether `CONFIG_FTRACE_SYSCALLS` is still enabled in the `gki_defconfig`
+[source,bash]
+----
+# cat /home/user/Downloads/aosp-kernel/common/arch/x86/configs/gki_defconfig | grep FTRACE
+CONFIG_FTRACE_SYSCALLS=y
+----
+
+WARNING: enabling syscall tracing in `/home/user/Downloads/aosp-kernel/common-modules/virtual-device/virtual_device.fragment` will not have any effect on the kernel! See https://stackoverflow.com/a/67193556[StackOverflow]
+
+.build kernel
+[source,bash]
+----
+# tools/bazel run //common:kernel_x86_64_dist
+----
+
+.check whether `CONFIG_FTRACE_SYSCALLS` is enabled for built kernel
+[source,bash]
+----
+# rg "CONFIG_FTRACE_SYSCALLS" .
+./kernel_x86_64/dist/kernel_x86_64_dot_config
+7722:CONFIG_FTRACE_SYSCALLS=y
+
+./bazel/output_user_root/a71eebc126f0da5b1f378398547dc822/execroot/_main/bazel-out/k8-fastbuild/bin/common/kernel_x86_64/kernel_x86_64_dot_config
+7722:CONFIG_FTRACE_SYSCALLS=y
+
+...
+
+./bazel/output_user_root/a71eebc126f0da5b1f378398547dc822/sandbox/sandbox_stash/SystemDlkmImage/1395/execroot/_main/out/android-mainline/common/include/config/auto.conf
+940:CONFIG_FTRACE_SYSCALLS=y
+----
+
+`CONFIG_FTRACE_SYSCALLS=y` means enabled, `# CONFIG_FTRACE_SYSCALLS is not set` not enabled.
+
+.build vendor modules
+[source,bash]
+----
+# tools/bazel run //common-modules/virtual-device:virtual_device_x86_64_dist
+----
+
+.change x86 emulator to use built kernel (<path>/aosp-checkout/device/generic/goldfish/board/kernel/x86_64.mk)
+[source,makefile]
+----
+#
+# Copyright (C) 2023 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# we do NOT support OTA - suppress the build warning
+PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
+
+TARGET_KERNEL_USE ?= 6.6
+KERNEL_ARTIFACTS_PATH := \
+   # CHANGE THIS DIRECTORY TO CUSTOM KERNEL
+   /home/user/Downloads/aosp-kernel/out/kernel_x86_64/dist/
+VIRTUAL_DEVICE_KERNEL_MODULES_PATH := \
+   # CHANGE THIS DIRECTORY TO CUSTOM VIRTUAL DEVICE KERNEL
+   /home/user/Downloads/aosp-kernel/out/virtual_device_x86_64/dist/
+
+# The list of modules to reach the second stage. For performance reasons we
+# don't want to put all modules into the ramdisk.
+RAMDISK_KERNEL_MODULES := \
+    virtio_blk.ko \
+    virtio_console.ko \
+    virtio_dma_buf.ko \
+    virtio_pci.ko \
+    virtio_pci_legacy_dev.ko \
+    virtio_pci_modern_dev.ko \
+    virtio-rng.ko \
+# WITH COMMON MAINLINE `vmw_vsock_virtio_transport_common.ko` was not built. Commenting it out does not seem to cause any problems
+#    vmw_vsock_virtio_transport_common.ko \
+    vmw_vsock_virtio_transport.ko \
+    vsock.ko \
+
+BOARD_SYSTEM_KERNEL_MODULES := $(wildcard $(KERNEL_ARTIFACTS_PATH)/*.ko)
+
+BOARD_VENDOR_RAMDISK_KERNEL_MODULES := \
+    $(patsubst %,$(VIRTUAL_DEVICE_KERNEL_MODULES_PATH)/%,$(RAMDISK_KERNEL_MODULES))
+
+BOARD_VENDOR_KERNEL_MODULES := \
+    $(filter-out $(BOARD_VENDOR_RAMDISK_KERNEL_MODULES),\
+                 $(wildcard $(VIRTUAL_DEVICE_KERNEL_MODULES_PATH)/*.ko))
+
+BOARD_VENDOR_KERNEL_MODULES_BLOCKLIST_FILE := \
+    device/generic/goldfish/board/kernel/kernel_modules.blocklist
+
+# CHANGED BECAUSE IMAGE KERNEL IMAGE FOR X86 is called `bzImage`
+EMULATOR_KERNEL_FILE := $(KERNEL_ARTIFACTS_PATH)/bzImage
+----
+
+.build AOSP
+[source,bash]
+----
+# export TARGET_RELEASE=ap2a
+# lunch sdk_car_x86_64-ap2a-userdebug
+# m
+----
+
+Now build the AOSP with the previously built kernel instead of using a prebuilt one.
+
+INFO: by default the AOSP uses a a pre-built kernel. The pre-built kernel is defined in `<path>/aosp-checkout/device/generic/goldfish/board/kernel/x86_64.mk` for an x86_64 emulator (goldfish). Change `TARGET_KERNEL_USE` to a different version, if another pre-built kernel should be used when building the AOSP.
+
+.start emulator
+[source,bash]
+----
+# emulator -no-snapshot
+----
+
+Now check again whether `CONFIG_FTRACE_SYSCALLS` is enabled as described above.
+
+.create avd-image-zip for export
+[source,bash]
+----
+m emu_img_zip
+----
+
+NOTE: called from AOSP root directory
+
+See https://source.android.com/docs/automotive/start/avd/android_virtual_device#pack-an-avd-image-zip-file[Pack an AVD image zip file]
+
+#### Troubleshooting
+
+.compare `bzImage` in `kernel_x86_64` and `virtual_device_x86_64`. 
+```bash
+# ls -la kernel_x86_64/dist/ | grep -i bzImage
+-rw-r--r-- 1 user esostaff  23000064 Nov  8 16:42 bzImage
+
+# ls -la virtual_device_x86_64/dist/ | grep -i bzImage
+-rw-r--r-- 1 user esostaff  23000064 Nov  8 16:44 bzImage
+```
+
+The Kernel image seems to be the same, thus changing the `virtual_device.fragment` does not have any impact on kernel functionality.
+
+.aosp error for lunch target `sdk_car_x86_64-ap2a-userdebug` with ` common-android-mainline` kernel
+```
+FAILED: ninja: '/home/user/Downloads/aosp-kernel/out/virtual_device_x86_64/dist/vmw_vsock_virtio_transport_common.ko', needed by 'ou
+t/target/product/emulator_car64_x86_64/obj/PACKAGING/depmod_vendor_ramdisk_stripped_intermediates/vmw_vsock_virtio_transport_common.ko', m
+issing and no known rule to make it
+13:27:54 ninja failed with: exit status 1
+```
+
+Kernel was not build with `vmw_vsock_virtio_transport_common.ko`, most likely integrated in `bzImage`. Resolving this issue by commenting out `vmw_vsock_virtio_transport_common.ko` in `<path>/aosp-checkout/device/generic/goldfish/board/kernel/x86_64.mk`.
+
+.Changing `/home/user/Downloads/aosp-kernel/common/arch/x86/configs/gki_defconfig` throws an error when building the kernel
+```
+# tools/bazel run //common:kernel_x86_64_dist
+INFO: Analyzed target //common:kernel_x86_64_dist (0 packages loaded, 0 targets configured).
+ERROR: /home/user/Downloads/aosp-kernel/common/BUILD.bazel:268:14: Creating kernel config (lto=default) //common:kernel_x86_64_config failed: (Exit 1): bash failed: error executing KernelConfig command (from target //common:kernel_x86_64_config) /bin/bash -c ... (remaining 1 argument skipped)
+
+Use --sandbox_debug to see verbose messages from the sandbox and retain the sandbox build root for debugging
+--- common/arch/x86/configs/gki_defconfig	2024-11-08 15:06:16.877476528 +0000
++++ /home/user/Downloads/aosp-kernel/out/bazel/output_user_root/0679e4ef56b48e2edf247a5a618b695e/sandbox/linux-sandbox/493/execroot/_main/out/android-mainline/common/defconfig	2024-11-08 15:15:09.288148010 +0000
+@@ -1,4 +1,3 @@
+-CONFIG_FTRACE_SYSCALLS=y
+ CONFIG_UAPI_HEADER_TEST=y
+ CONFIG_KERNEL_LZ4=y
+ CONFIG_AUDIT=y
+@@ -674,6 +673,7 @@
+ CONFIG_WQ_WATCHDOG=y
+ CONFIG_SCHEDSTATS=y
+ CONFIG_PROVE_LOCKING=y
++CONFIG_FTRACE_SYSCALLS=y
+ CONFIG_HIST_TRIGGERS=y
+ CONFIG_UNWINDER_FRAME_POINTER=y
+ CONFIG_KUNIT=m
+ERROR: savedefconfig does not match common/arch/x86/configs/gki_defconfig
+Target //common:kernel_x86_64_dist failed to build
+Use --verbose_failures to see the command lines of failed build steps.
+INFO: Elapsed time: 6.382s, Critical Path: 5.77s
+INFO: 2 processes: 2 internal.
+ERROR: Build did NOT complete successfully
+```
+
+Changing the `gki_defconfig` manually without executing `savedefconfig` is not allowed. Follow instructions above.
+
+### Links
+
+* https://source.android.com/docs/setup/start/requirements[Setup AOSP]
+* https://source.android.com/docs/setup/download[AOSP download]
+* https://source.android.com/docs/setup/build/building-kernels[Build Kernel]
+* https://android.googlesource.com/kernel/build/+/refs/heads/main/kleaf/docs/kernel_config.md#defconfig-fragments[Custom BUILD FLAGS]
+* https://source.android.com/docs/setup/reference/bazel-support[Kernel branches]
+* https://www.codeinsideout.com/android/build-kernel-module/
+* https://bugstitch.dev/detailed-instructions-for-building-android-14-aosp-emulator-post-qpr2-update#heading-step-3-choosing-the-target[Build AOSP]
+* https://blog.senyuuri.info/posts/2021-06-30-ebpf-bcc-android-instrumentation/
+* https://stackoverflow.com/questions/65415511/android-kernel-build-flow-with-gki-introduced-from-android-11[Android kernel build flow with GKI introduced from Android 11]

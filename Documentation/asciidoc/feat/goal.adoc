@@ -1,0 +1,10 @@
+== Goal
+
+Implement a component capable of recoding pre-configured events using eBPF, live event processing/ aggregation and on demand visualization by evaluating previous work (exploitive), while fulfilling following requirements:
+
+* Zero instrumentation on application/ system level
+* Low runtime overhead (CPU, memory)
+* Always-on
+* Runs on Android 13 and higher
+* Runtime configuration
+* Real time visualization of Logs/ Metrics

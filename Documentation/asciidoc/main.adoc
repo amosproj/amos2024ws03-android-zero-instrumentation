@@ -1,0 +1,38 @@
+= Android - Zero Code Instrumentation Observability
+Sergej Isbrecht <e.solutions GmbH>
+0.1,{docdate}: initial draft
+// TODO: check why not working -- https://mrduguo.github.io/asciidoctor.org/docs/user-manual/#enabling-source-highlighting
+// :source-highlighter: highlight.js
+// :highlightjsdir: highlight
+// :highlightjs-languages: rust, c++, c, bash, java, json
+// :highlightjs-theme: default
+:imagesdir: images
+// EMBED IMAGES AS BASE64 FOR HTML5 BACKEND
+:data-uri:
+// TABLE OF CONTENTS
+:toc: left
+:toclevels: 2
+// :stylesheet: ./style/style.css
+
+[.thumb]
+image::header.svg[align="center"]
+
+include::feat/problem_domain.adoc[]
+
+include::feat/goal.adoc[]
+
+include::feat/nice_to_have.adoc[]
+
+include::feat/non_goal.adoc[]
+
+include::feat/module/module.adoc[]
+
+include::feat/future.adoc[]
+
+include::feat/technical_knowledge.adoc[]
+
+include::feat/build_aosp.adoc[]
+
+include::feat/links.adoc[]
+
+include::feat/glossary.adoc[]

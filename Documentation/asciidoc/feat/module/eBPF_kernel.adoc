@@ -1,0 +1,403 @@
+=== eBPF programs (Kernel)
+
+WARNING: following requirements are not tested ideas. Please not, that implementing some requirements might not be possible as requested.
+
+==== Overview
+
+* Collects meta-data by hooking into syscalls/ function entry/exit (kprobes/ uprobes)
+* Limited functionality (e.g. no heap-allocations, loops)
+
+==== Requirements
+
+===== Non-functional
+
+* (cross)-compilable from Linux amd64 host
+* runs on bpf-`aarch64` and bpf-`x86_64` (CO-RE)
+* https://docs.ebpf.io/concepts/core/[BPF CO-RE support] / https://docs.ebpf.io/concepts/btf/[BTF support]
+* use https://www.rust-lang.org/[Rust] and https://github.com/aya-rs/aya[Aya] for development
+* at least kernel 5.15 support required
+* runs on Android 14 and higher
+
+WARNING: CO-RE (Compile Once Run Everywhere) actually means Compile once per Architecture, Run Everywhere on pre-defined Architecture. eBPF is a byte-code format, which in theory should run on every architecture, because the eBPF load is responsible for JIT compiling the byte-code to platform specific machine code. In practice eBPF has to be compiled for aarch64 to run on aarch64 ISAs and vice versa.
+
+===== Functional
+
+* `uprobe` s in AOT compiled Android class/method (e.g. `class_name: android.telephony.TelephonyManager` - `method: getDeviceId`)
+* `uprobe` s in shared objects (e.g. `/system/lib64/liblog.so`)
+* `kprobe` s (e.g. `vfs_write`)
+* `syscall tracing (e.g. `tracepoint:syscalls:sys_enter_openat`)
+
+
+.Example configuration as described in https://arxiv.org/pdf/2105.14344[BPFroid: Robust Real Time Android Malware Detection Framework]
+image::eBPF_configuration.png[align="center"]
+
+==== Use-Case
+
+===== Blocking call detection in Android Applications on "main"-Thread
+
+Android applications process (Touch)-Events on the Main-Thread, thus blocking a Main-Thread could result in an unresponsive UI.
+
+[cols="2,1,1,3"]
+|===
+|Name |Constraint |Type |Properties 
+
+|app-blocking-main-thread
+|application
+|log
+|app-package-name (string), PID(u-number), stack(string-array), duration(u-number)
+
+|=== 
+
+A blocking operation is defined as follows:
+
+* Networking operations (e.g. `kprobe:poll|select`)
+* IO operations (e.g. `kprobe:vfs_write`)
+* syscall (e.g. `futext`)
+
+Detect possible Main-Thread stall reasons by attaching to "blocking" calls. An IO/ network/ syscall operation taking more than 100ms is considered a blocking operation. 
+
+Consideration:
+
+`__epoll_pwait` is considered a not blocking call, because Android uses epoll in order to wait for work. In this example the main-thread is waiting for a new task, thus there are no UI tasks to block.
+
+.ANR output for a non-blocking `main`-Thread 
+```
+"main" prio=5 tid=14 Native
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x15ac0c28 self=0xb400007a2ee376a0
+  | sysTid=1952 nice=-2 cgrp=top-app sched=0/0 handle=0x78294bbcb0
+  | state=S schedstat=( 17860134905 10339858852 370558 ) utm=1110 stm=675 core=3 HZ=100
+  | stack=0x78293b8000-0x78293ba000 stackSize=1039KB
+  | held mutexes=
+  native: #00 pc 00000000000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 4e0791536
+  native: #01 pc 0000000000017444  /system/lib64/libutils.so (android::Looper::pollInner(int)+188) (BuildId: a5ca39eaee
+  native: #02 pc 0000000000017328  /system/lib64/libutils.so (android::Looper::pollOnce(int, int*, int*, void**)+112) (
+  native: #03 pc 000000000015a6fc  /system/lib64/libandroid_runtime.so (android::android_os_MessageQueue_nativePollOnce
+  at android.os.MessageQueue.nativePollOnce(Native method)
+  at android.os.MessageQueue.next(MessageQueue.java:335)
+  at android.os.Looper.loopOnce(Looper.java:161)
+  at android.os.Looper.loop(Looper.java:288)
+  at android.os.HandlerThread.run(HandlerThread.java:67)
+  at com.android.server.ServiceThread.run(ServiceThread.java:44)
+  at com.android.server.UiThread.run(UiThread.java:45)
+```
+
+In this example the "main" thread is blocked on a semaphore. The `futex` call is not visible in the call-stack, because Dalvik can only unwind the Java-Stack. This stack contains only user-level code. With eBPF the Kernel stacks (sys_futex) should be visible as well, when intercepting an futex-syscall. 
+
+.ANR output for a blocking `main`-Thread 
+```
+"main" prio=5 tid=1 Blocked
+  | group="main" sCount=1 ucsCount=0 flags=1 obj=0x7174b418 self=0xb400007a2ee05010
+  | sysTid=1843 nice=-2 cgrp=foreground sched=0/0 handle=0x7b760a84f8
+  | state=S schedstat=( 8025949354 31535656467 127928 ) utm=463 stm=339 core=2 HZ=100
+  | stack=0x7fe0ba9000-0x7fe0bab000 stackSize=8188KB
+  | held mutexes=
+  at com.android.server.am.ActivityManagerService.onWakefulnessChanged(ActivityManagerService.java:6899)
+  - waiting to lock <0x0a33ca83> (a com.android.server.am.ActivityManagerService) held by thread 152
+  at com.android.server.am.ActivityManagerService$LocalService.onWakefulnessChanged(ActivityManagerService.java:16538)
+  at com.android.server.power.Notifier$1.run(Notifier.java:427)
+  at android.os.Handler.handleCallback(Handler.java:942)
+  at android.os.Handler.dispatchMessage(Handler.java:99)
+  at android.os.Looper.loopOnce(Looper.java:201)
+  at android.os.Looper.loop(Looper.java:288)
+  at com.android.server.SystemServer.run(SystemServer.java:962)
+  at com.android.server.SystemServer.main(SystemServer.java:647)
+  at java.lang.reflect.Method.invoke(Native method)
+  at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)
+  at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:914)
+```
+
+===== Signal detection
+
+Detect https://de.wikipedia.org/wiki/SIGQUIT[`SIGQUIT`] (3) calls to Android applications. If an ANR is detected, an Android daemon processes sends a `SIGQUIT` signal to a hanging app. The application dumps necessary data and quits. 
+
+[cols="2,1,1,3"]
+|===
+|Name |Constraint |Type |Properties 
+
+|app-signal-detection
+|application
+|log
+|app-package-name (string), PID(u-number), signal(u-number)
+
+|=== 
+
+INFO: use `adb shell kill -s QUIT <pid>` or start an application which blocks the main-Thread
+
+See https://eunomia.dev/tutorials/6-sigsnoop/#sigsnoop[eBPF Tutorial by Example 6: Capturing Signal Sending and Store State with Hash Maps]
+
+
+===== FileDescriptors
+
+Protocol open/ closed file-descriptors per application. 
+
+[cols="2,1,1,3"]
+|===
+|Name |Constraint |Type |Properties 
+
+|app-leak-fd
+|application
+|gauge
+|number of open file-descriptors for application
+
+|=== 
+
+Consequence:
+
+Memory consumption of app increases. Very hard to detect why an application increased in size (PSS) in a post-mortem analysis.
+
+How to detect:
+
+Observe syscalls opening file-descriptors (e.g. https://man7.org/linux/man-pages/man2/open.2.html[open]|https://man7.org/linux/man-pages/man2/openat2.2.html[openat],...)
+
+===== JNI indirect references
+
+Protocol created indirect https://developer.android.com/training/articles/perf-jni?hl=en[JNI] references. Leaking JNI references are hard to detect without a reproducible, thus accounting during runtime provides the means to analyze issues faster.
+
+Consequence:
+
+Leaking JNI references leads to memory leaks, because objects are recognized as _alive_ by the garbage collection, thus can not be deleted during a FullGC. Without tracking JNI references a typical memory leak is detected by an increased memory consumption (PSS). A memory leak could be arise due to different reasons:
+
+* Java heap leak (most probable)
+* JNI leak
+* FD leaks
+* shared memory
+
+[cols="2,1,1,3"]
+|===
+|Name |Constraint |Type |Properties 
+
+|app-jni-leak
+|application
+|gauge
+|number of open JNI references
+
+|=== 
+
+NOTE: Dalvik has accounting for JNI references, which is visible with https://developer.android.com/tools/dumpsys?hl=de[`dumpsys`]. Calling `dumpsys` over and over again is not a feasible solution, because the overhead is quite high. Therefore using eBPF with `uprobe`s is chosen. 
+
+How to detect
+
+.Perf flamegraph
+image::jni_indirect_reference.png[align="center"]
+
+In order to account JNI references a `uprobe` in the Android native code has to be set. 
+
+* uprobe: `art::JNIEnvExt::AddLocalReference` (https://cs.android.com/android/platform/superproject/main/+/main:art/runtime/jni/jni_env_ext-inl.h;drc=86b8f575059a1799c760ca7012f540a528d68a9d;l=28[cs.android.com])
+* uprobe: `art::JNIEnvExt::DeleteLocalRef` (https://cs.android.com/android/platform/superproject/main/+/main:art/runtime/jni/jni_env_ext.cc;drc=86b8f575059a1799c760ca7012f540a528d68a9d;l=109[cs.android.com])
+
+* uprobe: `art::JNIEnvExt::AddGlobalRef` (https://cs.android.com/android/platform/superproject/main/+/main:art/runtime/jni/java_vm_ext.cc;drc=86b8f575059a1799c760ca7012f540a528d68a9d;l=714[cs.android.com])
+* uprobe: `art::JNIEnvExt::DeleteGlobalRef` (https://cs.android.com/android/platform/superproject/main/+/main:art/runtime/jni/java_vm_ext.cc;drc=86b8f575059a1799c760ca7012f540a528d68a9d;l=768[cs.android.com])
+
+There are some Tests for local and global references. See https://cs.android.com/android/platform/superproject/main/+/main:art/benchmark/jobject-benchmark/jobject_benchmark.cc;l=32?q=AddLocalReference&ss=android%2Fplatform%2Fsuperproject%2Fmain[cs.android.com]
+
+Accounting should be done for local and global references. On `Add*Reference` a long is incremented and on `Delete*Ref` it is decremented. 
+
+NOTE: not quite sure whether passed param has to be remembered for accounting. It might be possible to call `Delete*Ref` multiple times with the same parameter. If possible, the counter would be decremented multiple times, but in reality the reference was removed only once.
+
+===== ART Garbage Collection invocations 
+
+Currently GC statistics are printed to console only. It is hard to see how the Java Heap evolves over time without connecting via `adb` to collect data via Android Studio / https://developer.android.com/tools/perfetto?hl=de[Perfetto]
+
+[cols="2,1,1,3"]
+|===
+|Name |Constraint |Type |Properties 
+
+|app-gc-invocations
+|application
+|gauge
+|app-package-name (string), PID(u-number), gc-type(Enum), gc-duration(u-number), heap-size-before-gc(u-number), heap-size-after-gc(u-number)
+
+|=== 
+
+.Example GC traces from `logcat`
+```
+10-31 16:42:31.146  1676  1686 I system_server: Background concurrent copying GC freed 389146(14MB) AllocSpace objects, 7(208KB) LOS objects, 49% free, 21MB/43MB, paused 93us,80us total 158.791ms
+```
+
+A GC freed `389146` objects accounting for `14MB` in `158ms`. The Java Heap now contains `21MB` of objects with a size of `43MB`.
+
+See https://blog.gceasy.io/understanding-android-gc-logs/
+
+How to detect:
+
+Attach `uprobe` to native ART code to extract requested data. The ART GC is implemented in C++, thus setting a `uprobe` should be possible.
+
+.https://cs.android.com/android/platform/superproject/main/+/main:art/runtime/gc/heap.cc?q=%22GC%20freed%22[heap.cc]
+[source,c++,linenums]
+----
+void Heap::LogGC(GcCause gc_cause, collector::GarbageCollector* collector) {
+  const size_t duration = GetCurrentGcIteration()->GetDurationNs();
+  const std::vector<uint64_t>& pause_times = GetCurrentGcIteration()->GetPauseTimes();
+  // Print the GC if it is an explicit GC (e.g. Runtime.gc()) or a slow GC
+  // (mutator time blocked >= long_pause_log_threshold_).
+  bool log_gc = kLogAllGCs || (gc_cause == kGcCauseExplicit && always_log_explicit_gcs_);
+  if (!log_gc && CareAboutPauseTimes()) {
+    // GC for alloc pauses the allocating thread, so consider it as a pause.
+    log_gc = duration > long_gc_log_threshold_ ||
+        (gc_cause == kGcCauseForAlloc && duration > long_pause_log_threshold_);
+    for (uint64_t pause : pause_times) {
+      log_gc = log_gc || pause >= long_pause_log_threshold_;
+    }
+  }
+  bool is_sampled = false;
+  if (UNLIKELY(gc_stress_mode_)) {
+    static std::atomic_int64_t accumulated_duration_ns = 0;
+    accumulated_duration_ns += duration;
+    if (accumulated_duration_ns >= kGcStressModeGcLogSampleFrequencyNs) {
+      accumulated_duration_ns -= kGcStressModeGcLogSampleFrequencyNs;
+      log_gc = true;
+      is_sampled = true;
+    }
+  }
+  if (log_gc) {
+    const size_t percent_free = GetPercentFree();
+    const size_t current_heap_size = GetBytesAllocated();
+    const size_t total_memory = GetTotalMemory();
+    std::ostringstream pause_string;
+    for (size_t i = 0; i < pause_times.size(); ++i) {
+      pause_string << PrettyDuration((pause_times[i] / 1000) * 1000)
+                   << ((i != pause_times.size() - 1) ? "," : "");
+    }
+    LOG(INFO) << gc_cause << " " << collector->GetName()
+              << (is_sampled ? " (sampled)" : "")
+              << " GC freed "
+              << PrettySize(current_gc_iteration_.GetFreedBytes()) << " AllocSpace bytes, "
+              << current_gc_iteration_.GetFreedLargeObjects() << "("
+              << PrettySize(current_gc_iteration_.GetFreedLargeObjectBytes()) << ") LOS objects, "
+              << percent_free << "% free, " << PrettySize(current_heap_size) << "/"
+              << PrettySize(total_memory) << ", " << "paused " << pause_string.str()
+              << " total " << PrettyDuration((duration / 1000) * 1000);
+    VLOG(heap) << Dumpable<TimingLogger>(*current_gc_iteration_.GetTimings());
+  }
+}
+
+void Heap::FinishGC(Thread* self, collector::GcType gc_type) {
+  MutexLock mu(self, *gc_complete_lock_);
+  collector_type_running_ = kCollectorTypeNone;
+  if (gc_type != collector::kGcTypeNone) {
+    last_gc_type_ = gc_type;
+
+    // Update stats.
+    ++gc_count_last_window_;
+    if (running_collection_is_blocking_) {
+      // If the currently running collection was a blocking one,
+      // increment the counters and reset the flag.
+      ++blocking_gc_count_;
+      blocking_gc_time_ += GetCurrentGcIteration()->GetDurationNs();
+      ++blocking_gc_count_last_window_;
+    }
+    // Update the gc count rate histograms if due.
+    UpdateGcCountRateHistograms();
+  }
+  // Reset.
+  running_collection_is_blocking_ = false;
+  thread_running_gc_ = nullptr;
+  if (gc_type != collector::kGcTypeNone) {
+    gcs_completed_.fetch_add(1, std::memory_order_release);
+  }
+  // Wake anyone who may have been waiting for the GC to complete.
+  gc_complete_cond_->Broadcast(self);
+}
+----
+
+.get `libart.so` and `liblog.so` from an Android device 
+[source,bash]
+----
+# adb pull ./system/lib64/liblog.so
+# adb pull ./apex/com.android.art/lib64/libart.so
+----
+
+Check symbols
+
+.`./apex/com.android.art/lib64/libart.so`
+[source,bash]
+----
+# readelf -s libart.so | grep -i FinishGC
+  4686: 000000000036b310   188 FUNC    GLOBAL PROTECTED   14 _ZN3art2gc4Heap8FinishGCE
+ 22266: 000000000036b310   188 FUNC    GLOBAL PROTECTED   14 _ZN3art2gc4Heap8FinishGCE
+----
+(FinishGC method is mangled because of C++ mangling)
+
+.`./system/lib64/liblog.so`
+[source,bash]
+----
+# readelf -s libart.so | grep LOG
+   329: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __android_log_error_write@LIBLOG_M (8)
+   593: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND create_android_logger@LIBLOG_M (8)
+   596: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND android_log_write_string8@LIBLOG_M (8)
+   597: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND android_log_write_int32@LIBLOG_M (8)
+   598: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND android_log_write_string8@LIBLOG_M (8)
+   599: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND android_log_destroy@LIBLOG_M (8)
+   600: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND android_log_write_list@LIBLOG_M (8)
+----
+(Not mangled, because C)
+
+Now it is possible set `uprobe|uretprobe`.
+
+NOTE: not quite sure how to extract GC data via uprobe `Heap::LogGC`. Might look into `android_log_*`
+
+See:
+
+https://source.android.com/docs/core/runtime/gc-debug[ART GC Debug]
+
+===== FileIO write crunch
+
+SSDs have a limited amount of writes, therefore it is of paramount importance to limit writes in a productive system, because it is not unusual to drive a core for more than 10 years. Here is an example, what could happen: https://www.zdnet.com/article/how-teslas-flash-storage-fail-may-lead-to-expensive-repair-bills/[How Tesla's flash storage fail may lead to expensive repair bills]. 
+
+
+[cols="2,1,1,3"]
+|===
+|Name |Constraint |Type |Properties 
+
+|app-fileio-write-crunch
+|application
+|histogram
+|write operations bucketed by write-size
+
+|=== 
+
+Consequence:
+
+SSD reaches end of live sooner, leading to a broken system.
+
+How to detect:
+
+`kprobe:vfs_write`
+
+WARNING: there are some layers (buffers) between the kernel and the physical device, thus `vfs_write` is not an indicator whether the value was really written to the physical device, but this is most likely the best we get. 
+
+.https://cs.android.com/android/kernel/superproject/+/common-android-mainline:common/fs/read_write.c?q=vfs_write[vfs_write]
+[source,c]
+----
+ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
+{
+	ssize_t ret;
+
+	if (!(file->f_mode & FMODE_WRITE))
+		return -EBADF;
+	if (!(file->f_mode & FMODE_CAN_WRITE))
+		return -EINVAL;
+	if (unlikely(!access_ok(buf, count)))
+		return -EFAULT;
+
+	ret = rw_verify_area(WRITE, file, pos, count);
+	if (ret)
+		return ret;
+	if (count > MAX_RW_COUNT)
+		count =  MAX_RW_COUNT;
+	file_start_write(file);
+	if (file->f_op->write)
+		ret = file->f_op->write(file, buf, count, pos);
+	else if (file->f_op->write_iter)
+		ret = new_sync_write(file, buf, count, pos);
+	else
+		ret = -EINVAL;
+	if (ret > 0) {
+		fsnotify_modify(file);
+		add_wchar(current, ret);
+	}
+	inc_syscw(current);
+	file_end_write(file);
+	return ret;
+}
+----
