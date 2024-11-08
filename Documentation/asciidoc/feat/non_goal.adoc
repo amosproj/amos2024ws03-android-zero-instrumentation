@@ -1,0 +1,6 @@
+
+== Non Goal
+
+* re-implement tools like https://vector.dev[Vector]/ https://opentelemetry.io/docs/collector/[OTel Collector]/ http://prometheus.io[Prometheus]/ https://www.elastic.co/de/elasticsearch[Elastic] in Android
+* anomaly detection
+* persisting data to disc for later processing
