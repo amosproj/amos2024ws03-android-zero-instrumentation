@@ -14,8 +14,4 @@ pub fn bump_rlimit() {
     }
 }
 
-pub fn get_socket_addr() -> SocketAddr {
-    // unsave, but does that matter?
-    // addr. shouldn't really change right
-    "[::1]:50051".to_socket_addrs().unwrap().next().unwrap()
-}
+

@@ -7,3 +7,7 @@ pub mod counter {
 pub mod ziofa {
     tonic::include_proto!("ziofa");
 }
+
+pub mod config{
+    tonic::include_proto!("config");
+}

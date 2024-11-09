@@ -1,14 +1,17 @@
-mod main_helpers;
+mod helpers;
 mod server;
-mod dummy_functions;
+mod configuration;
+mod constants;
 
 use tokio;
+
+
 #[tokio::main]
 async fn main() {
     env_logger::init();
 
     // apparently needed...
-    main_helpers::bump_rlimit();
+    helpers::bump_rlimit();
 
     server::serve_forever().await;
 }
