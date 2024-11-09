@@ -16,10 +16,7 @@ import timber.log.Timber
 
 class ZIOFAApplication : Application() {
 
-    val appModule = module {
-        // TODO add declarations here
-        singleOf<ClientFactory>(::RustClientFactory)
-    }
+    val appModule = module { singleOf<ClientFactory>(::RustClientFactory) }
 
     override fun onCreate() {
         super.onCreate()
