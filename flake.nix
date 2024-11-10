@@ -66,7 +66,7 @@
             systemImage = pkgs.fetchzip
               {
                 url = "https://ftrace-emu.nbg1.your-objectstorage.com/emulator_car64_x86_64/sdk-repo-linux-system-images.zip";
-                hash = "sha256-eQzjGkIthumezQ0DdSfMOvO7NpgeHaUFqPhhxZ/sAe0=";
+                hash = "sha256-JsTqL8U6y+7lRkblCfQxYDSrT36B6WKdJHU1PokEmg4=";
               } // {
               path = "system-images/android-VanillaIceCream/android-automotive/x86_64";
               xml = pkgs.fetchurl {
