@@ -9,4 +9,5 @@ enum class Routes {
     Visualize,
     Configuration,
     About,
+    Home,
 }
