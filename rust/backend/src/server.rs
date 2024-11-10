@@ -1,29 +1,28 @@
 use crate::{configuration, constants};
+use configuration::Configuration;
 use shared::config::Configuration as ProtoConfig;
 use shared::ziofa::ziofa_server::{Ziofa, ZiofaServer};
 use shared::ziofa::{
-    CheckServerResponse, EbpfStreamObject, Process, ProcessList, SetConfigurationResponse,
+    CheckServerResponse,
+    // EbpfStreamObject,
+    Process, ProcessList, SetConfigurationResponse,
 };
-use configuration::Configuration;
-use tokio::sync::mpsc;
-use tokio::sync::mpsc::Sender;
-use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 #[derive(Default)]
 pub struct ZiofaImpl {
-    tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
+    // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
 }
 
 #[tonic::async_trait]
 impl Ziofa for ZiofaImpl {
-    fn check_server(&self, _: Request()) -> Result<Response<CheckServerResponse>, Status> {
+    async fn check_server(&self, _: Request<()>) -> Result<Response<CheckServerResponse>, Status> {
         // dummy data
         let response = CheckServerResponse {};
         Ok(Response::new(response))
     }
 
-    fn list_processes(&self, _: Request<()>) -> Result<Response<ProcessList>, Status> {
+    async fn list_processes(&self, _: Request<()>) -> Result<Response<ProcessList>, Status> {
         // dummy data
         let response = ProcessList {
             processes: vec![
@@ -44,6 +43,8 @@ impl Ziofa for ZiofaImpl {
         &self,
         _: Request<()>,
     ) -> Result<Response<ProtoConfig>, Status> {
+
+        //TODO: if ? fails needs valid return value for the function so that the server doesn't crash.
         let config = Configuration::load_from_file(constants::DEV_DEFAULT_FILE_PATH)?;
         Ok(Response::new(ProtoConfig::try_from(config).unwrap()))
     }
@@ -55,21 +56,21 @@ impl Ziofa for ZiofaImpl {
         let conf = Configuration::try_from(request.into_inner()).unwrap();
 
         // TODO: Implement function 'validate'
-        // TODO: if ? failes needs valid return value for the function so that the server doesn't fail
+        // TODO: if ? fails needs valid return value for the function so that the server doesn't fail
         conf.validate()?;
         conf.save_to_file(constants::DEV_DEFAULT_FILE_PATH)?;
         Ok(Response::new(SetConfigurationResponse{ response_type: 0}))
     }
 
-    type InitStreamStream = ReceiverStream<Result<EbpfStreamObject, Status>>;
-    fn init_stream(
-        &self,
-        _: Request<()>,
-    ) -> Result<Response<Self::InitStreamStream>, Status> {
-        let (tx, rx) = mpsc::channel(1);
-
-        Ok(Response::new(Self::InitStreamStream::new(rx)))
-    }
+    // type InitStreamStream = ReceiverStream<Result<EbpfStreamObject, Status>>;
+    // fn init_stream(
+    //     &self,
+    //     _: Request<()>,
+    // ) -> Result<Response<Self::InitStreamStream>, Status> {
+    //     let (_tx, rx) = mpsc::channel(1);
+    //
+    //     Ok(Response::new(Self::InitStreamStream::new(rx)))
+    // }
 }
 
 pub async fn serve_forever() {

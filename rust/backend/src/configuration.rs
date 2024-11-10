@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
 use shared::config::{Configuration as ProtoConfig, EbpfEntry as ProtoEbpfEntry};
 use std::fs::File;
 use std::io;
 use std::io::{BufReader, BufWriter};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Configuration {
@@ -13,10 +13,10 @@ pub(crate) struct Configuration {
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 struct EbpfEntry {
-    hr_name: String,
-    description: String,
-    ebpf_name: String,
-    fn_id: u64,
+    hr_name: String,            // human-readable name, for display on the frontend
+    description: String,        // human-readable description of the probe
+    ebpf_name: String,          // name of the ebpf function to actually load
+    fn_id: u64,                 // id of the daemon function to handle
 }
 
 impl From<Configuration> for ProtoConfig {
@@ -76,7 +76,7 @@ impl Configuration {
         Ok(())
     }
 
-    pub fn validate(&self) -> Result<(), Self::Error> {
+    pub fn validate(&self) -> Result<(), io::Error> {
         //TODO: Implement this function
         Ok(())
     }

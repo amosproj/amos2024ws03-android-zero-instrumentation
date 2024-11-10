@@ -1,5 +1,4 @@
 use log::debug;
-use std::net::{SocketAddr, ToSocketAddrs};
 
 pub fn bump_rlimit() {
     // Bump the memlock rlimit. This is needed for older kernels that don't use the
