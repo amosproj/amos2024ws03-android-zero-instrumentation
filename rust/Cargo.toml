@@ -6,8 +6,8 @@
 
 [workspace]
 resolver = "2"
-members = ["xtask", "example", "example-common", "example-ebpf", "shared", "client"]
-default-members = ["xtask", "example", "example-common", "shared", "client"]
+members = ["xtask", "example", "example-common", "example-ebpf", "shared", "client", "backend", "backend_test_client"]
+default-members = ["xtask", "example", "example-common", "shared", "client", "backend"]
 
 [workspace.package]
 license = "MIT"
