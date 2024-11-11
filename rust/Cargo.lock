@@ -373,7 +373,6 @@ dependencies = [
  "env_logger",
  "libc",
  "log",
- "serde",
  "serde_json",
  "shared",
  "tokio",
@@ -1423,6 +1422,8 @@ name = "shared"
 version = "0.1.0"
 dependencies = [
  "prost",
+ "serde",
+ "serde_json",
  "tonic",
  "tonic-build",
 ]

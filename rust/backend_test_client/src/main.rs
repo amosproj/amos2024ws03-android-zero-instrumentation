@@ -15,7 +15,7 @@ async fn main() {
         }
     }
     let config = match client.get_configuration(()).await {
-        Ok(T) => T.into_inner(),
+        Ok(t) => t.into_inner(),
         Err(e) => {
             println!("Problem loading configuration: {:?}", e);
             Configuration{
