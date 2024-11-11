@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::{configuration, constants};
-use configuration::Configuration;
-use shared::config::Configuration as ProtoConfig;
+use crate::{constants, configuration};
+use shared::config::Configuration;
 use shared::ziofa::ziofa_server::{Ziofa, ZiofaServer};
 use shared::ziofa::{
     CheckServerResponse,
@@ -46,23 +45,23 @@ impl Ziofa for ZiofaImpl {
     async fn get_configuration(
         &self,
         _: Request<()>,
-    ) -> Result<Response<ProtoConfig>, Status> {
+    ) -> Result<Response<Configuration>, Status> {
 
         //TODO: if ? fails needs valid return value for the function so that the server doesn't crash.
-        let config = Configuration::load_from_file(constants::DEV_DEFAULT_FILE_PATH)?;
-        Ok(Response::new(ProtoConfig::try_from(config).unwrap()))
+        let config = configuration::load_from_file(constants::DEV_DEFAULT_FILE_PATH)?;
+        Ok(Response::new(config))
     }
 
     async fn set_configuration(
         &self,
-        request: Request<ProtoConfig>,
+        request: Request<Configuration>,
     ) -> Result<Response<SetConfigurationResponse>, Status> {
-        let conf = Configuration::try_from(request.into_inner()).unwrap();
+        let config = request.into_inner();
 
         // TODO: Implement function 'validate'
         // TODO: if ? fails needs valid return value for the function so that the server doesn't fail
-        conf.validate()?;
-        conf.save_to_file(constants::DEV_DEFAULT_FILE_PATH)?;
+        configuration::validate(&config)?;
+        configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
         Ok(Response::new(SetConfigurationResponse{ response_type: 0}))
     }
 
