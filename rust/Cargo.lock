@@ -370,6 +370,8 @@ dependencies = [
 name = "backend"
 version = "0.1.0"
 dependencies = [
+ "aya",
+ "cargo_metadata 0.18.1",
  "env_logger",
  "libc",
  "log",
@@ -378,6 +380,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tonic",
+ "xtask",
 ]
 
 [[package]]
