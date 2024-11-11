@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
 # This module takes the fenix and android-nixpkgs overlays and applies them to
 # the nixpkgs provided by the flake.
 ({ self, inputs, ... }: {

@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  
+  gradle-build-release:
+    name: Gradle Build Release
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-base
+      - uses: ./.github/actions/setup-gradle-cache
+      - uses: ./.github/actions/setup-rust-cache
+        
+      - name: Build Release
+        run: nix run .#gradleBuildRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend
+          path: /tmp/outputs/
+        
+  rust-build-release:
+    name: Rust Build Release
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-base
+      - uses: ./.github/actions/setup-rust-cache
+        
+      - name: Build Release
+        run: nix run .#rustBuildRelease
+        
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust
+          path: /tmp/outputs/
+          
+  create-release:
+    name: Release
+    runs-on: ubuntu-24.04
+    needs: ["rust-build-release", "gradle-build-release"]
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - uses: anothrNick/github-tag-action@v1
+        id: tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          PRERELEASE: true
+      - uses: actions/download-artifact@v4
+      - uses: mikepenz/release-changelog-builder-action@v5
+        id: changelog
+        with:
+          fromTag: ${{ steps.tag.outputs.old_tag }}
+          toTag: ${{ steps.tag.outputs.new_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+      - uses: softprops/action-gh-release@v2
+        with:
+          body: ${{steps.changelog.outputs.changelog}}
+          prerelease: true
+          tag_name: ${{ steps.tag.outputs.tag }}
+          files: |
+            rust/libclient*.so
+            rust/daemon-*
+            frontend/app*.apk
+          

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.com>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <68117355+Mr-Kanister@users.noreply.github.com>
+//
+// SPDX-License-Identifier: MIT
+
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";

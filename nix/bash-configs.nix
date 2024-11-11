@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
 # Adapted from https://github.com/NixOS/nixpkgs/tree/master/nixos/modules/programs/bash
 
 { pkgs, ... }:

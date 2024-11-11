@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+name: "Setup Rust"
+description: "Sets up a rust action"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Rust cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: "rust -> rust/target"

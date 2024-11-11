@@ -1,18 +1,25 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.org.cyclonedx.bom)
 }
 
 android {
     namespace = "de.amosproj3.ziofa"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
+    ndkVersion = "28.0.12433566"
 
     defaultConfig {
         applicationId = "de.amosproj3.ziofa"
         minSdk = 33
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = rootProject.version.toString()
 
@@ -20,6 +27,19 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            isUniversalApk = false
+            reset()
+            include("x86_64", "arm64-v8a")
+        }
+    }
+
+    lint {
+        ignoreWarnings = false
     }
 
     buildTypes {
@@ -68,8 +88,22 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    implementation(project(":client"))
+
     compileOnly(libs.koin.core)
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
     testImplementation(libs.koin.test)
+}
+
+tasks.cyclonedxBom {
+    setIncludeConfigs(listOf("runtimeClasspath"))
+    setSchemaVersion("1.5")
+    setProjectType("application")
+    setDestination(project.file("build/reports"))
+    setOutputName("bom")
+    setOutputFormat("json")
+    setIncludeBomSerialNumber(false)
+    setIncludeLicenseText(true)
+    setIncludeMetadataResolution(true)
 }

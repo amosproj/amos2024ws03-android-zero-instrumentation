@@ -1,5 +1,10 @@
+# SPDX-FileCopyrightText: 2024 Benedikt Zinn <benediskt.wh.zinn@gmail.com>
+# SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
 import os
-from typing import Optional, Tuple
+from typing import Tuple
 from pathlib import Path
 import subprocess
 
@@ -40,6 +45,11 @@ def generate_kotlin_sbom(path: Path):
 
 
 def generate_nix_sbom():
+    print(("Generating SBOM for nix.\n\n"
+        "Running this script the first time can take a very long time and"
+        " will download a few GBs of data. You won't get any output until the"
+        " generation has been finished.\n"
+    ))
     result = subprocess.run(
         ["nix", "build", ".#toolsSbom", "-o", sub_bom_file_name + ".json"],
         capture_output=True,
@@ -51,7 +61,7 @@ def generate_nix_sbom():
         print(f"Error generating SBOM for nix: {result.stderr}")
         return None
 
-    print(f"Generated SBOM for nix")
+    print(f"Generated SBOM for nix.\n")
 
     return
 
@@ -92,6 +102,7 @@ def generate_sboms(path_for_recursive: list[Tuple[Path, bool]]) -> list[Path]:
     print("Generating SBOMs for:")
     for _, path in sbom_able_projects:
         print(" -{}".format(str(path)))
+    print()
 
     return list(filter(lambda x: x, map(lambda x: x[0](x[1]), sbom_able_projects)))
 
@@ -110,9 +121,6 @@ def merge_sboms(rel_sbom_files):
         return None
 
 def main():
-    print("        START")
-    print(" _______________________")
-
     # traverse back to base project folder
     base_dir = Path(__file__).resolve().parent.parent
 
@@ -141,8 +149,7 @@ def main():
         except FileNotFoundError:
             pass
 
-    print(" _______________________")
-    print("        DONE")
+    print("\nDone generating and merging the SBOMs. The final file is located at the root of the project: \"" + output_file_name + ".json\"")
 
 
 if __name__ == "__main__":

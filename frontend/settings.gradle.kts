@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 pluginManagement {
     repositories {
         google {
@@ -25,3 +29,4 @@ gradle.rootProject{
     version="0.1"
 }
 include(":app")
+include(":client")

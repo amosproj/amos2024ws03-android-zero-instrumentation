@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 The AMOS Projects
+#
+# SPDX-License-Identifier: MIT
+
 # Node
 logs
 npm-debug.log*
@@ -43,3 +47,4 @@ target
 sbom.json
 
 .codebuddy/
+
