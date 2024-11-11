@@ -4,6 +4,7 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -37,7 +38,7 @@ pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
 }
 
 #[xdp]
-pub fn example(ctx: XdpContext) -> u32 {
+pub fn example(ctx: XdpxContext) -> u32 {
     match try_example(ctx) {
         Ok(ret) => ret,
         Err(_) => xdp_action::XDP_ABORTED,
