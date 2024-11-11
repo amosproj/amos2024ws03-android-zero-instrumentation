@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+//
+// SPDX-License-Identifier: MIT
+
 use std::net::{SocketAddr, ToSocketAddrs};
 
 pub(crate) const DEV_DEFAULT_FILE_PATH: &str = "./ziofa.json";

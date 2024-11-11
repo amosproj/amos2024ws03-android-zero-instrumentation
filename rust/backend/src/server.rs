@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+//
+// SPDX-License-Identifier: MIT
+
 use crate::{configuration, constants};
 use configuration::Configuration;
 use shared::config::Configuration as ProtoConfig;

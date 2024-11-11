@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+//
+// SPDX-License-Identifier: MIT
+
 use log::debug;
 
 pub fn bump_rlimit() {

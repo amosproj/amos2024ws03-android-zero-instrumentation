@@ -4,8 +4,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-mod type_helper;
-
 pub mod counter {
     tonic::include_proto!("com.example.counter");
 }

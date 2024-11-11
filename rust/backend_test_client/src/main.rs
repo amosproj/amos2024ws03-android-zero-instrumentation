@@ -1,4 +1,8 @@
-use shared::config::Configuration;
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+//
+// SPDX-License-Identifier: MIT
+
+use shared::config::{Configuration, EbpfEntry};
 use shared::ziofa::ziofa_client::ZiofaClient;
 
 #[tokio::main]
@@ -15,7 +19,14 @@ async fn main() {
         Err(e) => {
             println!("Problem loading configuration: {:?}", e);
             Configuration{
-                entries: vec![],
+                entries: vec![
+                    EbpfEntry{
+                        hr_name: "Some entry".to_string(),
+                        description: "This is the description".to_string(),
+                        ebpf_name: "Some entry".to_string(),
+                        fn_id: 0,
+                    }
+                ],
             }
         }
     };
