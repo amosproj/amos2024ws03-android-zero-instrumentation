@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::{constants, configuration, ebpf_utils::ProbeID};
+use crate::{constants, configuration};
+use crate::ebpf_utils::{ProbeID, update_from_config};
 use shared::config::Configuration;
 use shared::ziofa::ziofa_server::{Ziofa, ZiofaServer};
 use shared::ziofa::{
@@ -12,11 +13,21 @@ use shared::ziofa::{
 };
 use tonic::{transport::Server, Request, Response, Status};
 use std::collections::HashMap;
+use std::ops::DerefMut;
+use std::sync::Arc;
+use aya::Ebpf;
+use tokio::sync::Mutex;
 
-#[derive(Default)]
 pub struct ZiofaImpl {
     // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
-    probe_id_map: HashMap<String, ProbeID>,
+    probe_id_map: Arc<Mutex<HashMap<String, ProbeID>>>,
+    ebpf: Arc<Mutex<Ebpf>>,
+}
+
+impl ZiofaImpl {
+    pub fn new(probe_id_map: HashMap<String, ProbeID>, ebpf: Ebpf) -> ZiofaImpl {
+        ZiofaImpl { probe_id_map: Arc::new(Mutex::new(probe_id_map)), ebpf: Arc::new(Mutex::new(ebpf)) }
+    }
 }
 
 #[tonic::async_trait]
@@ -64,6 +75,11 @@ impl Ziofa for ZiofaImpl {
         // TODO: if ? fails needs valid return value for the function so that the server doesn't fail
         configuration::validate(&config)?;
         configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
+
+        let mut ebpf_guard = self.ebpf.lock().await;
+        let mut probe_id_map_guard = self.probe_id_map.lock().await;
+        update_from_config(ebpf_guard.deref_mut(), &config, probe_id_map_guard.deref_mut());
+
         Ok(Response::new(SetConfigurationResponse{ response_type: 0}))
     }
 
@@ -79,7 +95,12 @@ impl Ziofa for ZiofaImpl {
 }
 
 pub async fn serve_forever() {
-    let service = ZiofaServer::new(ZiofaImpl::default());
+    let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+        env!("OUT_DIR"),
+        "/example"
+    ))).unwrap();
+    let mut probe_id_map = HashMap::new();
+    let service = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf));
     Server::builder()
         .add_service(service)
         .serve(constants::sock_addr())
