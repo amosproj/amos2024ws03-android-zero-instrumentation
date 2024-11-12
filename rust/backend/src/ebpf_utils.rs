@@ -5,12 +5,10 @@
 // SPDX-License-Identifier: MIT
 
 use std::collections::HashMap;
-use std::sync::MutexGuard;
 use aya::programs::kprobe::KProbeLinkId;
 use aya::programs::uprobe::UProbeLinkId;
-use aya::programs::UProbe;
-use aya::{include_bytes_aligned, programs::KProbe, Ebpf};
-use libc::{pid_t};
+use aya::programs::{UProbe, KProbe};
+use aya::Ebpf;
 use shared::config::ebpf_entry::UprobeConfig;
 use crate::configuration::load_from_file;
 pub enum ProbeID {
@@ -58,14 +56,14 @@ fn unload_function(ebpf: &mut Ebpf, hash_map: &mut HashMap<String, ProbeID>, fun
     let probe = hash_map.remove(func).unwrap();
 
     match probe{
-        ProbeID::UProbeID(program) => {
+        ProbeID::UProbeID(_link_id) => {
             // get ebpf program
             let program: &mut UProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
 
             // unload ebpf program
             program.unload().unwrap();
         },
-        ProbeID::KProbeID(program) => {
+        ProbeID::KProbeID(_link_id) => {
             let program: &mut KProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
             program.unload().unwrap();
         }
@@ -78,14 +76,14 @@ pub fn update_from_config(ebpf: &mut Ebpf, config_path: &str, loaded_functions: 
     for entry in entries {
         if entry.attach {
             match loaded_functions.get(entry.ebpf_name.as_str()) {
-                Some(res) => {}
+                Some(_res) => {}
                 None => {
                     load_function(ebpf, loaded_functions, entry.uprobe_info, entry.ebpf_name.as_str(), entry.hook.as_str())
                 }
             }
         } else {
             match loaded_functions.get(entry.ebpf_name.as_str()) {
-                Some(res) => {
+                Some(_res) => {
                     unload_function(ebpf, loaded_functions, entry.ebpf_name.as_str());
                 },
                 None => {}
