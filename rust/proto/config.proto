@@ -8,6 +8,7 @@ syntax = "proto3";
 
 package config;
 
+// the configurations has entries for all Ebpf Programms (not only the ones that should be loaded)
 message Configuration {
   repeated EbpfEntry entries = 1;
 }
@@ -24,4 +25,5 @@ message EbpfEntry {
   uint64 fn_id = 4;                         // Optional ID of the function interpreting the eBPF map
   optional UprobeConfig uprobe_info = 5;    // uprobe requires additional information
   string hook = 6;                          // hook the eBPF function gets attached to
+  bool attach = 7;                          // attach when true, detach when false
 }
