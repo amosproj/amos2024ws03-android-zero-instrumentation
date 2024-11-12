@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::{constants, configuration};
+use crate::{constants, configuration, ebpf_utils::ProbeID};
 use shared::config::Configuration;
 use shared::ziofa::ziofa_server::{Ziofa, ZiofaServer};
 use shared::ziofa::{
@@ -11,10 +11,12 @@ use shared::ziofa::{
     Process, ProcessList, SetConfigurationResponse,
 };
 use tonic::{transport::Server, Request, Response, Status};
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct ZiofaImpl {
     // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
+    probe_id_map: HashMap<String, ProbeID>,
 }
 
 #[tonic::async_trait]
