@@ -6,8 +6,8 @@
 
 [workspace]
 resolver = "2"
-members = ["xtask", "example", "example-common", "example-ebpf", "shared", "client"]
-default-members = ["xtask", "example", "example-common", "shared", "client"]
+members = ["xtask", "example", "example-common", "example-ebpf", "shared", "client", "backend", "backend_test_client"]
+default-members = ["xtask", "example", "example-common", "shared", "client", "backend"]
 
 [workspace.package]
 license = "MIT"
@@ -32,6 +32,8 @@ log = { version = "0.4.22", default-features = false }
 tokio = { version = "1.40.0", default-features = false }
 which = { version = "6.0.0", default-features = false }
 prost = "0.13.3"
+serde = { version ="1.0.214", features = ["derive"] }
+serde_json = "1.0"
 tonic = "0.12.3"
 tonic-build = "0.12.3"
 tokio-stream = "0.1.16"
