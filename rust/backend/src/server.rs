@@ -1,4 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -8,7 +10,6 @@ use shared::config::Configuration;
 use shared::ziofa::ziofa_server::{Ziofa, ZiofaServer};
 use shared::ziofa::{
     CheckServerResponse,
-    // EbpfStreamObject,
     Process, ProcessList, SetConfigurationResponse,
 };
 use tonic::{transport::Server, Request, Response, Status};
@@ -78,7 +79,9 @@ impl Ziofa for ZiofaImpl {
 
         let mut ebpf_guard = self.ebpf.lock().await;
         let mut probe_id_map_guard = self.probe_id_map.lock().await;
-        update_from_config(ebpf_guard.deref_mut(), &config, probe_id_map_guard.deref_mut());
+
+        // TODO: set config path
+        update_from_config(ebpf_guard.deref_mut(), "", probe_id_map_guard.deref_mut());
 
         Ok(Response::new(SetConfigurationResponse{ response_type: 0}))
     }
@@ -95,11 +98,11 @@ impl Ziofa for ZiofaImpl {
 }
 
 pub async fn serve_forever() {
-    let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+    let ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/example"
     ))).unwrap();
-    let mut probe_id_map = HashMap::new();
+    let probe_id_map = HashMap::new();
     let service = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf));
     Server::builder()
         .add_service(service)
