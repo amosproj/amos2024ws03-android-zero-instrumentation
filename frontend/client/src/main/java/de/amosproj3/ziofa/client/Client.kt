@@ -4,6 +4,7 @@
 
 package de.amosproj3.ziofa.client
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,7 +26,7 @@ class RustClient(scope: CoroutineScope, private val inner: uniffi.client.Client)
     override val serverCount =
         flow {
                 val stream = inner.serverCount()
-
+                Log.e("client", "init")
                 while (true) {
                     stream.next()?.also { emit(it) } ?: break
                 }

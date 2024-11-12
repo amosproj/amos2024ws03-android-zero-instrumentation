@@ -96,6 +96,10 @@ dependencies {
     testImplementation(libs.koin.test)
     implementation(libs.jackwharton.timber)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m2)
+    implementation(libs.vico.compose.m3)
+    implementation(libs.vico.core)
 }
 
 tasks.cyclonedxBom {

@@ -22,16 +22,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Devices
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 
+data class MenuOptionData(val title: String, val logoEmoji: String, val onClick: () -> Unit)
+
+/** Static home screen for navigation */
 @Composable
+@Preview(device = Devices.AUTOMOTIVE_1024p)
 fun HomeScreen(
-    toVisualize: () -> Unit,
-    toConfiguration: () -> Unit,
-    toAbout: () -> Unit,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
+    toVisualize: () -> Unit = {},
+    toConfiguration: () -> Unit = {},
+    toAbout: () -> Unit = {},
 ) {
     Box(
         modifier =
@@ -41,52 +47,45 @@ fun HomeScreen(
                 .padding(horizontal = 50.dp, vertical = 40.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            MenuOptions(Modifier.weight(1f), toVisualize, toConfiguration, toAbout)
+            MenuOptions(
+                menuOptions =
+                    listOf(
+                        MenuOptionData(title = "Visualize", "\uD83D\uDCCA", toVisualize),
+                        MenuOptionData(title = "Configuration", "⚙\uFE0F", toConfiguration),
+                        MenuOptionData(title = "About", "ℹ\uFE0F", toAbout),
+                    )
+            )
         }
     }
 }
 
 @Composable
-fun MenuOptions(
-    modifier: Modifier = Modifier,
-    toVisualize: () -> Unit,
-    toConfiguration: () -> Unit,
-    toAbout: () -> Unit,
-) {
+fun MenuOptions(modifier: Modifier = Modifier, menuOptions: List<MenuOptionData>) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MenuOptionWithIcon(
-            text = "Visualize",
-            emoji = "\uD83D\uDCCA",
-            modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-            onClick = toVisualize,
-        )
-        MenuOptionWithIcon(
-            text = "Configure",
-            emoji = "⚙\uFE0F",
-            modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-            onClick = toConfiguration,
-        )
-        MenuOptionWithIcon(
-            text = "About",
-            emoji = "ℹ\uFE0F",
-            modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-            onClick = toAbout,
-        )
+        menuOptions.forEach {
+            MenuCardWithIcon(
+                text = it.title,
+                emoji = it.logoEmoji,
+                onClick = it.onClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
 @Composable
-fun MenuOptionWithIcon(
+fun MenuCardWithIcon(
     text: String,
     emoji: String,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val modifierForCards = modifier.aspectRatio(1f).clickable { onClick() }.focusable()
+    val modifierForCards =
+        modifier.aspectRatio(1f).clickable { onClick() }.focusable().padding(horizontal = 10.dp)
 
     Card(
         modifier = modifierForCards,

@@ -17,7 +17,8 @@ val rustDir = rootProject.file("../rust")
 val linuxTarget = "linux-x86-64"
 val rustTargets = listOf("arm64", "x86_64", linuxTarget)
 val rustLibName = "client" // This has to match the name in the Cargo.toml
-fun generatedDir(subdir: String) = layout.buildDirectory.file("generated/source/uniffi/${subdir}/java").get().asFile
+fun generatedDir(subdir: String) =
+    layout.buildDirectory.file("generated/source/uniffi/${subdir}/java").get().asFile
 
 
 android {
@@ -102,10 +103,11 @@ tasks.cyclonedxBom {
 }
 
 afterEvaluate {
-    android.libraryVariants.forEach{ variant ->
+    android.libraryVariants.forEach { variant ->
 
         val task = tasks.register<Exec>("generate${variant.name}UniFFIBindings") {
-            val cargoTask = tasks.getByName<CargoBuildTask>("cargoBuild${linuxTarget.capitalized()}")
+            val cargoTask =
+                tasks.getByName<CargoBuildTask>("cargoBuild${linuxTarget.capitalized()}")
             dependsOn(cargoTask)
             workingDir = rustDir
             commandLine(
@@ -117,8 +119,10 @@ afterEvaluate {
                 "generate",
                 "--language=kotlin",
                 "--library",
-                layout.buildDirectory.file("rustJniLibs/${cargoTask.toolchain!!.folder}/lib${rustLibName}.so").get().asFile.path,
-                "--out-dir", generatedDir(variant.name))
+                layout.buildDirectory.file("rustJniLibs/${cargoTask.toolchain!!.folder}/lib${rustLibName}.so")
+                    .get().asFile.path,
+                "--out-dir", generatedDir(variant.name)
+            )
         }
 
         tasks.getByName("compile${variant.name.capitalized()}Kotlin").dependsOn(task)

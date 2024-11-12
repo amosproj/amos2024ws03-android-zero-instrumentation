@@ -21,17 +21,16 @@ import androidx.navigation.compose.rememberNavController
 import de.amosproj3.ziofa.ui.about.AboutScreen
 import de.amosproj3.ziofa.ui.configuration.ConfigurationScreen
 import de.amosproj3.ziofa.ui.navigation.HomeScreen
-import de.amosproj3.ziofa.ui.navigation.ZiofaTopBar
+import de.amosproj3.ziofa.ui.navigation.composables.ZiofaTopBar
 import de.amosproj3.ziofa.ui.visualization.VisualizationScreen
 
-/** Main application composable All calls to [NavController] should happen here. */
+/** Main application composable. All calls to [NavController] should happen here. */
 @Composable
 fun ZIOFAApp() {
     val navController = rememberNavController()
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { DynamicTopBar(navController) }) { innerPadding ->
+    Scaffold(modifier = Modifier.fillMaxSize(), topBar = { DynamicTopBar(navController) }) {
+        innerPadding ->
         NavHost(
             navController,
             modifier = Modifier.fillMaxSize(),
@@ -70,6 +69,7 @@ fun ZIOFAApp() {
     }
 }
 
+/** Top bar with a back button on all screens except for the home screen. */
 @Composable
 fun DynamicTopBar(navController: NavController) {
     navController.currentBackStackEntryAsState().value?.destination?.route?.let { currentRoute ->

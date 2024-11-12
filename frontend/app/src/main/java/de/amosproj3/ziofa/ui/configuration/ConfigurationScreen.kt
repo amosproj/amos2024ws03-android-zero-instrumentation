@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -37,9 +37,7 @@ fun ConfigurationScreen(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         val options = viewModel.programList.collectAsState().value
-        LazyColumn(modifier = Modifier
-            .padding(horizontal = 20.dp)
-            .fillMaxSize()) {
+        LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
             item { Spacer(Modifier.height(15.dp)) }
             items(options) { option ->
                 Row(
@@ -56,11 +54,9 @@ fun ConfigurationScreen(
             }
         }
         ExtendedFloatingActionButton(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 25.dp, bottom = 25.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 25.dp, bottom = 25.dp),
             onClick = { viewModel.configurationSubmitted() },
-            icon = { Icon(imageVector = Icons.Filled.Send, contentDescription = "") },
+            icon = { Icon(imageVector = Icons.AutoMirrored.Default.Send, contentDescription = "") },
             text = { Text("Submit") },
         )
     }
