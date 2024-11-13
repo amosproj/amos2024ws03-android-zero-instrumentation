@@ -1,0 +1,5 @@
+== Future 
+
+* real-time anomaly detection
+* persist events to different sinks for post-processing (e.g. Elastic, File, Prometheus)
+* https://eunomia.dev/bpftime/documents/userspace-ebpf-bpftime-lpc.pdf[user-space `uprobe|kprobe` with bpftime] to circumvent _performance_ issues and `CONFIG_BPF_SYSCALL` not being set in Android

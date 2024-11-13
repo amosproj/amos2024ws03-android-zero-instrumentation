@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -9,13 +10,15 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.rust.android)
+    alias(libs.plugins.org.cyclonedx.bom)
 }
 
 val rustDir = rootProject.file("../rust")
 val linuxTarget = "linux-x86-64"
 val rustTargets = listOf("arm64", "x86_64", linuxTarget)
 val rustLibName = "client" // This has to match the name in the Cargo.toml
-fun generatedDir(subdir: String) = layout.buildDirectory.file("generated/source/uniffi/${subdir}/java").get().asFile
+fun generatedDir(subdir: String) =
+    layout.buildDirectory.file("generated/source/uniffi/${subdir}/java").get().asFile
 
 
 android {
@@ -88,11 +91,23 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
+tasks.cyclonedxBom {
+    setSchemaVersion("1.5")
+    setIncludeConfigs(listOf("runtimeClasspath"))
+    setOutputName("bom")
+    setOutputFormat("json")
+    setDestination(project.file("build/reports"))
+    setIncludeBomSerialNumber(false)
+    setIncludeLicenseText(true)
+    setIncludeMetadataResolution(true)
+}
+
 afterEvaluate {
-    android.libraryVariants.forEach{ variant ->
+    android.libraryVariants.forEach { variant ->
 
         val task = tasks.register<Exec>("generate${variant.name}UniFFIBindings") {
-            val cargoTask = tasks.getByName<CargoBuildTask>("cargoBuild${linuxTarget.capitalized()}")
+            val cargoTask =
+                tasks.getByName<CargoBuildTask>("cargoBuild${linuxTarget.capitalized()}")
             dependsOn(cargoTask)
             workingDir = rustDir
             commandLine(
@@ -104,8 +119,10 @@ afterEvaluate {
                 "generate",
                 "--language=kotlin",
                 "--library",
-                layout.buildDirectory.file("rustJniLibs/${cargoTask.toolchain!!.folder}/lib${rustLibName}.so").get().asFile.path,
-                "--out-dir", generatedDir(variant.name))
+                layout.buildDirectory.file("rustJniLibs/${cargoTask.toolchain!!.folder}/lib${rustLibName}.so")
+                    .get().asFile.path,
+                "--out-dir", generatedDir(variant.name)
+            )
         }
 
         tasks.getByName("compile${variant.name.capitalized()}Kotlin").dependsOn(task)

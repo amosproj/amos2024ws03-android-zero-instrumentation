@@ -10,7 +10,7 @@ SPDX-License-Identifier: MIT
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
-        android:name=".ZIOFAApplication"
+        android:name=".ZiofaApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

@@ -1,6 +1,7 @@
 import com.android.utils.TraceUtils.simpleId
 
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -9,7 +10,7 @@ import com.android.utils.TraceUtils.simpleId
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.org.cyclonedx.bom) apply true
+    alias(libs.plugins.org.cyclonedx.bom) apply false
     alias(libs.plugins.com.github.benmanes.versions) apply true
     alias(libs.plugins.nl.littlerobots.versioncatalogueupdate) apply true
     alias(libs.plugins.compose.compiler) apply false
@@ -38,18 +39,6 @@ tasks.dependencyUpdates.configure {
     rejectVersionIf {
         isNonStable(this.candidate.version)
     }
-}
-
-tasks.cyclonedxBom {
-    setIncludeConfigs(listOf("releaseRuntimeClasspath"))
-    setProjectType("application")
-    setSchemaVersion("1.5")
-    setDestination(project.file("build/reports"))
-    setOutputName("bom")
-    setOutputFormat("json")
-    setIncludeBomSerialNumber(false)
-    setIncludeLicenseText(true)
-    setIncludeMetadataResolution(true)
 }
 
 tasks.register("combinedFormat"){

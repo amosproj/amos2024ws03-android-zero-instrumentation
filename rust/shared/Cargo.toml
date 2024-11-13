@@ -14,6 +14,8 @@ edition.workspace = true
 [dependencies]
 prost = { workspace = true }
 tonic = { workspace = true }
+serde = {workspace = true}
+serde_json = {workspace = true}
 
 [build-dependencies]
 tonic-build = { workspace = true }
