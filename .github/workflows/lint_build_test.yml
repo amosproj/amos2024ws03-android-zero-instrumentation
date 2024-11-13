@@ -23,6 +23,19 @@ jobs:
 
       - name: Lint
         run: nix run .#reuseLint
+
+  documentation:
+    name: Build Documentation
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-base
+
+      - name: Asciidoctor
+        run: |
+          nix develop --command \
+            asciidoctor -r asciidoctor-diagram Documentation/asciidoc/main.adoc -o index.html
         
   gradle-lint:
     name: Gradle Lint

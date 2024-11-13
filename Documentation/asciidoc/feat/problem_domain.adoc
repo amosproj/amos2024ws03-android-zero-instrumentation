@@ -1,0 +1,9 @@
+== Problem Domain
+
+* High amount of component changes done every week
+* Changes from various suppliers are integrated and smoke-tested
+* Large amount of functional requirement testing is done by customers
+  * e. g. bench test / car
+* Many error reports for functional issues caused by non-functional requirement (performance)
+* Correlating cross-cutting issues (e. g. OOM, CPU starvation) to actual functional issues is hard without additional meta-data
+* Re-testing with additional instrumentation necessary, if possible (e. g. other supplier)

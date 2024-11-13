@@ -88,6 +88,7 @@
               cyclonedx-cli
               cargo-cyclonedx
               reuse
+              asciidoctor-with-extensions
             ];
 
             combined =
@@ -258,7 +259,7 @@
               cp app/build/outputs/apk/release/app-*-release-unsigned.apk /tmp/outputs
             )
           '';
-          
+
           buildDemo = pkgs.writeShellScriptBin "build-demo" ''
             ${frontendCiPreamble}
             mkdir -p dist/
