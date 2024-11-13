@@ -4,7 +4,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-static DEBUG: bool = true;
+static DEBUG: bool = false;
 
 use anyhow::Context as _;
 use aya::{maps::{RingBuf}, programs::{Xdp, XdpFlags, KProbe}, Ebpf};

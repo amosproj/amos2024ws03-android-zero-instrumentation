@@ -25,7 +25,7 @@ pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
     let pid = ctx.pid();
     let tid = ctx.tgid();
 
-    let data = KProbeData{pid, tid, probe_type: KProbeTypes::VfsWrite};
+    let data = KProbeData{pid, tid, probe_type: KProbeTypes::VfsWrite, ret: false };
     let mut entry = match KPROBES.reserve::<KProbeData>(0) {
         Some(entry) => entry,
         None => return Err(0)
@@ -38,7 +38,7 @@ pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
 }
 
 #[xdp]
-pub fn example(ctx: XdpxContext) -> u32 {
+pub fn example(ctx: XdpContext) -> u32 {
     match try_example(ctx) {
         Ok(ret) => ret,
         Err(_) => xdp_action::XDP_ABORTED,
