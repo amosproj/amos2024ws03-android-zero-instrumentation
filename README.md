@@ -38,6 +38,33 @@ Installing nix and using the development shell is the recommended approach for d
 
 [^1]: Android is a trademark of Google LLC. The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.
 
+
+## Emulator Setup
+
+As we need a modified version of Android, we cannot use the standard system images that come with the default Android SDK.
+To make development easier, a custom Android SDK is loaded into your environment using the nix development shell.
+
+> [!NOTE]
+> The Android SDK shipped with the shell is built of the standard parts with everything necessary for building Android Apps.
+> The only "custom' part is the system image, which was build externally and is currently hosted on S3.
+> The image can be also downloaded manually from [sdk-repo-linux-system-images.zip](https://ftrace-emu.nbg1.your-objectstorage.com/emulator_car64_x86_64/sdk-repo-linux-system-images.zip) with its manifest stored in [package.xml](https://ftrace-emu.nbg1.your-objectstorage.com/emulator_car64_x86_64/package.xml).
+> You can also download and unzip the system image to `$ANDROID_SDK_ROOT/system-images/android-VanillaIceCream/android-automotive/x86_64` manually and copy the `package.xml` to that directory as well.
+
+This sdk includes the automotive system image, which is built with a custom kernel having `CONFIG_FTRACE_SYSCALLS=y` set.
+To create an emulator using that image, you can use the `avdmanager` tool also provided with the SDK:
+
+```
+avdmanager create avd -n YOUR_AVD_NAME  -k 'system-images;android-VanillaIceCream;android-automotive;x86_64' --device automotive_1080p_landscape
+```
+
+This can be started with the `emulator` tool like this:
+
+
+```
+emulator @YOUR_AVD_NAME
+```
+
+
 ## Documentation
 
 To generate the html documentation run the following:
@@ -45,7 +72,6 @@ To generate the html documentation run the following:
 ```
 asciidoctor -r asciidoctor-diagram Documentation/asciidoc/main.adoc -o Documentation/build/doc/index.html
 ```
-
 
 ## License
 
@@ -59,4 +85,3 @@ You should prefer the MIT license if possible.
 The easiest way to set the license and copyright is to execute `reuse annotate --copyright="YOUR NAME <YOUR EMAIL>" --license "MIT" FILE`.
 
 To check whether you have done everything correctly, execute `reuse lint` in the project root directory.
-

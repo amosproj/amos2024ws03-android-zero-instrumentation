@@ -63,6 +63,18 @@
               openjdk
             ];
 
+            systemImage = pkgs.fetchzip
+              {
+                url = "https://ftrace-emu.nbg1.your-objectstorage.com/emulator_car64_x86_64/sdk-repo-linux-system-images.zip";
+                hash = "sha256-JsTqL8U6y+7lRkblCfQxYDSrT36B6WKdJHU1PokEmg4=";
+              } // {
+              path = "system-images/android-VanillaIceCream/android-automotive/x86_64";
+              xml = pkgs.fetchurl {
+                url = "https://ftrace-emu.nbg1.your-objectstorage.com/emulator_car64_x86_64/package.xml";
+                hash = "sha256-c372s6PT43iqSLMZNpuz9VoAyP5OKFzHQkRMtamSl2Y=";
+              };
+            };
+
             sdkPkgs = with pkgs.androidSdkPackages; [
               cmdline-tools-latest
               ndk-28-0-12433566
@@ -70,7 +82,7 @@
               platform-tools
               platforms-android-35
               emulator
-              system-images-android-33-default-x86-64
+              packageGroups.systemImage
             ];
 
             rustPkgs = with pkgs.fenix; [
