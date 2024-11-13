@@ -1,0 +1,4 @@
+
+== Nice to have
+
+* Architecture is flexible enough to run on an ordinary Linux kernel (e.g. SYS partition)

@@ -100,6 +100,7 @@
               cyclonedx-cli
               cargo-cyclonedx
               reuse
+              asciidoctor-with-extensions
             ];
 
             combined =

@@ -1,0 +1,36 @@
+
+== Glossary
+
+[cols="1,2"]
+|===
+|Term |Description 
+
+|log
+|https://vector.dev/docs/about/concepts/#logs[A log event is a generic key/value representation of an event.]
+
+
+|metric
+|https://vector.dev/docs/about/concepts/#metrics[A metric event represents a numerical operation performed on a time series]
+
+|uprobe
+|https://getanteon.com/blog/exploring-function-tracing-with-ebpf-and-uprobes/#lets-dive-in--6e21b51f-e576-4699-bc69-90d6929afc5c[Uprobes enable the dynamic instrumentation and observation of user-space program behavior by attaching eBPF handlers to any memory address, typically the entry point of a function]
+
+|kprobe
+|https://docs.kernel.org/trace/kprobes.html
+
+|observability feature
+|Implementation to observe well defined trace-points/uprobes/kprobes within a specified context
+
+|CONFIG_FTRACE_SYSCALLS
+|https://cateee.net/lkddb/web-lkddb/FTRACE_SYSCALLS.html[Basic tracer to catch the syscall entry and exit events.]
+
+|ANR
+|https://developer.android.com/topic/performance/vitals/anr[Application not responding]
+
+|PSS
+|https://en.wikipedia.org/wiki/Proportional_set_size
+
+|File descriptor
+|https://en.wikipedia.org/wiki/File_descriptor
+
+|===

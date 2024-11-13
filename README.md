@@ -38,6 +38,7 @@ Installing nix and using the development shell is the recommended approach for d
 
 [^1]: Android is a trademark of Google LLC. The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.
 
+
 ## Emulator Setup
 
 As we need a modified version of Android, we cannot use the standard system images that come with the default Android SDK.
@@ -61,6 +62,15 @@ This can be started with the `emulator` tool like this:
 
 ```
 emulator @YOUR_AVD_NAME
+```
+
+
+## Documentation
+
+To generate the html documentation run the following:
+
+```
+asciidoctor -r asciidoctor-diagram Documentation/asciidoc/main.adoc -o Documentation/build/doc/index.html
 ```
 
 ## License
