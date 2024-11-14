@@ -9,10 +9,10 @@ import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.test.KoinTest
 import org.koin.test.verify.verify
 
-class ZIOFAApplicationTest : KoinTest {
+class ZiofaApplicationTest : KoinTest {
     @OptIn(KoinExperimentalAPI::class)
     @Test
     fun checkModules() {
-        ZIOFAApplication().appModule.verify()
+        ZiofaApplication().appModule.verify()
     }
 }

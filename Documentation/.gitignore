@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2024 The AMOS Projects
+#
+# SPDX-License-Identifier: MIT
+
+# Node
+
+build
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+node_modules/
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Gradle
+.gradle
+
+# Java
+.classpath
+
+# Python
+*.pyc
+__pycache__/
+
+# vscode
+.vscode/
+web-build/
+dist/
+
+# IDEA / IntelliJ
+.idea/
+out/
+
+# MacOS
+.DS_Store
+
+# Direnv
+/.direnv
+
+target
+
+sbom.json

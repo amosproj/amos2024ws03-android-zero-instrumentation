@@ -1,19 +1,25 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
+static DEBUG: bool = false;
+
 use anyhow::Context as _;
-use aya::{maps::{RingBuf}, programs::{Xdp, XdpFlags}, Ebpf};
+use aya::{maps::{RingBuf}, programs::{Xdp, XdpFlags, KProbe}, Ebpf};
 use clap::Parser;
 use shared::counter::{counter_server::{Counter, CounterServer}, Count, LoadProgramRequest, LoadProgramResponse};
 #[rustfmt::skip]
-use log::{debug, warn};
-use tokio::{io::unix::AsyncFd, sync::{mpsc, Mutex}};
+use log::{debug, warn, info};
+use tokio::{io::unix::AsyncFd, signal, sync::{mpsc, Mutex}};
 use tokio_stream::{wrappers::ReceiverStream, Stream};
 use tonic::{transport::Server, Request, Response, Status};
 use std::{net::ToSocketAddrs, pin::Pin, sync::Arc};
+use example_common::KProbeData;
+
+
 
 struct CounterImpl {
     iface: String,
@@ -36,7 +42,6 @@ impl Counter for CounterImpl {
         program.load().unwrap();
         program.attach(&self.iface, XdpFlags::default())
             .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE").unwrap();
-
         Ok(Response::new(LoadProgramResponse { loaded: true }))
     }
 
@@ -71,14 +76,53 @@ impl Counter for CounterImpl {
     }
 }
 
+
 #[derive(Debug, Parser)]
 struct Opt {
     #[clap(short, long, default_value = "eth0")]
     iface: String,
 }
 
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    if DEBUG {
+        let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(env!("OUT_DIR"),"/example")))?;
+        let program: &mut KProbe =
+            ebpf.program_mut("vfs_write").unwrap().try_into()?;
+        program.load()?;
+        program.attach("vfs_write", 0)?;
+
+
+        let ebpf_lock = Arc::new(Mutex::new(ebpf));
+        let mut guard = ebpf_lock.lock().await;
+        let events = RingBuf::try_from(guard.take_map("KProbes").unwrap()).unwrap();
+        let mut poll = AsyncFd::new(events).unwrap();
+
+        tokio::spawn(async move {
+            loop {
+                let mut guard = poll.readable_mut().await.unwrap();
+                let ring_buf = guard.get_inner_mut();
+                while let Some(bytes) = ring_buf.next() {
+                    let data_ptr = bytes.as_ptr() as *const KProbeData;
+                    let data: KProbeData = unsafe { *data_ptr };
+
+                    println!("pid: {}, tid: {}", data.pid, data.tid)
+                }
+                guard.clear_ready();
+            }
+        });
+
+
+
+        info!("Waiting for Ctrl-C...");
+
+        signal::ctrl_c().await?;
+        info!("Exiting...");
+
+        return Ok(());
+    }
+
     let opt = Opt::parse();
 
     env_logger::init();
@@ -115,6 +159,8 @@ async fn main() -> anyhow::Result<()> {
         .serve("[::1]:50051".to_socket_addrs().unwrap().next().unwrap())
         .await
         .unwrap();
+
+
 
     Ok(())
 }

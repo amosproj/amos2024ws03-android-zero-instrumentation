@@ -23,6 +23,7 @@ SPDX-FileCopyrightText = "2015 the original author or authors"
 [[annotations]]
 path = [
     "Deliverables/**",
+    "Documentation/**",
 ]
 SPDX-License-Identifier = "CC-BY-4.0"
 SPDX-FileCopyrightText = "2024 The AMOS Projects"

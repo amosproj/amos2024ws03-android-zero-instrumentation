@@ -1,0 +1,13 @@
+== Links
+
+https://arxiv.org/pdf/2105.14344[BPFroid: Robust Real Time Android Malware Detection Framework]
+
+https://www.youtube.com/watch?v=Vjb3qHem8io[Using BPF for lightweight Android profiling]
+
+https://www.youtube.com/watch?v=1xFoUSG4Wvg[A Hitchhikers Guide to Container Security]
+
+https://source.android.com/docs/core/data/ebpf-traffic-monitor[eBPF traffic monitoring (Android Doc)]
+
+https://isovalent.com/books/learning-ebpf/[Learning eBPF (Book)]
+
+https://blog.quarkslab.com/defeating-ebpf-uprobe-monitoring.html

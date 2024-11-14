@@ -1,0 +1,34 @@
+Title	URL	Assignees	Status	Estimated size	Real size
+EBPF Program extension 	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/54	der-whity	In Progress	3	
+User eBPF programm Selection	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/41	ffranzgitHub	In Progress	5	
+Communcation between Android side and Rust side	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/42	fhilgers	Awaiting Review	5	
+scope(ebpf) unix domain socket traffic analysis (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/22	fhilgers	Awaiting Review	5	
+Home Screen and Navigation Drawer	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/43	luca-dot-sh	Awaiting Review	2	
+Bugfix: Manage Sbom generation through nix	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/55	Mr-Kanister	Awaiting Review	1	1
+Preparation of CI	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/6	fhilgers	Feature Archive	3	3
+scope(ui) find timeseries visualization library (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/21	clabrous, luca-dot-sh	Feature Archive	2	2
+Generation of sboms doesn't include kotlin	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/39		Feature Archive	1	1
+Manage Sbom generation through nix	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/30	Mr-Kanister	Feature Archive	2	1
+scope(daemon) get information about android processes to list/find/search them (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/20	der-whity, ffranzgitHub	Feature Archive	3	1
+License and Copyright Agreement	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/18	fhilgers	Feature Archive	2	2
+Preperation of Kotlin	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/7	clabrous, luca-dot-sh	Feature Archive	3	3
+Docker Container	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/11	fhilgers	Feature Archive	3	3
+scope(build) aarch64 als target	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/23	fhilgers	Feature Archive	1	1
+scope(build) android 13 instead of 15	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/24	fhilgers	Feature Archive	1	1
+Team Decision	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/8	BenediktZinn, clabrous, der-whity, ffranzgitHub, fhilgers, luca-dot-sh, Mr-Kanister	Feature Archive	1	1
+architecture document	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/10	fhilgers	Feature Archive	3	5
+bill of materials	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/9	BenediktZinn, der-whity, Mr-Kanister	Feature Archive	3	3
+Brain Storming Architecture	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/3		Feature Archive	3	1
+scope(ebpf/daemon) uprobe	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/19		Sprint Backlog	8	
+Create a prototype for the visualisation screen	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/47		Sprint Backlog	3	
+Define Project Goals / Project Features	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/2		Sprint Backlog	3	
+Brain Storming eBPF Use Cases	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/1		Sprint Backlog	2	
+Define the time intervals / time delay between each data point	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/45		Product Backlog		
+Define metric for the visualisation screen	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/46		Product Backlog		
+Show information about which apps are available (depends on the daemon search functionality)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/25		Product Backlog	-1	
+Plaintext architecture document	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/34		Product Backlog		
+Retrieve Installed Applications List	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/72		Product Backlog		
+Display Installed Applications in UI	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/73		Product Backlog		
+Distinguish between System vs. User Applications	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/74		Product Backlog		
+Identify Running State	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/75		Product Backlog		
+UI Filter for System and User Applications	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/76		Product Backlog		
