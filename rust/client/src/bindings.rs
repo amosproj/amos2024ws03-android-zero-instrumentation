@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{sync::Arc, pin::Pin};
+use std::{pin::Pin, sync::Arc};
 
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
@@ -31,26 +31,30 @@ struct Client(Mutex<crate::client::Client>);
 #[uniffi(flat_error)] // TODO: convert errors
 enum ClientError {
     #[error(transparent)]
-    Inner(#[from] crate::client::ClientError)
+    Inner(#[from] crate::client::ClientError),
 }
 
 #[uniffi::export(async_runtime = "tokio")]
 impl Client {
     #[uniffi::constructor]
     async fn connect(url: String) -> Result<Arc<Self>> {
-        Ok(Arc::new(Client(Mutex::new(crate::client::Client::connect(url).await?))))
+        Ok(Arc::new(Client(Mutex::new(
+            crate::client::Client::connect(url).await?,
+        ))))
     }
 
     async fn load_program(&self, name: String) -> Result<()> {
         let mut guard = self.0.lock().await;
         Ok(guard.load_program(name).await?)
     }
-    
+
     async fn server_count(&self) -> Result<CountStream> {
         let mut guard = self.0.lock().await;
-        let stream = guard.server_count().await?
+        let stream = guard
+            .server_count()
+            .await?
             .map(|x| x.map_err(ClientError::from));
-        
+
         Ok(CountStream(Mutex::new(Box::pin(stream))))
     }
 }

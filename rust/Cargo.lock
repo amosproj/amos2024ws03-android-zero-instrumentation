@@ -254,7 +254,6 @@ dependencies = [
  "object",
  "once_cell",
  "thiserror",
- "tokio",
 ]
 
 [[package]]
@@ -294,20 +293,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "aya-log"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b600d806c1d07d3b81ab5f4a2a95fd80f479a0d3f1d68f29064d660865f85f02"
-dependencies = [
- "aya",
- "aya-log-common",
- "bytes",
- "log",
- "thiserror",
- "tokio",
 ]
 
 [[package]]
@@ -367,10 +352,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "backend"
+name = "backend-common"
 version = "0.1.0"
 dependencies = [
  "aya",
+]
+
+[[package]]
+name = "backend-daemon"
+version = "0.1.0"
+dependencies = [
+ "aya",
+ "backend-common",
  "cargo_metadata 0.18.1",
  "env_logger",
  "libc",
@@ -384,12 +377,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "backend_test_client"
+name = "backend-ebpf"
 version = "0.1.0"
 dependencies = [
- "shared",
- "tokio",
- "tonic",
+ "aya-ebpf",
+ "aya-log-ebpf",
+ "backend-common",
+ "which",
+ "xtask",
 ]
 
 [[package]]
@@ -618,46 +613,6 @@ checksum = "534c5cf6194dfab3db3242765c03bbe257cf92f22b38f6bc0c58d59108a820ba"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "example"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "aya",
- "aya-log",
- "cargo_metadata 0.18.1",
- "clap",
- "env_logger",
- "example-common",
- "example-ebpf",
- "libc",
- "log",
- "prost",
- "shared",
- "tokio",
- "tokio-stream",
- "tonic",
- "xtask",
-]
-
-[[package]]
-name = "example-common"
-version = "0.1.0"
-dependencies = [
- "aya",
-]
-
-[[package]]
-name = "example-ebpf"
-version = "0.1.0"
-dependencies = [
- "aya-ebpf",
- "aya-log-ebpf",
- "example-common",
- "which",
- "xtask",
 ]
 
 [[package]]

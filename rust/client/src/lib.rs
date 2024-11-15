@@ -6,7 +6,6 @@
 
 mod client;
 
-
 pub use client::{Client, ClientError, Result};
 
 #[cfg(feature = "uniffi")]
