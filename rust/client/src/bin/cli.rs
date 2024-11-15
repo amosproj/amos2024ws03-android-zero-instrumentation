@@ -15,6 +15,6 @@ pub async fn main() -> anyhow::Result<()> {
     while let Some(count) = stream.next().await {
         println!("{}", count?)
     }
-    
+
     Ok(())
 }

@@ -8,34 +8,19 @@
 //
 // SPDX-License-Identifier: MIT
 
-use aya_ebpf::{bindings::xdp_action, macros::{map, xdp, kprobe}, maps::{PerCpuArray, RingBuf}, programs::{XdpContext, ProbeContext}, EbpfContext};
-use example_common::{KProbeData, KProbeTypes};
+use aya_ebpf::{
+    bindings::xdp_action,
+    macros::{map, xdp},
+    maps::{PerCpuArray, RingBuf},
+    programs::XdpContext,
+};
+pub use backend_ebpf::{vfs_write, KPROBES};
 
-#[map(name="COUNTER")]
+#[map(name = "COUNTER")]
 static PACKET_COUNTER: PerCpuArray<u32> = PerCpuArray::with_max_entries(1, 0);
 
-#[map(name="EVENTS")]
+#[map(name = "EVENTS")]
 static EVENTS: RingBuf = RingBuf::with_byte_size(1024, 0);
-
-#[map(name="KProbes")]
-static KPROBES: RingBuf = RingBuf::with_byte_size(1024, 0);
-
-#[kprobe]
-pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
-    let pid = ctx.pid();
-    let tid = ctx.tgid();
-
-    let data = KProbeData{pid, tid, probe_type: KProbeTypes::VfsWrite, ret: false };
-    let mut entry = match KPROBES.reserve::<KProbeData>(0) {
-        Some(entry) => entry,
-        None => return Err(0)
-    };
-
-    entry.write(data);
-    entry.submit(0);
-
-    Ok(())
-}
 
 #[xdp]
 pub fn example(ctx: XdpContext) -> u32 {
@@ -51,12 +36,11 @@ fn try_example(_: XdpContext) -> Result<u32, ()> {
         *counter += 1;
         let mut entry = match EVENTS.reserve::<u32>(0) {
             Some(entry) => entry,
-            None => return Ok(xdp_action::XDP_PASS)
+            None => return Ok(xdp_action::XDP_PASS),
         };
-        
+
         entry.write(*counter);
         entry.submit(0);
-
     }
     Ok(xdp_action::XDP_PASS)
 }

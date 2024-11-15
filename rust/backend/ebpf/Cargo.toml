@@ -5,22 +5,22 @@
 # SPDX-License-Identifier: MIT
 
 [package]
-name = "example-ebpf"
+name = "backend-ebpf"
 version = "0.1.0"
 license.workspace = true
 repository.workspace = true
 edition.workspace = true
 
 [dependencies]
-example-common = { path = "../example-common" }
+backend-common = { workspace = true }
 
 aya-ebpf = { workspace = true }
 aya-log-ebpf = { workspace = true }
 
 [build-dependencies]
 which = { workspace = true }
-xtask = { path = "../xtask" }
+xtask = { workspace = true }
 
 [[bin]]
-name = "example"
+name = "backend-ebpf"
 path = "src/main.rs"

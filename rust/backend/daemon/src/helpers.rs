@@ -16,5 +16,3 @@ pub fn bump_rlimit() {
         debug!("remove limit on locked memory failed, ret is: {}", ret);
     }
 }
-
-

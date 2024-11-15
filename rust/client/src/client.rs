@@ -16,23 +16,27 @@ pub enum ClientError {
     Status(#[from] tonic::Status),
 
     #[error(transparent)]
-    TransportError(#[from] tonic::transport::Error)
+    TransportError(#[from] tonic::transport::Error),
 }
 
 impl Client {
     pub async fn connect(url: String) -> Result<Self> {
         Ok(Self(CounterClient::connect(url).await?))
     }
-    
+
     pub async fn load_program(&mut self, name: String) -> Result<()> {
         self.0.load_program(LoadProgramRequest { name }).await?;
         Ok(())
     }
-    
+
     pub async fn server_count(&mut self) -> Result<impl Stream<Item = Result<u32>>> {
-        let stream = self.0.server_count(()).await?.into_inner()
+        let stream = self
+            .0
+            .server_count(())
+            .await?
+            .into_inner()
             .map(|s| Ok(s.map(|c| c.count)?));
-        
+
         Ok(stream)
     }
 }
