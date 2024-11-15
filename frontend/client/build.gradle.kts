@@ -54,9 +54,11 @@ android {
     sourceSets {
         getByName("debug") {
             kotlin.srcDir(generatedDir("debug"))
+	        jniLibs.srcDir(layout.buildDirectory.dir("rustJniLibs/android"))
         }
         getByName("release") {
             kotlin.srcDir(generatedDir("release"))
+	        jniLibs.srcDir(layout.buildDirectory.dir("rustJniLibs/android"))
         }
     }
 }
@@ -68,6 +70,7 @@ cargo {
     features {
         defaultAnd(arrayOf("uniffi"))
     }
+    extraCargoBuildArguments = listOf("--package", "client")
 }
 
 val desktopLibsJar = tasks.register<Jar>("desktopLibsJar") {

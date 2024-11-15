@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: MIT
 
-use shared::counter::{counter_client::CounterClient, LoadProgramRequest};
+use shared::counter::{counter_client::CounterClient, IfaceMessage};
 use tokio_stream::{Stream, StreamExt};
-use tonic::transport::Channel;
+use tonic::{transport::Channel, Request};
 
+#[derive(Clone, Debug)]
 pub struct Client(CounterClient<Channel>);
 
 pub type Result<T> = core::result::Result<T, ClientError>;
@@ -24,8 +25,33 @@ impl Client {
         Ok(Self(CounterClient::connect(url).await?))
     }
 
-    pub async fn load_program(&mut self, name: String) -> Result<()> {
-        self.0.load_program(LoadProgramRequest { name }).await?;
+    pub async fn load(&mut self) -> Result<()> {
+        self.0.load(Request::new(())).await?;
+        Ok(())
+    }
+
+    pub async fn unload(&mut self) -> Result<()> {
+        self.0.unload(Request::new(())).await?;
+        Ok(())
+    }
+
+    pub async fn attach(&mut self, iface: String) -> Result<()> {
+        self.0.attach(Request::new(IfaceMessage { iface })).await?;
+        Ok(())
+    }
+
+    pub async fn detach(&mut self, iface: String) -> Result<()> {
+        self.0.detach(Request::new(IfaceMessage { iface })).await?;
+        Ok(())
+    }
+
+    pub async fn start_collecting(&mut self) -> Result<()> {
+        self.0.start_collecting(Request::new(())).await?;
+        Ok(())
+    }
+
+    pub async fn stop_collecting(&mut self) -> Result<()> {
+        self.0.stop_collecting(Request::new(())).await?;
         Ok(())
     }
 

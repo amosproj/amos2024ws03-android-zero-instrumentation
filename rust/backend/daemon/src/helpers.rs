@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use log::debug;
+use tracing::debug;
 
 pub fn bump_rlimit() {
     // Bump the memlock rlimit. This is needed for older kernels that don't use the
