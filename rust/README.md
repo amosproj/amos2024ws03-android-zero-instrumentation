@@ -24,10 +24,9 @@ SPDX-License-Identifier: MIT
 
 Use `cargo build`, `cargo check`, etc. as normal.
 
-- Run the server via `cargo xtask server`
+- Run the server via `cargo xtask daemon`
 - Run the client via `cargo xtask client`
-- To run both on android, pass `--android`, e.g. `cargo xtask server --android -- --iface wlan0`, this will push the executable via `adb push` to `/data/local/tmp` 
-  and execute it via `su`
+- To run both on android, pass `--android`, e.g. `cargo xtask daemon --android`, this will push the executable via `adb push` to `/data/local/tmp` and execute it via `su`
 
 ## Cross-compiling on macOS
 

@@ -7,3 +7,7 @@
 // SPDX-License-Identifier: MIT
 
 // This file exists to enable the library target.
+
+mod vfs_tracing;
+
+pub use vfs_tracing::{vfs_write, KPROBES};

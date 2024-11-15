@@ -6,8 +6,7 @@
 
 [workspace]
 resolver = "2"
-members = ["xtask", "example", "example-common", "example-ebpf", "shared", "client", "backend", "backend_test_client"]
-default-members = ["xtask", "example", "example-common", "shared", "client", "backend"]
+members = ["xtask", "backend/daemon", "backend/ebpf", "backend/common", "shared", "client"]
 
 [workspace.package]
 license = "MIT"
@@ -40,6 +39,10 @@ tokio-stream = "0.1.16"
 uniffi = { version = "0.28.2" }
 thiserror = "1.0.68"
 shared = { path = "./shared" }
+xtask = { path = "./xtask" }
+backend-common = { path = "./backend/common" }
+backend-daemon = { path = "./backend/daemon" }
+backend-ebpf = { path = "./backend/ebpf" }
 
 [profile.dev]
 panic = "abort"
@@ -47,6 +50,6 @@ panic = "abort"
 [profile.release]
 panic = "abort"
 
-[profile.release.package.example-ebpf]
+[profile.release.package.backend-ebpf]
 debug = 2
 codegen-units = 1

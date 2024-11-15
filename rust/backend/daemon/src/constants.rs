@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::net::{SocketAddr};
+use std::net::SocketAddr;
 
 pub(crate) const DEV_DEFAULT_FILE_PATH: &str = "./ziofa.json";
 

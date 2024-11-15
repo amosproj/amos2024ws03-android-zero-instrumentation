@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::fs::File;
-use std::io;
-use std::io::{BufReader, BufWriter};
-use shared::config::{Configuration};
+use std::{
+    fs::File,
+    io,
+    io::{BufReader, BufWriter},
+};
+
+use shared::config::Configuration;
 
 pub fn load_from_file(path: &str) -> io::Result<Configuration> {
     let file = File::open(path)?;

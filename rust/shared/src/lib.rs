@@ -12,6 +12,6 @@ pub mod ziofa {
     tonic::include_proto!("ziofa");
 }
 
-pub mod config{
+pub mod config {
     tonic::include_proto!("config");
 }

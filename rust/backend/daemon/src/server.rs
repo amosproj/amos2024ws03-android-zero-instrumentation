@@ -4,20 +4,23 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::{constants, configuration};
-use crate::ebpf_utils::{ProbeID, update_from_config};
-use shared::config::Configuration;
-use shared::ziofa::ziofa_server::{Ziofa, ZiofaServer};
-use shared::ziofa::{
-    CheckServerResponse,
-    Process, ProcessList, SetConfigurationResponse,
-};
-use tonic::{transport::Server, Request, Response, Status};
-use std::collections::HashMap;
-use std::ops::DerefMut;
-use std::sync::Arc;
+use std::{collections::HashMap, ops::DerefMut, sync::Arc};
+
 use aya::Ebpf;
+use shared::{
+    config::Configuration,
+    ziofa::{
+        ziofa_server::{Ziofa, ZiofaServer},
+        CheckServerResponse, Process, ProcessList, SetConfigurationResponse,
+    },
+};
 use tokio::sync::Mutex;
+use tonic::{transport::Server, Request, Response, Status};
+
+use crate::{
+    configuration, constants,
+    ebpf_utils::{update_from_config, ProbeID},
+};
 
 pub struct ZiofaImpl {
     // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
@@ -27,7 +30,10 @@ pub struct ZiofaImpl {
 
 impl ZiofaImpl {
     pub fn new(probe_id_map: HashMap<String, ProbeID>, ebpf: Ebpf) -> ZiofaImpl {
-        ZiofaImpl { probe_id_map: Arc::new(Mutex::new(probe_id_map)), ebpf: Arc::new(Mutex::new(ebpf)) }
+        ZiofaImpl {
+            probe_id_map: Arc::new(Mutex::new(probe_id_map)),
+            ebpf: Arc::new(Mutex::new(ebpf)),
+        }
     }
 }
 
@@ -56,11 +62,7 @@ impl Ziofa for ZiofaImpl {
         Ok(Response::new(response))
     }
 
-    async fn get_configuration(
-        &self,
-        _: Request<()>,
-    ) -> Result<Response<Configuration>, Status> {
-
+    async fn get_configuration(&self, _: Request<()>) -> Result<Response<Configuration>, Status> {
         //TODO: if ? fails needs valid return value for the function so that the server doesn't crash.
         let config = configuration::load_from_file(constants::DEV_DEFAULT_FILE_PATH)?;
         Ok(Response::new(config))
@@ -81,9 +83,13 @@ impl Ziofa for ZiofaImpl {
         let mut probe_id_map_guard = self.probe_id_map.lock().await;
 
         // TODO: set config path
-        update_from_config(ebpf_guard.deref_mut(), "", probe_id_map_guard.deref_mut());
+        update_from_config(
+            ebpf_guard.deref_mut(),
+            "ziofa.json",
+            probe_id_map_guard.deref_mut(),
+        );
 
-        Ok(Response::new(SetConfigurationResponse{ response_type: 0}))
+        Ok(Response::new(SetConfigurationResponse { response_type: 0 }))
     }
 
     // type InitStreamStream = ReceiverStream<Result<EbpfStreamObject, Status>>;
@@ -100,8 +106,9 @@ impl Ziofa for ZiofaImpl {
 pub async fn serve_forever() {
     let ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
-        "/example"
-    ))).unwrap();
+        "/backend-ebpf"
+    )))
+    .unwrap();
     let probe_id_map = HashMap::new();
     let service = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf));
     Server::builder()

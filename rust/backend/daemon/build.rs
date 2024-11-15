@@ -55,7 +55,7 @@ fn main() {
     let Metadata { packages, .. } = MetadataCommand::new().no_deps().exec().unwrap();
     let ebpf_package = packages
         .into_iter()
-        .find(|Package { name, .. }| name == "example-ebpf")
+        .find(|Package { name, .. }| name == "backend-ebpf")
         .unwrap();
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
@@ -106,7 +106,7 @@ fn main() {
         cmd.current_dir(ebpf_dir);
 
         // Workaround for https://github.com/rust-lang/cargo/issues/6412 where cargo flocks itself.
-        let ebpf_target_dir = out_dir.join("example-ebpf");
+        let ebpf_target_dir = out_dir.join("backend/ebpf");
         cmd.arg("--target-dir").arg(&ebpf_target_dir);
 
         let mut child = cmd
@@ -133,10 +133,10 @@ fn main() {
             #[allow(clippy::collapsible_match)]
             match message.expect("valid JSON") {
                 Message::CompilerArtifact(Artifact {
-                                              executable,
-                                              target: Target { name, .. },
-                                              ..
-                                          }) => {
+                    executable,
+                    target: Target { name, .. },
+                    ..
+                }) => {
                     if let Some(executable) = executable {
                         executables.push((name, executable.into_std_path_buf()));
                     }

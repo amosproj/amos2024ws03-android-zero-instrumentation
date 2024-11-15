@@ -2,14 +2,11 @@
 //
 // SPDX-License-Identifier: MIT
 
-mod helpers;
-mod server;
 mod configuration;
 mod constants;
 mod ebpf_utils;
-
-use tokio;
-
+mod helpers;
+mod server;
 
 #[tokio::main]
 async fn main() {
@@ -20,4 +17,3 @@ async fn main() {
 
     server::serve_forever().await;
 }
-

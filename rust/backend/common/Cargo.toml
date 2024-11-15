@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MIT
 
 [package]
-name = "example-common"
+name = "backend-common"
 version = "0.1.0"
 license.workspace = true
 repository.workspace = true

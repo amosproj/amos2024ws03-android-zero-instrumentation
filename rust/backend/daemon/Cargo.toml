@@ -5,21 +5,26 @@
 # SPDX-License-Identifier: MIT
 
 [package]
-name = "backend"
+name = "backend-daemon"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 tonic = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "signal"] }
-shared = { path = "../shared" }
+shared = { workspace = true }
 libc = { workspace = true }
 tokio-stream = { workspace = true }
-env_logger = {workspace = true}
-log = {workspace = true}
-serde_json = {workspace = true}
-aya = {workspace = true}
+env_logger = { workspace = true }
+log = { workspace = true }
+serde_json = { workspace = true }
+aya = { workspace = true }
+backend-common = { workspace = true, features = ["user"] }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }
-xtask = { path = "../xtask" }
+xtask = { workspace = true }
+
+[[bin]]
+name = "backend-daemon-cli"
+path = "./src/bin/cli.rs"
