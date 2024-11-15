@@ -7,6 +7,7 @@
 [workspace]
 resolver = "2"
 members = ["xtask", "backend/daemon", "backend/ebpf", "backend/common", "shared", "client"]
+default-members = ["xtask", "backend/daemon", "backend/common", "shared", "client"]
 
 [workspace.package]
 license = "MIT"
