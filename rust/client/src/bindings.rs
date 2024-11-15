@@ -43,9 +43,28 @@ impl Client {
         ))))
     }
 
-    async fn load_program(&self, name: String) -> Result<()> {
-        let mut guard = self.0.lock().await;
-        Ok(guard.load_program(name).await?)
+    pub async fn load(&self) -> Result<()> {
+        Ok(self.0.lock().await.load().await?)
+    }
+
+    pub async fn unload(&self) -> Result<()> {
+        Ok(self.0.lock().await.unload().await?)
+    }
+
+    pub async fn attach(&self, iface: String) -> Result<()> {
+        Ok(self.0.lock().await.attach(iface).await?)
+    }
+
+    pub async fn detach(&self, iface: String) -> Result<()> {
+        Ok(self.0.lock().await.detach(iface).await?)
+    }
+
+    pub async fn start_collecting(&self) -> Result<()> {
+        Ok(self.0.lock().await.start_collecting().await?)
+    }
+
+    pub async fn stop_collecting(&self) -> Result<()> {
+        Ok(self.0.lock().await.stop_collecting().await?)
     }
 
     async fn server_count(&self) -> Result<CountStream> {

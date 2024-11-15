@@ -9,6 +9,7 @@ use std::{collections::HashMap, ops::DerefMut, sync::Arc};
 use aya::Ebpf;
 use shared::{
     config::Configuration,
+    counter::counter_server::CounterServer,
     ziofa::{
         ziofa_server::{Ziofa, ZiofaServer},
         CheckServerResponse, Process, ProcessList, SetConfigurationResponse,
@@ -19,6 +20,7 @@ use tonic::{transport::Server, Request, Response, Status};
 
 use crate::{
     configuration, constants,
+    counter::Counter,
     ebpf_utils::{update_from_config, ProbeID},
 };
 
@@ -29,10 +31,10 @@ pub struct ZiofaImpl {
 }
 
 impl ZiofaImpl {
-    pub fn new(probe_id_map: HashMap<String, ProbeID>, ebpf: Ebpf) -> ZiofaImpl {
+    pub fn new(probe_id_map: HashMap<String, ProbeID>, ebpf: Arc<Mutex<Ebpf>>) -> ZiofaImpl {
         ZiofaImpl {
             probe_id_map: Arc::new(Mutex::new(probe_id_map)),
-            ebpf: Arc::new(Mutex::new(ebpf)),
+            ebpf,
         }
     }
 }
@@ -110,9 +112,12 @@ pub async fn serve_forever() {
     )))
     .unwrap();
     let probe_id_map = HashMap::new();
-    let service = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf));
+    let ebpf = Arc::new(Mutex::new(ebpf));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf.clone()));
+    let counter_server = CounterServer::new(Counter::new(ebpf).await);
     Server::builder()
-        .add_service(service)
+        .add_service(ziofa_server)
+        .add_service(counter_server)
         .serve(constants::sock_addr())
         .await
         .unwrap();
