@@ -36,7 +36,17 @@ pub fn run(opts: Options) -> Result<()> {
     if android {
         let mut cmd = Command::new("cargo");
         cmd.env(AYA_BUILD_EBPF, "true");
-        cmd.args(["ndk", "-t", "x86_64", "run", "--bin", "client", "--config"]);
+        cmd.args([
+            "ndk",
+            "-t",
+            "x86_64",
+            "run",
+            "--bin",
+            "client",
+            "--features",
+            "cli",
+            "--config",
+        ]);
         cmd.arg(format!(
             "target.\"cfg(all())\".runner=\"{} {}\"",
             android_script.display(),
@@ -51,7 +61,7 @@ pub fn run(opts: Options) -> Result<()> {
     } else {
         let mut cmd = Command::new("cargo");
         cmd.env(AYA_BUILD_EBPF, "true");
-        cmd.args(["run", "--bin", "client"]);
+        cmd.args(["run", "--bin", "client", "--features", "cli"]);
         if release {
             cmd.arg("--release");
         }

@@ -14,12 +14,13 @@ tonic = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "signal"] }
 shared = { workspace = true }
 libc = { workspace = true }
-tokio-stream = { workspace = true }
-env_logger = { workspace = true }
-log = { workspace = true }
+tokio-stream = { workspace = true, features = ["sync"] }
 serde_json = { workspace = true }
 aya = { workspace = true }
+thiserror = { workspace = true }
 backend-common = { workspace = true, features = ["user"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }

@@ -37,12 +37,14 @@ tonic = "0.12.3"
 tonic-build = "0.12.3"
 tokio-stream = "0.1.16"
 uniffi = { version = "0.28.2" }
-thiserror = "1.0.68"
+thiserror = "2.0.3"
 shared = { path = "./shared" }
 xtask = { path = "./xtask" }
 backend-common = { path = "./backend/common" }
 backend-daemon = { path = "./backend/daemon" }
 backend-ebpf = { path = "./backend/ebpf" }
+tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [profile.dev]
 panic = "abort"

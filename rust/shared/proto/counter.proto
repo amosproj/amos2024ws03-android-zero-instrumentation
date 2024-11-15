@@ -14,15 +14,17 @@ message Count {
     uint32 count = 1;
 }
 
-message LoadProgramRequest {
-    string name = 1;
-}
-
-message LoadProgramResponse {
-    bool loaded = 1;
+message IfaceMessage {
+    string iface = 1;
 }
 
 service Counter {
-    rpc LoadProgram(LoadProgramRequest) returns (LoadProgramResponse) {}
+    rpc Load(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc Attach(IfaceMessage) returns (google.protobuf.Empty) {}
+    rpc Unload(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc Detach(IfaceMessage) returns (google.protobuf.Empty) {}
+    rpc StartCollecting(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc StopCollecting(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    
     rpc ServerCount(google.protobuf.Empty) returns (stream Count) {}
 }
