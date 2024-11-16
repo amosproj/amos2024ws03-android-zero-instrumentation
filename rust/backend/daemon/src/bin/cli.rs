@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -39,5 +40,19 @@ async fn main() {
             println!("Error trying to set configuration");
             println!("{:?}", e);
         }
+    };
+
+    let processes = client.list_processes(()).await.and_then(|op| {
+        Ok(op.into_inner())
+    });
+    match processes {
+        Err(e) => println!("Error getting the process list: {:?}", e),
+        Ok(pl) => {
+            println!("Processes:");
+            println!("pid | ppid | comm | state | cmdline");
+            for p in pl.processes {
+                println!("{} | {} | {} | {} | {}", p.pid, p.ppid, p.comm, p.state, p.cmdline)
+            }
+        },
     }
 }

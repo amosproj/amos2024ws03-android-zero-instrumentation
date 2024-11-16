@@ -11,8 +11,7 @@ use shared::{
     config::Configuration,
     counter::counter_server::CounterServer,
     ziofa::{
-        ziofa_server::{Ziofa, ZiofaServer},
-        CheckServerResponse, Process, ProcessList, SetConfigurationResponse,
+        ziofa_server::{Ziofa, ZiofaServer}, CheckServerResponse, ProcessList, SetConfigurationResponse
     },
 };
 use tokio::sync::Mutex;
@@ -21,7 +20,7 @@ use tonic::{transport::Server, Request, Response, Status};
 use crate::{
     configuration, constants,
     counter::Counter,
-    ebpf_utils::{update_from_config, ProbeID},
+    ebpf_utils::{update_from_config, ProbeID}, procfs_utils::list_processes,
 };
 
 pub struct ZiofaImpl {
@@ -48,20 +47,9 @@ impl Ziofa for ZiofaImpl {
     }
 
     async fn list_processes(&self, _: Request<()>) -> Result<Response<ProcessList>, Status> {
-        // dummy data
-        let response = ProcessList {
-            processes: vec![
-                Process {
-                    pid: 1,
-                    package: "systemd".to_string(),
-                },
-                Process {
-                    pid: 1741231,
-                    package: "com.example.org".to_string(),
-                },
-            ],
-        };
-        Ok(Response::new(response))
+        // TODO: Error handling
+        let processes = list_processes().unwrap();
+        Ok(Response::new(processes))
     }
 
     async fn get_configuration(&self, _: Request<()>) -> Result<Response<Configuration>, Status> {

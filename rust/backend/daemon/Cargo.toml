@@ -21,6 +21,7 @@ thiserror = { workspace = true }
 backend-common = { workspace = true, features = ["user"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+procfs = {workspace = true}
 
 [build-dependencies]
 cargo_metadata = { workspace = true }
