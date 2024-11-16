@@ -29,8 +29,11 @@ message ProcessList {
 }
 
 message Process {
-    uint32 pid = 1;
-    string package = 2;
+    int32 pid = 1;
+    int32 ppid = 2;
+    string comm = 3;
+    string state = 4;
+    string cmdline = 5;
 }
 
 message SetConfigurationResponse{

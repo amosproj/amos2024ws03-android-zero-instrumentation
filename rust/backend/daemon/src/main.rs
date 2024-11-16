@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -10,6 +11,7 @@ pub mod counter;
 mod ebpf_utils;
 mod helpers;
 mod server;
+mod procfs_utils;
 
 #[tokio::main]
 async fn main() {
