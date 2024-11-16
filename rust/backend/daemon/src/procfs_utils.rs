@@ -13,21 +13,14 @@ pub fn list_processes() -> Result<ProcessList, ProcError> {
                 // filter out all Errors
                 let process = el.ok()?;
                 let stat = process.stat().ok()?;
-                let cmdline = process.cmdline().ok()?;
-
-                match cmdline {
-                    // filter out all processes with empty cmdline
-                    c if c.len() == 0 => None,
-                    c => Some(ziofa::Process {
-                        pid: stat.pid,
-                        ppid: stat.ppid,
-                        cmdline: c.join(" "),
-                        comm: stat.comm,
-                        state: stat.state.to_string(),
-                    }),
-                }
+                Some(ziofa::Process {
+                    pid: stat.pid,
+                    ppid: stat.ppid,
+                    comm: stat.comm,
+                    state: stat.state.to_string(),
+                })
             })
             .collect();
-        Ok(ProcessList {processes})
+        Ok(ProcessList { processes })
     })
 }
