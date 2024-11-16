@@ -33,7 +33,6 @@ message Process {
     int32 ppid = 2;
     string comm = 3;
     string state = 4;
-    string cmdline = 5;
 }
 
 message SetConfigurationResponse{
