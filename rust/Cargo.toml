@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 # SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 # SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+# SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 #
 # SPDX-License-Identifier: MIT
 
@@ -46,6 +47,7 @@ backend-daemon = { path = "./backend/daemon" }
 backend-ebpf = { path = "./backend/ebpf" }
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+procfs = "0.17.0"
 
 [profile.dev]
 panic = "abort"
