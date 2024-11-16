@@ -49,9 +49,9 @@ async fn main() {
         Err(e) => println!("Error getting the process list: {:?}", e),
         Ok(pl) => {
             println!("Processes:");
-            println!("pid | ppid | comm | state | cmdline");
+            println!("pid | ppid | comm | state");
             for p in pl.processes {
-                println!("{} | {} | {} | {} | {}", p.pid, p.ppid, p.comm, p.state, p.cmdline)
+                println!("{} | {} | {} | {}", p.pid, p.ppid, p.comm, p.state)
             }
         },
     }
