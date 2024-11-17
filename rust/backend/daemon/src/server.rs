@@ -20,7 +20,7 @@ use tonic::{transport::Server, Request, Response, Status};
 use crate::{
     configuration, constants,
     counter::Counter,
-    ebpf_utils::{update_from_config, ProbeID}, procfs_utils::list_processes,
+    ebpf_utils::{update_from_config, ProbeID}, procfs_utils::{list_processes, ProcErrorWrapper},
 };
 
 pub struct ZiofaImpl {
@@ -47,8 +47,7 @@ impl Ziofa for ZiofaImpl {
     }
 
     async fn list_processes(&self, _: Request<()>) -> Result<Response<ProcessList>, Status> {
-        // TODO: Error handling
-        let processes = list_processes().unwrap();
+        let processes = list_processes().map_err(ProcErrorWrapper::from)?;
         Ok(Response::new(processes))
     }
 

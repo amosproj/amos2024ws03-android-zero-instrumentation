@@ -4,6 +4,21 @@
 
 use procfs::{process::all_processes, ProcError};
 use shared::ziofa::{self, ProcessList};
+use tonic;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ProcErrorWrapper {
+    #[error(transparent)]
+    ProcError(#[from] ProcError),
+}
+
+impl From<ProcErrorWrapper> for tonic::Status {
+    fn from(err: ProcErrorWrapper) -> Self {
+        Self::from_error(Box::new(err))
+    }
+}
+
 
 pub fn list_processes() -> Result<ProcessList, ProcError> {
     // Get all processes
