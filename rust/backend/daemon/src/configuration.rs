@@ -9,6 +9,7 @@ use std::{
     io,
     io::{BufReader, BufWriter},
 };
+use aya::programs::Program;
 use thiserror::Error;
 use tonic::Status;
 
@@ -22,6 +23,9 @@ pub enum ConfigError {
 
     #[error("Validation: and entry was in the old config but is not in the new one")]
     EntryDropped { entry_names: Vec<String> },
+
+    #[error("Ebpf functions mentioned don't exist")]
+    EbpfFunctionNoneExistent { names: Vec<String> },
 
     #[error(transparent)]
     LoadFailed(#[from] io::Error),
@@ -47,8 +51,7 @@ pub fn save_to_file(config: &Configuration, path: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn validate(new_config: &Configuration, config_path: &str) -> Result<(), ConfigError> {
-    //TODO: Implement this function
+pub fn validate(new_config: &Configuration, config_path: &str, ebpf_progs: Vec<(&str, &Program)>) -> Result<(), ConfigError> {
 
     // has to have the same amount of entries
     // entries have to match (no entries are allowed to be dropped, or added)
@@ -83,13 +86,26 @@ pub fn validate(new_config: &Configuration, config_path: &str) -> Result<(), Con
             });
     }
 
+    let ebpf_prog_names: Vec<&str> = ebpf_progs.iter().map(|&(name, _)| { name }).collect();
+
+    let ebpf_functions_none_existent: Vec<&EbpfEntry> = new_config.entries.iter().filter(
+        |ebpf_entry: &&EbpfEntry| { !ebpf_prog_names.contains(&&*ebpf_entry.ebpf_name) }
+    ).collect();
+    if ebpf_functions_none_existent.len() != 0 {
+        return Err(
+            ConfigError::EbpfFunctionNoneExistent {
+                names: ebpf_functions_none_existent.iter().map(|ebpf_entry: &&EbpfEntry| { ebpf_entry.ebpf_name.clone() }).collect() 
+            }
+        );
+    }
+
     Ok(())
 }
 
 fn config_contains(config: &Configuration, entry: &EbpfEntry) -> bool {
     let mut cont = true;
-    for conf_entry in config.entries.iter(){
-        if !elem_is_equal(conf_entry, entry){
+    for conf_entry in config.entries.iter() {
+        if !elem_is_equal(conf_entry, entry) {
             cont = false;
         }
     }
@@ -97,7 +113,7 @@ fn config_contains(config: &Configuration, entry: &EbpfEntry) -> bool {
 }
 
 
-fn elem_is_equal(elem_1: &EbpfEntry, elem_2: &EbpfEntry) -> bool{
+fn elem_is_equal(elem_1: &EbpfEntry, elem_2: &EbpfEntry) -> bool {
     // TODO: think about a way to do this right :)
     elem_1.ebpf_name == elem_2.ebpf_name
 }

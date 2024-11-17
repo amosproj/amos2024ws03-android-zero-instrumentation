@@ -7,6 +7,7 @@
 use std::{collections::HashMap, ops::DerefMut, sync::Arc};
 
 use aya::Ebpf;
+use aya::programs::Program;
 use shared::{
     config::Configuration,
     counter::counter_server::CounterServer,
@@ -76,11 +77,12 @@ impl Ziofa for ZiofaImpl {
     ) -> Result<Response<SetConfigurationResponse>, Status> {
         let config = request.into_inner();
 
-        //TODO: implement validate
-        configuration::validate(&config, DEV_DEFAULT_CONFIG_PATH)?;
-        configuration::save_to_file(&config, DEV_DEFAULT_CONFIG_PATH)?;
 
         let mut ebpf_guard = self.ebpf.lock().await;
+        let ebpf_programms: Vec<(&str, &Program)> = ebpf_guard.programs().collect();
+        configuration::validate(&config, DEV_DEFAULT_CONFIG_PATH, ebpf_programms)?;
+        configuration::save_to_file(&config, DEV_DEFAULT_CONFIG_PATH)?;
+
         let mut probe_id_map_guard = self.probe_id_map.lock().await;
 
 

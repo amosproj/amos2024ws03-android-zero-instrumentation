@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use shared::{
-    config::{Configuration, EbpfEntry},
+    config::Configuration,
     ziofa::ziofa_client::ZiofaClient,
 };
 
@@ -20,15 +20,7 @@ async fn main() {
         Ok(t) => t.into_inner(),
         Err(e) => {
             println!("Problem loading configuration: {:?}", e);
-            Configuration {
-                entries: vec![EbpfEntry {
-                    hr_name: "Some entry".to_string(),
-                    description: "This is the description".to_string(),
-                    ebpf_name: "Some entry".to_string(),
-                    fn_id: 0,
-                    ..Default::default()
-                }],
-            }
+            Configuration::default()
         }
     };
     print!("{:?}", config);
