@@ -28,7 +28,7 @@ shared = { workspace = true }
 clap = { workspace = true, optional = true, default-features = true, features = ["derive"] }
 
 [features]
-uniffi = [ "dep:uniffi" ]
+uniffi = [ "dep:uniffi", "shared/uniffi" ]
 cli = [ "dep:clap", "tokio/rt-multi-thread", "tokio/signal" ]
 
 [[bin]]
