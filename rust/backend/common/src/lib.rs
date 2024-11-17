@@ -15,9 +15,26 @@ pub enum KProbeTypes {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct KProbeData {
-    pub pid: u32,
-    pub tid: u32,
-    pub probe_type: KProbeTypes,
-    pub ret: bool,
+pub struct VfsWriteCall {
+    pid: u32,
+    tid: u32,
+    begin_time_stamp: u64,
+    fd: i32,
+    bytes_written: usize,
 }
+
+impl VfsWriteCall {
+    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: i32, bytes_written: usize) -> Self {
+        Self { pid, tid, begin_time_stamp, fd, bytes_written}
+    }
+}
+
+#[inline(always)]
+pub fn generate_id(pid: u32, tgid: u32) -> u64{
+    let pid_u64 = pid as u64;
+    let tgid_u64 = tgid as u64;
+
+    (pid_u64 << 32) | tgid_u64
+}
+
+
