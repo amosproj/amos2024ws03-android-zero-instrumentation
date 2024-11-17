@@ -14,7 +14,7 @@ use aya_ebpf::{
     maps::{PerCpuArray, RingBuf},
     programs::XdpContext,
 };
-pub use backend_ebpf::{vfs_write, KPROBES};
+pub use backend_ebpf::{vfs_write, VFS_WRITE_MAP};
 
 #[map(name = "COUNTER")]
 static PACKET_COUNTER: PerCpuArray<u32> = PerCpuArray::with_max_entries(1, 0);

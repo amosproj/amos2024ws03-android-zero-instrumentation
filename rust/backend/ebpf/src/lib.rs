@@ -10,4 +10,4 @@
 
 mod vfs_tracing;
 
-pub use vfs_tracing::{vfs_write, KPROBES};
+pub use vfs_tracing::{vfs_write, VFS_WRITE_MAP};
