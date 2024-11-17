@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use shared::config::{Configuration, EbpfEntry};
+use std::iter::Map;
 use std::{
     fs::File,
     io,
@@ -25,8 +26,6 @@ pub enum ConfigError {
     #[error(transparent)]
     LoadFailed(#[from] io::Error),
 
-    #[error(transparent)]
-    SaveFailed(#[from] io::Error),
 }
 
 impl From<ConfigError> for Status {
@@ -55,35 +54,50 @@ pub fn validate(new_config: &Configuration, config_path: &str) -> Result<(), Con
     // entries have to match (no entries are allowed to be dropped, or added)
     // all entries have to be correct
 
-    let mut old_config = match load_from_file(config_path) {
+    let old_config = match load_from_file(config_path) {
         Ok(config) => config,
-        Err(e) => return Err(ConfigError::LoadFailed(e)),
+        Err(_) => return Ok(()),
     };
-    
+
     if old_config.entries.len() != new_config.entries.len() {
         return Err(
-            ConfigError::WrongEntryCount { 
-                old_config_count: old_config.entries.len() as u32, 
-                new_config_count: new_config.entries.len() as u32
+            ConfigError::WrongEntryCount {
+                old_config_count: old_config.entries.len() as u32,
+                new_config_count: new_config.entries.len() as u32,
             }
-        )
+        );
     }
-    
+
     let entries_not_contained = old_config.entries.iter().filter(
-        |entry| !new_config.entries.contains(entry)
+        |entry| !config_contains(new_config, entry)
     ).collect::<Vec<&EbpfEntry>>();
-    if !entries_not_contained {
+
+    if !entries_not_contained.len() == 0 {
         return Err(
             ConfigError::EntryDropped {
-                entry_names: new_config.entries.map(|entry| {entry.ebpf_name}).collect()
-            }
-        )
+                entry_names: Map::collect(
+                    entries_not_contained.iter().map(
+                        |ebpf_entry: &&EbpfEntry| { ebpf_entry.ebpf_name.clone() }
+                    )
+                )
+            });
     }
-    
+
     Ok(())
 }
 
-fn equal_entries(old: &EbpfEntry, new: &EbpfEntry) -> bool {
-    // TODO: extend method to check if all but the attach values are equal
-    old.ebpf_name == new.ebpf_name
+fn config_contains(config: &Configuration, entry: &EbpfEntry) -> bool {
+    let mut cont = true;
+    for conf_entry in config.entries.iter(){
+        if !elem_is_equal(conf_entry, entry){
+            cont = false;
+        }
+    }
+    cont
+}
+
+
+fn elem_is_equal(elem_1: &EbpfEntry, elem_2: &EbpfEntry) -> bool{
+    // TODO: think about a way to do this right :)
+    elem_1.ebpf_name == elem_2.ebpf_name
 }

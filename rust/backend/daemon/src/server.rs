@@ -22,7 +22,7 @@ use crate::{
     configuration, constants,
     counter::Counter,
     ebpf_utils::{update_from_config, ProbeID},
-    constants::DEV_DEFAULT_CONFIG_PATH
+    constants::DEV_DEFAULT_CONFIG_PATH,
 };
 
 pub struct ZiofaImpl {
@@ -95,11 +95,10 @@ impl Ziofa for ZiofaImpl {
 }
 
 pub async fn serve_forever() {
-    let ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+    let ebpf = Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/backend-ebpf"
-    )))
-    .unwrap();
+    ))).unwrap();
     let probe_id_map = HashMap::new();
     let ebpf = Arc::new(Mutex::new(ebpf));
     let ziofa_server = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf.clone()));

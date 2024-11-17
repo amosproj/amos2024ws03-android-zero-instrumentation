@@ -18,7 +18,7 @@ async fn main() {
         .pretty()
         .init();
 
-    // apparently needed...
+    
     helpers::bump_rlimit();
 
     server::serve_forever().await;
