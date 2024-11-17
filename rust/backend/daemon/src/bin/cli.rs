@@ -5,7 +5,7 @@
 
 use shared::{
     config::{Configuration, EbpfEntry},
-    ziofa::{ziofa_client::ZiofaClient, process::Cmd},
+    ziofa::{process::Cmd, ziofa_client::ZiofaClient},
 };
 
 #[tokio::main]
@@ -42,10 +42,7 @@ async fn main() {
         }
     };
 
-    let processes = client
-        .list_processes(())
-        .await
-        .and_then(|op| Ok(op.into_inner()));
+    let processes = client.list_processes(()).await.map(|op| op.into_inner());
     match processes {
         Err(e) => println!("Error getting the process list: {:?}", e),
         Ok(pl) => {

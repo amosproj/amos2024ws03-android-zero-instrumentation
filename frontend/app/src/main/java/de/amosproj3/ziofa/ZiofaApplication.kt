@@ -12,7 +12,6 @@ import de.amosproj3.ziofa.ui.visualization.VisualizationViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
-import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import timber.log.Timber
@@ -20,7 +19,7 @@ import timber.log.Timber
 class ZiofaApplication : Application() {
 
     val appModule = module {
-        singleOf<ClientFactory>(::RustClientFactory)
+        single<ClientFactory> { RustClientFactory("http://[::1]:50051") }
         viewModel { ConfigurationViewModel() }
         viewModel { VisualizationViewModel(get()) }
     }
