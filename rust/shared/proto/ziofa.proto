@@ -31,7 +31,8 @@ message ProcessList {
 message Process {
     int32 pid = 1;
     int32 ppid = 2;
-    string comm = 3;
+    // if cmdline would be empty, it contains stat.comm as fallback
+    string cmdline = 3;
     string state = 4;
 }
 
