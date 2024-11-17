@@ -4,7 +4,7 @@
 
 use std::net::SocketAddr;
 
-pub(crate) const DEV_DEFAULT_FILE_PATH: &str = "./ziofa.json";
+pub(crate) const DEV_DEFAULT_CONFIG_PATH: &str = "./ziofa.json";
 
 pub fn sock_addr() -> SocketAddr {
     // "learn rust" they said, "it's a great language" they said

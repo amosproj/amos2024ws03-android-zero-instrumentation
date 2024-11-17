@@ -22,6 +22,7 @@ use crate::{
     configuration, constants,
     counter::Counter,
     ebpf_utils::{update_from_config, ProbeID},
+    constants::DEV_DEFAULT_CONFIG_PATH
 };
 
 pub struct ZiofaImpl {
@@ -65,8 +66,7 @@ impl Ziofa for ZiofaImpl {
     }
 
     async fn get_configuration(&self, _: Request<()>) -> Result<Response<Configuration>, Status> {
-        //TODO: if ? fails needs valid return value for the function so that the server doesn't crash.
-        let config = configuration::load_from_file(constants::DEV_DEFAULT_FILE_PATH)?;
+        let config = configuration::load_from_file(DEV_DEFAULT_CONFIG_PATH)?;
         Ok(Response::new(config))
     }
 
@@ -76,33 +76,22 @@ impl Ziofa for ZiofaImpl {
     ) -> Result<Response<SetConfigurationResponse>, Status> {
         let config = request.into_inner();
 
-        // TODO: Implement function 'validate'
-        // TODO: if ? fails needs valid return value for the function so that the server doesn't fail
-        configuration::validate(&config)?;
-        configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
+        //TODO: implement validate
+        configuration::validate(&config, DEV_DEFAULT_CONFIG_PATH)?;
+        configuration::save_to_file(&config, DEV_DEFAULT_CONFIG_PATH)?;
 
         let mut ebpf_guard = self.ebpf.lock().await;
         let mut probe_id_map_guard = self.probe_id_map.lock().await;
 
-        // TODO: set config path
+
         update_from_config(
             ebpf_guard.deref_mut(),
-            "ziofa.json",
+            DEV_DEFAULT_CONFIG_PATH,
             probe_id_map_guard.deref_mut(),
         );
 
         Ok(Response::new(SetConfigurationResponse { response_type: 0 }))
     }
-
-    // type InitStreamStream = ReceiverStream<Result<EbpfStreamObject, Status>>;
-    // fn init_stream(
-    //     &self,
-    //     _: Request<()>,
-    // ) -> Result<Response<Self::InitStreamStream>, Status> {
-    //     let (_tx, rx) = mpsc::channel(1);
-    //
-    //     Ok(Response::new(Self::InitStreamStream::new(rx)))
-    // }
 }
 
 pub async fn serve_forever() {
