@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use procfs::{process::all_processes, ProcError};
-use shared::ziofa::{self, ProcessList};
+use shared::ziofa::{self, process::Cmd, Cmdline, ProcessList};
 use thiserror::Error;
 use tonic;
 
@@ -32,14 +32,14 @@ pub fn list_processes() -> Result<ProcessList, ProcError> {
                     Ok(c) if c.len() > 0 => Some(ziofa::Process {
                         pid: stat.pid,
                         ppid: stat.ppid,
-                        cmdline: c.join(" "),
+                        cmd: Some(Cmd::Cmdline(Cmdline { args: c })),
                         state: stat.state.to_string(),
                     }),
                     // fallback to stat.comm if cmdline is empty
                     _ => Some(ziofa::Process {
                         pid: stat.pid,
                         ppid: stat.ppid,
-                        cmdline: stat.comm,
+                        cmd: Some(Cmd::Comm(stat.comm)),
                         state: stat.state.to_string(),
                     }),
                 }
