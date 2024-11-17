@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: MIT
 
 use procfs::{process::all_processes, ProcError};
-use shared::ziofa::{self, ProcessList};
-use tonic;
+use shared::ziofa::{self, process::Cmd, Cmdline, ProcessList};
 use thiserror::Error;
+use tonic;
 
 #[derive(Debug, Error)]
 pub enum ProcErrorWrapper {
@@ -19,7 +19,6 @@ impl From<ProcErrorWrapper> for tonic::Status {
     }
 }
 
-
 pub fn list_processes() -> Result<ProcessList, ProcError> {
     // Get all processes
     all_processes().and_then(|op| {
@@ -28,12 +27,22 @@ pub fn list_processes() -> Result<ProcessList, ProcError> {
                 // filter out all Errors
                 let process = el.ok()?;
                 let stat = process.stat().ok()?;
-                Some(ziofa::Process {
-                    pid: stat.pid,
-                    ppid: stat.ppid,
-                    comm: stat.comm,
-                    state: stat.state.to_string(),
-                })
+                let cmdline = process.cmdline();
+                match cmdline {
+                    Ok(c) if c.len() > 0 => Some(ziofa::Process {
+                        pid: stat.pid,
+                        ppid: stat.ppid,
+                        cmd: Some(Cmd::Cmdline(Cmdline { args: c })),
+                        state: stat.state.to_string(),
+                    }),
+                    // fallback to stat.comm if cmdline is empty
+                    _ => Some(ziofa::Process {
+                        pid: stat.pid,
+                        ppid: stat.ppid,
+                        cmd: Some(Cmd::Comm(stat.comm)),
+                        state: stat.state.to_string(),
+                    }),
+                }
             })
             .collect();
         Ok(ProcessList { processes })

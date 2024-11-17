@@ -5,7 +5,7 @@
 
 use shared::{
     config::{Configuration, EbpfEntry},
-    ziofa::ziofa_client::ZiofaClient,
+    ziofa::{ziofa_client::ZiofaClient, process::Cmd},
 };
 
 #[tokio::main]
@@ -42,17 +42,23 @@ async fn main() {
         }
     };
 
-    let processes = client.list_processes(()).await.and_then(|op| {
-        Ok(op.into_inner())
-    });
+    let processes = client
+        .list_processes(())
+        .await
+        .and_then(|op| Ok(op.into_inner()));
     match processes {
         Err(e) => println!("Error getting the process list: {:?}", e),
         Ok(pl) => {
             println!("Processes:");
-            println!("pid | ppid | comm | state");
+            println!("pid | ppid | cmdline / comm (fallback) | state");
             for p in pl.processes {
-                println!("{} | {} | {} | {}", p.pid, p.ppid, p.comm, p.state)
+                let cmd = match p.cmd {
+                    Some(Cmd::Cmdline(c)) => c.args.join(" "),
+                    Some(Cmd::Comm(s)) => s,
+                    None => "".to_string(),
+                };
+                println!("{} | {} | {} | {}", p.pid, p.ppid, cmd, p.state)
             }
-        },
+        }
     }
 }
