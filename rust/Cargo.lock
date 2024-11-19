@@ -1553,6 +1553,7 @@ dependencies = [
  "serde_json",
  "tonic",
  "tonic-build",
+ "uniffi",
 ]
 
 [[package]]

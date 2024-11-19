@@ -32,13 +32,14 @@ message Process {
     int32 pid = 1;
     int32 ppid = 2;
     oneof cmd {
-        Cmdline cmdline = 3;
+        CmdlineData cmdline = 3;
         string comm = 4;
     }
     string state = 5;
+
 }
 
-message Cmdline {
+message CmdlineData {
     repeated string args = 1;
 }
 

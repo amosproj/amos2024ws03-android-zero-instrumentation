@@ -11,7 +11,8 @@ use shared::{
     config::Configuration,
     counter::counter_server::CounterServer,
     ziofa::{
-        ziofa_server::{Ziofa, ZiofaServer}, CheckServerResponse, ProcessList, SetConfigurationResponse
+        ziofa_server::{Ziofa, ZiofaServer},
+        CheckServerResponse, ProcessList, SetConfigurationResponse,
     },
 };
 use tokio::sync::Mutex;
@@ -20,7 +21,8 @@ use tonic::{transport::Server, Request, Response, Status};
 use crate::{
     configuration, constants,
     counter::Counter,
-    ebpf_utils::{update_from_config, ProbeID}, procfs_utils::{list_processes, ProcErrorWrapper},
+    ebpf_utils::{update_from_config, ProbeID},
+    procfs_utils::{list_processes, ProcErrorWrapper},
 };
 
 pub struct ZiofaImpl {

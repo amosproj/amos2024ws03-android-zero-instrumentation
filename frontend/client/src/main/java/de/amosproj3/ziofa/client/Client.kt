@@ -4,15 +4,12 @@
 
 package de.amosproj3.ziofa.client
 
-import android.util.Log
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.Flow
+import uniffi.shared.Configuration
+import uniffi.shared.Process
 
 interface Client {
-    val serverCount: StateFlow<UInt>
+    suspend fun serverCount(): Flow<UInt>
 
     suspend fun load()
 
@@ -25,39 +22,16 @@ interface Client {
     suspend fun startCollecting()
 
     suspend fun stopCollecting()
+
+    suspend fun checkServer()
+
+    suspend fun listProcesses(): List<Process>
+
+    suspend fun getConfiguration(): Configuration
+
+    suspend fun setConfiguration(configuration: Configuration)
 }
 
 interface ClientFactory {
-    suspend fun connect(scope: CoroutineScope, url: String): Client
-}
-
-class RustClient(scope: CoroutineScope, private val inner: uniffi.client.Client) : Client {
-
-    override val serverCount =
-        flow {
-                val stream = inner.serverCount()
-                Log.e("client", "init")
-                while (true) {
-                    stream.next()?.also { emit(it) } ?: break
-                }
-            }
-            .stateIn(scope, SharingStarted.Lazily, 0u)
-
-    override suspend fun load() = inner.load()
-
-    override suspend fun attach(iface: String) = inner.attach(iface)
-
-    override suspend fun unload() = inner.unload()
-
-    override suspend fun detach(iface: String) = inner.detach(iface)
-
-    override suspend fun startCollecting() = inner.startCollecting()
-
-    override suspend fun stopCollecting() = inner.stopCollecting()
-}
-
-class RustClientFactory : ClientFactory {
-    override suspend fun connect(scope: CoroutineScope, url: String): Client {
-        return RustClient(scope, uniffi.client.Client.connect(url))
-    }
+    suspend fun connect(): Client
 }

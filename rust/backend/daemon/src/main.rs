@@ -10,8 +10,8 @@ mod constants;
 pub mod counter;
 mod ebpf_utils;
 mod helpers;
-mod server;
 mod procfs_utils;
+mod server;
 
 #[tokio::main]
 async fn main() {
