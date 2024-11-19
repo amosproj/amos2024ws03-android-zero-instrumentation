@@ -7,12 +7,13 @@
 const TIME_LIMIT_NS: u64 = 100_000_000;
 
 use aya_ebpf::{
-    macros::{kprobe, map},
+    macros::{kprobe, map, kretprobe},
     maps::{HashMap, RingBuf},
-    programs::ProbeContext,
+    programs::{ProbeContext, RetProbeContext},
     EbpfContext,
     helpers::gen::bpf_ktime_get_ns,
 };
+use aya_log_ebpf::info;
 use backend_common::{generate_id, VfsWriteCall};
 
 
@@ -31,7 +32,6 @@ struct VfsWriteIntern {
     bytes_written: usize,
 }
 
-
 #[kprobe]
 pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
     let id = generate_id(ctx.pid(), ctx.tgid());
@@ -49,8 +49,8 @@ pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
 }
 
 
-#[kprobe]
-pub fn vfs_write_ret(ctx: ProbeContext) -> Result<(), u32> {
+#[kretprobe]
+pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
     let probe_end = unsafe { bpf_ktime_get_ns() };
 
     let pid = ctx.pid();
@@ -61,11 +61,8 @@ pub fn vfs_write_ret(ctx: ProbeContext) -> Result<(), u32> {
         Some(entry) => {entry}
     };
 
-    if data.begin_time_stamp - probe_end > TIME_LIMIT_NS {
-
-
+    if  probe_end - data.begin_time_stamp > TIME_LIMIT_NS {
         let data = VfsWriteCall::new(pid, tgid, data.begin_time_stamp, data.fd, data.bytes_written);
-
 
         let mut entry = match VFS_WRITE_MAP.reserve::<VfsWriteCall>(0) {
             Some(entry) => entry,
