@@ -5,52 +5,20 @@
 
 use shared::{
     config::{Configuration, EbpfEntry},
-    ziofa::{process::Cmd, ziofa_client::ZiofaClient},
+    ziofa::ziofa_client::ZiofaClient,
 };
-use std::env;
 use tonic::transport::Channel;
+use clap::Parser;
 
-struct Flags {
-    verbose: bool,
+#[derive(Parser, Debug)]
+struct Args {
+    /// Address the client binds to
+    #[arg(long, default_value = "http://127.0.0.1:50051")]
     addr: String,
-}
 
-fn print_usage() {
-    println!("Usage: backend-daemon-cli [--addr http://<addr>:<port>] [-v]");
-    println!("");
-    println!("Note: When using cargo run, you have to put two dashes in front of the arguments:");
-    println!("cargo run --bin backend-daemon-cli -- [--addr http://<addr>:<port>] [-v]");
-    println!("");
-    println!("--addr        set the address the client binds to. If ommitted binds to \"http://127.0.0.1:50051\"");
-    println!("-v            verbose");
-    println!("-h, --help    view this message");
-}
-
-// returns if program flow should continue
-fn parse_args(args: &mut Vec<String>, flags: &mut Flags) -> bool {
-    let mut it = args.iter_mut();
-    it.next(); // skip program name
-    let mut cont = true;
-
-    while let Some(s) = it.next() {
-        match s.as_str() {
-            "backend-daemon-cli" => (),
-            "--addr" => match it.next() {
-                Some(a) => flags.addr = a.to_string(),
-                None => {
-                    print_usage();
-                    cont = false;
-                }
-            },
-            "-v" => flags.verbose = true,
-            "-h" | "--help" | &_ => {
-                print_usage();
-                cont = false;
-            }
-        }
-    }
-
-    cont
+    /// Verbose output (i. e. print processes)
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 async fn test_check_server(client: &mut ZiofaClient<Channel>) {
@@ -64,14 +32,14 @@ async fn test_check_server(client: &mut ZiofaClient<Channel>) {
 
 async fn test_get_configuration(
     client: &mut ZiofaClient<Channel>,
-    flags: &Flags,
+    verbose: bool,
 ) -> Vec<EbpfEntry> {
     println!("TEST get_configuration");
     let config = match client.get_configuration(()).await {
         Ok(t) => {
             let res = t.into_inner().entries;
             println!("SUCCESS");
-            if flags.verbose {
+            if verbose {
                 for i in 0..res.len() {
                     println!("Entry {}: {:?}", i, res[i]);
                 }
@@ -104,13 +72,13 @@ async fn test_set_configuration(client: &mut ZiofaClient<Channel>, config: Vec<E
     println!();
 }
 
-async fn test_list_processes(client: &mut ZiofaClient<Channel>, flags: &Flags) {
+async fn test_list_processes(client: &mut ZiofaClient<Channel>, verbose: bool) {
     println!("TEST list_processes");
     match client.list_processes(()).await {
         Ok(t) => {
             let res = t.into_inner().processes;
             println!("SUCCESS");
-            if flags.verbose {
+            if verbose {
                 for i in 0..res.len() {
                     println!("Process {}: {:?}", i, res[i]);
                 }
@@ -125,24 +93,17 @@ async fn test_list_processes(client: &mut ZiofaClient<Channel>, flags: &Flags) {
 
 #[tokio::main]
 async fn main() {
-    let mut flags = Flags {
-        addr: "http://127.0.0.1:50051".to_string(),
-        verbose: false,
-    };
-    let mut args: Vec<String> = env::args().collect();
-    if !parse_args(&mut args, &mut flags) {
-        return;
-    }
+    let args = Args::parse();
 
-    println!("Trying to connect to server: \"{}\"", flags.addr.clone());
-    let mut client = ZiofaClient::connect(flags.addr.clone()).await.unwrap();
+    println!("Trying to connect to server: \"{}\"", args.addr);
+    let mut client = ZiofaClient::connect(args.addr).await.unwrap();
 
     test_check_server(&mut client).await;
-    let config = test_get_configuration(&mut client, &flags).await;
+    let config = test_get_configuration(&mut client, args.verbose).await;
     test_set_configuration(&mut client, config).await;
-    test_list_processes(&mut client, &flags).await;
+    test_list_processes(&mut client, args.verbose).await;
 
-    if !flags.verbose {
+    if !args.verbose {
         println!("Note: To view verbose output, pass the \"-v\" flag.");
     }
 }
