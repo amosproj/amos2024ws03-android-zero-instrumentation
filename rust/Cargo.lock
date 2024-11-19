@@ -380,6 +380,7 @@ dependencies = [
  "aya",
  "backend-common",
  "cargo_metadata 0.18.1",
+ "clap",
  "libc",
  "procfs",
  "serde_json",
