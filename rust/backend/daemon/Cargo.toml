@@ -9,9 +9,11 @@ name = "backend-daemon"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+
 [dependencies]
 tonic = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "signal"] }
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "signal", "time"] }
 shared = { workspace = true }
 libc = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
@@ -22,7 +24,7 @@ backend-common = { workspace = true, features = ["user"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 procfs = { workspace = true }
-clap = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }
@@ -31,3 +33,7 @@ xtask = { workspace = true }
 [[bin]]
 name = "backend-daemon-cli"
 path = "./src/bin/cli.rs"
+
+[[test]]
+name = "base"
+path = "./tests/base.rs"
