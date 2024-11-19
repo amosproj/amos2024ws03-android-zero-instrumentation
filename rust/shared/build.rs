@@ -49,7 +49,8 @@ fn main() {
 
     builder = builder
         .protoc_arg("--experimental_allow_proto3_optional")
-        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]");
+        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .type_attribute(".", "#[derive(Eq, Hash, PartialOrd, Ord)]");
 
     builder = derive_records(builder);
     builder = derive_enums(builder);
