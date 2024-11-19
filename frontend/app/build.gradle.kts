@@ -60,6 +60,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -67,6 +68,17 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
+    flavorDimensions += "environment"
+    productFlavors {
+        create("realBackend") {
+            dimension = "environment"
+        }
+        create("mockedBackend") {
+            dimension = "environment"
+            versionNameSuffix = ".mocked"  // Optional
         }
     }
 }
