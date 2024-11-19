@@ -3,12 +3,12 @@
 //
 // SPDX-License-Identifier: MIT
 
+use clap::Parser;
 use shared::{
     config::{Configuration, EbpfEntry},
     ziofa::ziofa_client::ZiofaClient,
 };
 use tonic::transport::Channel;
-use clap::Parser;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -40,8 +40,8 @@ async fn test_get_configuration(
             let res = t.into_inner().entries;
             println!("SUCCESS");
             if verbose {
-                for i in 0..res.len() {
-                    println!("Entry {}: {:?}", i, res[i]);
+                for (i, e) in res.iter().enumerate() {
+                    println!("Entry {}: {:?}", i, e);
                 }
             }
             res
@@ -79,8 +79,8 @@ async fn test_list_processes(client: &mut ZiofaClient<Channel>, verbose: bool) {
             let res = t.into_inner().processes;
             println!("SUCCESS");
             if verbose {
-                for i in 0..res.len() {
-                    println!("Process {}: {:?}", i, res[i]);
+                for (i, p) in res.iter().enumerate() {
+                    println!("Process {}: {:?}", i, p);
                 }
             }
         }

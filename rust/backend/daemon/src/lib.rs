@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 mod configuration;
 mod constants;
 pub mod counter;
