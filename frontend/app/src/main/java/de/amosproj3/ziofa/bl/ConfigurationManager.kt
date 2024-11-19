@@ -1,6 +1,9 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.bl
 
-import android.util.Log
 import de.amosproj3.ziofa.api.ConfigurationAccess
 import de.amosproj3.ziofa.api.ConfigurationUpdate
 import de.amosproj3.ziofa.api.ProcessListAccess
@@ -12,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import uniffi.client.ClientException
 import uniffi.shared.Configuration
 import uniffi.shared.Process
@@ -29,7 +33,8 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
     override fun submitConfiguration(configuration: Configuration) {
         coroutineScope.launch {
             client?.setConfiguration(configuration)
-            getAndUpdateConfiguration() // "emulates" callback of changed configuration until implemented
+            getAndUpdateConfiguration() // "emulates" callback of changed configuration until
+            // implemented
         }
     }
 
@@ -46,33 +51,31 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
     }
 
     private suspend fun initializeConfigurationState() {
-        val initializedConfiguration = try {
-            client!!.getConfiguration()
-        } catch (e: ClientException) {
-            // TODO this should be handled on the backend
-            client!!.setConfiguration(Configuration(listOf()))
-            client!!.getConfiguration()
-        }
+        val initializedConfiguration =
+            try {
+                client!!.getConfiguration()
+            } catch (e: ClientException) {
+                // TODO this should be handled on the backend
+                client!!.setConfiguration(Configuration(listOf()))
+                client!!.getConfiguration()
+            }
         configuration.update { ConfigurationUpdate.OK(initializedConfiguration) }
     }
-
 
     private suspend fun startProcessListUpdates() {
         while (true) {
             delay(1000)
             client?.let { client -> processesList.update { client.listProcesses() } }
-                ?: processesList.update { listOf() }
-                    .also { Log.w("Process List", "Client not ready!") }
+                ?: processesList.update { listOf() }.also { Timber.w("Client not ready!") }
         }
     }
 
     private suspend fun getAndUpdateConfiguration() {
         configuration.update {
             try {
-                (client?.getConfiguration()?.let {
-                    ConfigurationUpdate.OK(it)
-                } ?: ConfigurationUpdate.UNKNOWN)
-                    .also { Log.e("RECEIVED CONFIG", "$it") }
+                (client?.getConfiguration()?.let { ConfigurationUpdate.OK(it) }
+                        ?: ConfigurationUpdate.UNKNOWN)
+                    .also { Timber.i("Received config $it") }
             } catch (e: Exception) {
                 ConfigurationUpdate.NOK(e)
             }

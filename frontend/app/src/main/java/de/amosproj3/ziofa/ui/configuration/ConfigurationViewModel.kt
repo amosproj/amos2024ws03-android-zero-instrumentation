@@ -4,7 +4,6 @@
 
 package de.amosproj3.ziofa.ui.configuration
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.amosproj3.ziofa.api.ConfigurationAccess
@@ -18,8 +17,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import uniffi.shared.Configuration
-
 
 class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : ViewModel() {
 
@@ -32,14 +31,12 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
     private val _configurationScreenState =
         MutableStateFlow<ConfigurationScreenState>(ConfigurationScreenState.LOADING)
     val configurationScreenState: StateFlow<ConfigurationScreenState> =
-        _configurationScreenState.onEach { Log.e("Configuration UI Update", it.toString()) }
+        _configurationScreenState
+            .onEach { Timber.i(it.toString()) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.LOADING)
 
-
     init {
-        viewModelScope.launch {
-            updateUIFromBackend()
-        }
+        viewModelScope.launch { updateUIFromBackend() }
     }
 
     private suspend fun updateUIFromBackend() {
@@ -55,7 +52,9 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
             }
             currentMap
         }
-        _configurationScreenState.update { ConfigurationScreenState.LIST(checkedOptions.value.values.toList()) }
+        _configurationScreenState.update {
+            ConfigurationScreenState.LIST(checkedOptions.value.values.toList())
+        }
         _changed.update { true }
     }
 
@@ -69,16 +68,12 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
     private fun ConfigurationUpdate.toUIUpdate(): ConfigurationScreenState {
         return when (this) {
             is ConfigurationUpdate.OK -> {
-                checkedOptions.update {
-                    this.toUIOptions().associateBy { it.name }
-                        .toMutableMap()
-                }
+                checkedOptions.update { this.toUIOptions().associateBy { it.name }.toMutableMap() }
                 ConfigurationScreenState.LIST(checkedOptions.value.values.toList())
             }
 
-            is ConfigurationUpdate.NOK -> ConfigurationScreenState.ERROR(
-                this.error.stackTraceToString()
-            )
+            is ConfigurationUpdate.NOK ->
+                ConfigurationScreenState.ERROR(this.error.stackTraceToString())
 
             is ConfigurationUpdate.UNKNOWN -> ConfigurationScreenState.LOADING
         }
@@ -86,18 +81,11 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
 
     private fun ConfigurationUpdate.OK.toUIOptions(): List<EBpfProgramOption> {
         return this.configuration.entries.map {
-            EBpfProgramOption(
-                it.hrName,
-                active = it.attach,
-                true,
-                it
-            )
+            EBpfProgramOption(it.hrName, active = it.attach, true, it)
         }
     }
 
     private fun MutableMap<String, EBpfProgramOption>.toConfiguration(): Configuration {
         return Configuration(this.values.map { it.ebpfEntry })
     }
-
-
 }

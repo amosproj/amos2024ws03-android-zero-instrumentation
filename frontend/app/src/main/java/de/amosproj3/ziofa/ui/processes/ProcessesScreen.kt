@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.processes
 
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +26,6 @@ import uniffi.shared.Cmd
 @Composable
 fun ProcessesScreen(modifier: Modifier, viewModel: ProcessesViewModel = koinViewModel()) {
     Box(modifier = modifier.fillMaxSize()) {
-
         Column {
             Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
                 Text(text = "CMD", modifier = Modifier.weight(1f))
@@ -32,11 +35,7 @@ fun ProcessesScreen(modifier: Modifier, viewModel: ProcessesViewModel = koinView
             }
 
             val options by remember { viewModel.processesList }.collectAsState()
-            LazyColumn(
-                modifier = Modifier
-                    .padding(horizontal = 20.dp)
-                    .fillMaxSize()
-            ) {
+            LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
                 items(options) { option ->
                     Row(
                         modifier = Modifier.fillMaxSize(),
@@ -61,5 +60,4 @@ fun Cmd?.toReadableString(): String {
             is Cmd.Cmdline -> this.v1.args.joinToString(" ")
         }
     } ?: return "null"
-
 }

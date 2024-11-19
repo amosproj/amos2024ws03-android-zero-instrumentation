@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.configuration.composables
 
 import androidx.compose.foundation.layout.Box
@@ -13,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
@@ -25,24 +28,22 @@ import androidx.compose.ui.unit.dp
 fun ErrorScreen(error: String = "No error message available", onBack: () -> Unit = {}) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = "Error while retrieving configuration",
                 color = Color.Red,
-                fontSize = TextUnit(25f, TextUnitType.Sp)
+                fontSize = TextUnit(25f, TextUnitType.Sp),
             )
             Text(text = error)
         }
         Button(
             onBack,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 20.dp)
-        ) { Text("Back to home screen") }
+            modifier =
+                Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(horizontal = 20.dp),
+        ) {
+            Text("Back to home screen")
+        }
     }
 }
