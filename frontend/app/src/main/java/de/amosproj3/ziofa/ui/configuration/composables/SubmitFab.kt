@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.configuration.composables
 
 import androidx.compose.foundation.layout.padding
@@ -16,15 +20,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SubmitFab(modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
     ExtendedFloatingActionButton(
-        modifier = modifier
-            .padding(end = 25.dp, bottom = 25.dp),
+        modifier = modifier.padding(end = 25.dp, bottom = 25.dp),
         onClick = onClick,
-        icon = {
-            Icon(
-                imageVector = Icons.AutoMirrored.Default.Send,
-                contentDescription = ""
-            )
-        },
+        icon = { Icon(imageVector = Icons.AutoMirrored.Default.Send, contentDescription = "") },
         text = { Text("Submit") },
     )
 }

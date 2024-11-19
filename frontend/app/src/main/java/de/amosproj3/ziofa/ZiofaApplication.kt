@@ -8,9 +8,9 @@ import android.app.Application
 import de.amosproj3.ziofa.api.ConfigurationAccess
 import de.amosproj3.ziofa.api.ProcessListAccess
 import de.amosproj3.ziofa.bl.ConfigurationManager
-import de.amosproj3.ziofa.client.mocks.MockClientFactory
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.RustClientFactory
+import de.amosproj3.ziofa.client.mocks.MockClientFactory
 import de.amosproj3.ziofa.ui.configuration.ConfigurationViewModel
 import de.amosproj3.ziofa.ui.processes.ProcessesViewModel
 import de.amosproj3.ziofa.ui.visualization.VisualizationViewModel
@@ -32,10 +32,8 @@ class ZiofaApplication : Application() {
                 RustClientFactory("http://[::1]:50051")
             }
         }
-        single { ConfigurationManager(clientFactory = get()) } binds arrayOf(
-            ConfigurationAccess::class,
-            ProcessListAccess::class
-        )
+        single { ConfigurationManager(clientFactory = get()) } binds
+            arrayOf(ConfigurationAccess::class, ProcessListAccess::class)
         viewModel { ConfigurationViewModel(configurationAccess = get()) }
         viewModel { ProcessesViewModel(processListAccess = get()) }
         viewModel { VisualizationViewModel(clientFactory = get()) }

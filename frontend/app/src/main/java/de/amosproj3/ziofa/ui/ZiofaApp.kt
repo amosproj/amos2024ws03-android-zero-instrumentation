@@ -30,9 +30,8 @@ import de.amosproj3.ziofa.ui.visualization.VisualizationScreen
 fun ZIOFAApp() {
     val navController = rememberNavController()
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { DynamicTopBar(navController) }) { innerPadding ->
+    Scaffold(modifier = Modifier.fillMaxSize(), topBar = { DynamicTopBar(navController) }) {
+        innerPadding ->
         NavHost(
             navController,
             modifier = Modifier.fillMaxSize(),
@@ -52,9 +51,10 @@ fun ZIOFAApp() {
                 enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
                 exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
             ) {
-                ConfigurationScreen(Modifier.padding(innerPadding), onBack = {
-                    navController.backToHome()
-                })
+                ConfigurationScreen(
+                    Modifier.padding(innerPadding),
+                    onBack = { navController.backToHome() },
+                )
             }
             composable(
                 Routes.Visualize.name,
@@ -95,19 +95,12 @@ fun DynamicTopBar(navController: NavController) {
             }
 
             else -> {
-                ZiofaTopBar(
-                    screenName = currentRoute,
-                    onBack = {
-                        navController.backToHome()
-                    },
-                )
+                ZiofaTopBar(screenName = currentRoute, onBack = { navController.backToHome() })
             }
         }
     }
 }
 
 fun NavController.backToHome() {
-    this.navigate(Routes.Home.name) {
-        popUpTo(Routes.Home.name) { inclusive = false }
-    }
+    this.navigate(Routes.Home.name) { popUpTo(Routes.Home.name) { inclusive = false } }
 }

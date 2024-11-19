@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.configuration.composables
 
 import androidx.compose.foundation.layout.Arrangement
@@ -19,13 +23,9 @@ import de.amosproj3.ziofa.ui.configuration.data.EBpfProgramOption
 @Composable
 fun EbpfOptions(
     options: List<EBpfProgramOption>,
-    onCheckedChanged: (EBpfProgramOption, Boolean) -> Unit
+    onCheckedChanged: (EBpfProgramOption, Boolean) -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .padding(horizontal = 20.dp)
-            .fillMaxSize()
-    ) {
+    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
         item { Spacer(Modifier.height(15.dp)) }
 
         items(options) { option ->
@@ -37,7 +37,7 @@ fun EbpfOptions(
                 Text(option.name)
                 Checkbox(
                     checked = option.active,
-                    onCheckedChange = { onCheckedChanged(option, it) }
+                    onCheckedChange = { onCheckedChanged(option, it) },
                 )
             }
         }

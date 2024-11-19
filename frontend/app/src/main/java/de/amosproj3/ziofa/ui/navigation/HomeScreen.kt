@@ -38,7 +38,7 @@ fun HomeScreen(
     toVisualize: () -> Unit = {},
     toConfiguration: () -> Unit = {},
     toAbout: () -> Unit = {},
-    toProcesses: ()->Unit = {}
+    toProcesses: () -> Unit = {},
 ) {
     Box(
         modifier =
@@ -54,7 +54,7 @@ fun HomeScreen(
                         MenuOptionData(title = "Visualize", "\uD83D\uDCCA", toVisualize),
                         MenuOptionData(title = "Configuration", "⚙\uFE0F", toConfiguration),
                         MenuOptionData(title = "Processes", "\uD83D\uDD0E", toProcesses),
-                        MenuOptionData(title = "About", "ℹ\uFE0F", toAbout)
+                        MenuOptionData(title = "About", "ℹ\uFE0F", toAbout),
                     )
             )
         }
