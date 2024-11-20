@@ -1,0 +1,41 @@
+Title	URL	Assignees	Status	Estimated size	Real size
+User eBPF programm Selection	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/41	ffranzgitHub, fhilgers, Mr-Kanister	In Progress	5	
+internal: implement test cli client load and list programs	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/59	BenediktZinn, ffranzgitHub, Mr-Kanister	Awaiting Review	3	
+internal: implement loading/unloading of ebpf functions in daemon	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/77	der-whity, ffranzgitHub, Mr-Kanister	Awaiting Review	2	3
+Home Screen and Navigation Drawer	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/43	luca-dot-sh	Feature Archive	2	3
+EBPF Program extension 	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/54	der-whity	Feature Archive	3	3
+Bugfix: Manage Sbom generation through nix	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/55	Mr-Kanister	Feature Archive	1	1
+Communcation between Android side and Rust side	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/42	fhilgers	Feature Archive	5	5
+scope(ebpf) unix domain socket traffic analysis (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/22	fhilgers	Feature Archive	5	3
+Create a prototype for the visualisation screen	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/47	luca-dot-sh	Feature Archive	3	3
+internal: implement frontend load and list programs	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/62	luca-dot-sh	Feature Archive	2	2
+Preparation of CI	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/6	fhilgers	Feature Archive	3	3
+scope(ui) find timeseries visualization library (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/21	clabrous, luca-dot-sh	Feature Archive	2	2
+Generation of sboms doesn't include kotlin	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/39		Feature Archive	1	1
+Manage Sbom generation through nix	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/30	Mr-Kanister	Feature Archive	2	1
+scope(daemon) get information about android processes to list/find/search them (research)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/20	der-whity, ffranzgitHub	Feature Archive	3	1
+License and Copyright Agreement	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/18	fhilgers	Feature Archive	2	2
+Preperation of Kotlin	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/7	clabrous, luca-dot-sh	Feature Archive	3	3
+Docker Container	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/11	fhilgers	Feature Archive	3	3
+scope(build) aarch64 als target	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/23	fhilgers	Feature Archive	1	1
+scope(build) android 13 instead of 15	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/24	fhilgers	Feature Archive	1	1
+Team Decision	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/8	BenediktZinn, clabrous, der-whity, ffranzgitHub, fhilgers, luca-dot-sh, Mr-Kanister	Feature Archive	1	1
+architecture document	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/10	fhilgers	Feature Archive	3	5
+bill of materials	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/9	BenediktZinn, der-whity, Mr-Kanister	Feature Archive	3	3
+Brain Storming Architecture	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/3		Feature Archive	3	1
+scope(ebpf/daemon) uprobe	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/19		Sprint Backlog	8	
+Retrieve running processes List	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/72	Mr-Kanister	Awaiting Review	3	3
+internal: implement client library and export to kotlin for load and list programs	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/60	BenediktZinn, fhilgers	Awaiting Review	2	
+internal: define kotlin interface for frontend loading and listing programs	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/58	fhilgers	Awaiting Review	1	
+Define metric for the visualisation screen	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/46		Product Backlog		
+Plaintext architecture document	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/34		Product Backlog		
+Define the time intervals / time delay between each data point	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/45		Product Backlog		
+Show information about which apps are available (depends on the daemon search functionality)	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/25		Product Backlog	-1	
+Distinguish between System vs. User Applications	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/74		Product Backlog	3	
+Identify Running State	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/75		Product Backlog	3	
+UI Filter for System and User Applications	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/76		Product Backlog		
+Define Project Goals / Project Features	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/2		Product Backlog	3	
+Brain Storming eBPF Use Cases	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/1		Product Backlog	2	
+Create kprobe to Track Blocking vfs_write Call	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/88	der-whity	Product Backlog		
+POC: analyze unix domain sockets	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/80		Sprint Backlog	5	
+Display Installed Applications in UI	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/73	luca-dot-sh	Awaiting Review	2	
