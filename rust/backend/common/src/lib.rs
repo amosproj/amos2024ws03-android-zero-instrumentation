@@ -16,14 +16,30 @@ pub enum KProbeTypes {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VfsWriteCall {
-    pid: u32,
-    tid: u32,
-    begin_time_stamp: u64,
-    fd: i32,
-    bytes_written: usize,
+    pub pid: u32,
+    pub tid: u32,
+    pub begin_time_stamp: u64,
+    pub fd: i32,
+    pub bytes_written: usize,
 }
 
 impl VfsWriteCall {
+    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: i32, bytes_written: usize) -> Self {
+        Self { pid, tid, begin_time_stamp, fd, bytes_written}
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct SysWriteCall {
+    pub pid: u32,
+    pub tid: u32,
+    pub begin_time_stamp: u64,
+    pub fd: i32,
+    pub bytes_written: usize,
+}
+
+impl crate::SysWriteCall {
     pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: i32, bytes_written: usize) -> Self {
         Self { pid, tid, begin_time_stamp, fd, bytes_written}
     }
@@ -36,5 +52,8 @@ pub fn generate_id(pid: u32, tgid: u32) -> u64{
 
     (pid_u64 << 32) | tgid_u64
 }
+
+pub const TIME_LIMIT_NS: u64 = 100_000_000;
+
 
 

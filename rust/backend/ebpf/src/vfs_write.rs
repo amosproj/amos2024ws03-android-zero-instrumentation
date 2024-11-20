@@ -2,10 +2,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-
-
-const TIME_LIMIT_NS: u64 = 100_000_000;
-
 use aya_ebpf::{
     macros::{kprobe, map, kretprobe},
     maps::{HashMap, RingBuf},
@@ -13,8 +9,7 @@ use aya_ebpf::{
     EbpfContext,
     helpers::gen::bpf_ktime_get_ns,
 };
-use aya_log_ebpf::info;
-use backend_common::{generate_id, VfsWriteCall};
+use backend_common::{generate_id, VfsWriteCall, TIME_LIMIT_NS};
 
 
 
