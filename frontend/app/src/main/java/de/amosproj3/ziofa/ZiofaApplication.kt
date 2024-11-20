@@ -10,7 +10,6 @@ import de.amosproj3.ziofa.api.ProcessListAccess
 import de.amosproj3.ziofa.bl.ConfigurationManager
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.RustClientFactory
-import de.amosproj3.ziofa.client.mocks.MockClientFactory
 import de.amosproj3.ziofa.ui.configuration.ConfigurationViewModel
 import de.amosproj3.ziofa.ui.processes.ProcessesViewModel
 import de.amosproj3.ziofa.ui.visualization.VisualizationViewModel
@@ -25,13 +24,7 @@ import timber.log.Timber
 class ZiofaApplication : Application() {
 
     val appModule = module {
-        single<ClientFactory> {
-            if (BuildConfig.FLAVOR == "mockedBackend") {
-                MockClientFactory()
-            } else {
-                RustClientFactory("http://[::1]:50051")
-            }
-        }
+        single<ClientFactory> { RustClientFactory("http://[::1]:50051") }
         single { ConfigurationManager(clientFactory = get()) } binds
             arrayOf(ConfigurationAccess::class, ProcessListAccess::class)
         viewModel { ConfigurationViewModel(configurationAccess = get()) }

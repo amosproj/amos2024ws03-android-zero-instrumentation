@@ -71,14 +71,15 @@ android {
         }
     }
 
-    flavorDimensions += "environment"
+    // Flavors and build types needs to match the library
+    flavorDimensions += "version"
     productFlavors {
-        create("realBackend") {
-            dimension = "environment"
+        create("real") {
+            dimension = "version"
         }
-        create("mockedBackend") {
-            dimension = "environment"
-            versionNameSuffix = ".mocked"  // Optional
+        create("mock") {
+            dimension = "version"
+            versionNameSuffix = ".mock"  // Optional
         }
     }
 }
