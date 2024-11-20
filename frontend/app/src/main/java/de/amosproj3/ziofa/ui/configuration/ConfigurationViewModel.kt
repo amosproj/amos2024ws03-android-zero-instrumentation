@@ -29,11 +29,11 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
         MutableStateFlow<MutableMap<String, EBpfProgramOption>>(mutableMapOf())
 
     private val _configurationScreenState =
-        MutableStateFlow<ConfigurationScreenState>(ConfigurationScreenState.LOADING)
+        MutableStateFlow<ConfigurationScreenState>(ConfigurationScreenState.Loading)
     val configurationScreenState: StateFlow<ConfigurationScreenState> =
         _configurationScreenState
             .onEach { Timber.i(it.toString()) }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.LOADING)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.Loading)
 
     init {
         viewModelScope.launch { updateUIFromBackend() }
@@ -53,7 +53,7 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
             currentMap
         }
         _configurationScreenState.update {
-            ConfigurationScreenState.LIST(checkedOptions.value.values.toList())
+            ConfigurationScreenState.Valid(checkedOptions.value.values.toList())
         }
         _changed.update { true }
     }
@@ -67,19 +67,19 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
 
     private fun ConfigurationUpdate.toUIUpdate(): ConfigurationScreenState {
         return when (this) {
-            is ConfigurationUpdate.OK -> {
+            is ConfigurationUpdate.Valid -> {
                 checkedOptions.update { this.toUIOptions().associateBy { it.name }.toMutableMap() }
-                ConfigurationScreenState.LIST(checkedOptions.value.values.toList())
+                ConfigurationScreenState.Valid(checkedOptions.value.values.toList())
             }
 
-            is ConfigurationUpdate.NOK ->
-                ConfigurationScreenState.ERROR(this.error.stackTraceToString())
+            is ConfigurationUpdate.Invalid ->
+                ConfigurationScreenState.Invalid(this.error.stackTraceToString())
 
-            is ConfigurationUpdate.UNKNOWN -> ConfigurationScreenState.LOADING
+            is ConfigurationUpdate.Unknown -> ConfigurationScreenState.Loading
         }
     }
 
-    private fun ConfigurationUpdate.OK.toUIOptions(): List<EBpfProgramOption> {
+    private fun ConfigurationUpdate.Valid.toUIOptions(): List<EBpfProgramOption> {
         return this.configuration.entries.map {
             EBpfProgramOption(it.hrName, active = it.attach, true, it)
         }

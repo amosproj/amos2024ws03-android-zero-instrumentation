@@ -33,7 +33,7 @@ fun ConfigurationScreen(
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
         val configurationChangedByUser by remember { viewModel.changed }.collectAsState()
         when (val state = screenState) { // needed for immutability
-            is ConfigurationScreenState.LIST -> {
+            is ConfigurationScreenState.Valid -> {
 
                 // Render list of options
                 EbpfOptions(
@@ -52,11 +52,11 @@ fun ConfigurationScreen(
                 }
             }
 
-            is ConfigurationScreenState.ERROR -> {
+            is ConfigurationScreenState.Invalid -> {
                 ErrorScreen(state.errorMessage, onBack)
             }
 
-            is ConfigurationScreenState.LOADING -> {
+            is ConfigurationScreenState.Loading -> {
                 // Display loading anim while state is unknown
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
