@@ -23,7 +23,7 @@ static VFS_WRITE_TIMESTAMPS: HashMap<u64, VfsWriteIntern> = HashMap::with_max_en
 
 struct VfsWriteIntern {
     begin_time_stamp: u64,
-    fd: i32,
+    fd: u64,
     bytes_written: usize,
 }
 
@@ -32,8 +32,8 @@ pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
     let id = generate_id(ctx.pid(), ctx.tgid());
     let data = VfsWriteIntern {
         begin_time_stamp: unsafe {bpf_ktime_get_ns()},
-        fd: ctx.arg(0).unwrap_or(-1),
-        bytes_written: ctx.arg(2).unwrap_or(usize::MAX) as usize,
+        fd: ctx.arg(0).unwrap_or(u64::MAX),
+        bytes_written: ctx.arg(2).unwrap_or(usize::MAX),
     };
 
     match VFS_WRITE_TIMESTAMPS.insert(&id, &data, 0) {
@@ -56,7 +56,7 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
         Some(entry) => {entry}
     };
 
-    if  probe_end - data.begin_time_stamp > TIME_LIMIT_NS {
+    if  probe_end - data.begin_time_stamp > TIME_LIMIT_NS || data.bytes_written == 187{
         let data = VfsWriteCall::new(pid, tgid, data.begin_time_stamp, data.fd, data.bytes_written);
 
         let mut entry = match VFS_WRITE_MAP.reserve::<VfsWriteCall>(0) {

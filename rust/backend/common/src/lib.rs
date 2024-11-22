@@ -19,12 +19,12 @@ pub struct VfsWriteCall {
     pub pid: u32,
     pub tid: u32,
     pub begin_time_stamp: u64,
-    pub fd: i32,
+    pub fd: u64,
     pub bytes_written: usize,
 }
 
 impl VfsWriteCall {
-    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: i32, bytes_written: usize) -> Self {
+    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: u64, bytes_written: usize) -> Self {
         Self { pid, tid, begin_time_stamp, fd, bytes_written}
     }
 }
@@ -54,6 +54,3 @@ pub fn generate_id(pid: u32, tgid: u32) -> u64{
 }
 
 pub const TIME_LIMIT_NS: u64 = 100_000_000;
-
-
-
