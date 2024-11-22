@@ -4,36 +4,54 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{collections::HashMap, ops::DerefMut, sync::Arc};
-
-use aya::Ebpf;
-use shared::{
-    config::Configuration,
-    counter::counter_server::CounterServer,
-    ziofa::{
-        ziofa_server::{Ziofa, ZiofaServer}, CheckServerResponse, ProcessList, SetConfigurationResponse
-    },
-};
-use tokio::sync::Mutex;
-use tonic::{transport::Server, Request, Response, Status};
-
+use crate::constants::BUFFER_CAPACITY;
+use crate::utils::write_buffer_to_pipe;
 use crate::{
     configuration, constants,
     counter::Counter,
     ebpf_utils::{update_from_config, ProbeID}, procfs_utils::{list_processes, ProcErrorWrapper},
 };
+use aya::Ebpf;
+use ringbuf::storage::Heap;
+use ringbuf::traits::Split;
+use ringbuf::{CachingCons, CachingProd, HeapRb, SharedRb};
+use shared::ziofa::EbpfStreamObject;
+use shared::{
+    config::Configuration,
+    counter::counter_server::CounterServer,
+    ziofa::{
+        ziofa_server::{Ziofa, ZiofaServer},
+        CheckServerResponse,
+        ProcessList,
+        SetConfigurationResponse
+        ,
+    },
+};
+use std::thread::spawn;
+use std::{collections::HashMap, ops::DerefMut, sync::Arc};
+use tokio::sync::mpsc::Sender;
+use tokio::sync::{mpsc, Mutex};
+use tokio_stream::wrappers::ReceiverStream;
+use tonic::{transport::Server, Request, Response, Status};
 
 pub struct ZiofaImpl {
-    // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
+    tx: Arc<Mutex<Option<Sender<Result<EbpfStreamObject, Status>>>>>,
     probe_id_map: Arc<Mutex<HashMap<String, ProbeID>>>,
     ebpf: Arc<Mutex<Ebpf>>,
+    prod_buffer: Arc<Mutex<CachingProd<Arc<SharedRb<Heap<EbpfStreamObject>>>>>>,
+    cons_buffer: Arc<Mutex<CachingCons<Arc<SharedRb<Heap<EbpfStreamObject>>>>>>,
 }
 
 impl ZiofaImpl {
-    pub fn new(probe_id_map: HashMap<String, ProbeID>, ebpf: Arc<Mutex<Ebpf>>) -> ZiofaImpl {
+    pub async fn new(probe_id_map: HashMap<String, ProbeID>, ebpf: Arc<Mutex<Ebpf>>) -> ZiofaImpl {
+        let rb = HeapRb::<EbpfStreamObject>::new(BUFFER_CAPACITY);
+        let (b_prod, b_cons) = rb.split();
         ZiofaImpl {
+            tx: Arc::new(Mutex::new(None)),
             probe_id_map: Arc::new(Mutex::new(probe_id_map)),
             ebpf,
+            prod_buffer: Arc::new(Mutex::new(b_prod)),
+            cons_buffer: Arc::new(Mutex::new(b_cons)),
         }
     }
 }
@@ -77,27 +95,39 @@ impl Ziofa for ZiofaImpl {
             "ziofa.json",
             probe_id_map_guard.deref_mut(),
         );
-
+        
+        let cons_buffer_cloned = Arc::clone(&self.cons_buffer);
+        let tx_cloned = Arc::clone(&self.tx);
+        
+        spawn(
+            ||{ 
+                write_buffer_to_pipe(
+                    cons_buffer_cloned,
+                    tx_cloned
+                )
+            }
+        );
+        
         Ok(Response::new(SetConfigurationResponse { response_type: 0 }))
     }
+    type InitStreamStream = ReceiverStream<Result<EbpfStreamObject, Status>>;
 
-    // type InitStreamStream = ReceiverStream<Result<EbpfStreamObject, Status>>;
-    // fn init_stream(
-    //     &self,
-    //     _: Request<()>,
-    // ) -> Result<Response<Self::InitStreamStream>, Status> {
-    //     let (_tx, rx) = mpsc::channel(1);
-    //
-    //     Ok(Response::new(Self::InitStreamStream::new(rx)))
-    // }
+    async fn init_stream(
+        &self, _: Request<()>, ) -> Result<Response<Self::InitStreamStream>, Status> {
+        let mut guard = self.tx.lock().await;
+        let (tx, rx) = mpsc::channel(1);
+        *guard = Some(tx);
+
+        Ok(Response::new(Self::InitStreamStream::new(rx)))
+    }
 }
 
 pub async fn serve_forever() {
-    let ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+    let ebpf = Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/backend-ebpf"
     )))
-    .unwrap();
+        .unwrap();
     let probe_id_map = HashMap::new();
     let ebpf = Arc::new(Mutex::new(ebpf));
     let ziofa_server = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf.clone()));
@@ -109,3 +139,5 @@ pub async fn serve_forever() {
         .await
         .unwrap();
 }
+
+

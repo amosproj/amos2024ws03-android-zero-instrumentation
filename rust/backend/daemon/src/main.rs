@@ -9,7 +9,7 @@ mod configuration;
 mod constants;
 pub mod counter;
 mod ebpf_utils;
-mod helpers;
+mod utils;
 mod server;
 mod procfs_utils;
 
@@ -21,7 +21,7 @@ async fn main() {
         .init();
 
     // apparently needed...
-    helpers::bump_rlimit();
+    utils::bump_rlimit();
 
     server::serve_forever().await;
 }

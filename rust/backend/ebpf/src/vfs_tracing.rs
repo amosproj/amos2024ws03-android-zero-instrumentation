@@ -7,15 +7,13 @@
 const TIME_LIMIT_NS: u64 = 100_000_000;
 
 use aya_ebpf::{
-    macros::{kprobe, map, kretprobe},
+    helpers::gen::bpf_ktime_get_ns,
+    macros::{kprobe, kretprobe, map},
     maps::{HashMap, RingBuf},
     programs::{ProbeContext, RetProbeContext},
     EbpfContext,
-    helpers::gen::bpf_ktime_get_ns,
 };
-use aya_log_ebpf::info;
 use backend_common::{generate_id, VfsWriteCall};
-
 
 
 #[map(name = "VFS_WRITE_MAP")]
