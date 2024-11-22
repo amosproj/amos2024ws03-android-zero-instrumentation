@@ -4,4 +4,11 @@
 
 package de.amosproj3.ziofa.ui.configuration.data
 
-data class EBpfProgramOption(val name: String, val active: Boolean)
+import uniffi.shared.EbpfEntry
+
+data class EBpfProgramOption(
+    val name: String,
+    val active: Boolean,
+    val confirmed: Boolean, // TODO show diff
+    val ebpfEntry: EbpfEntry,
+)

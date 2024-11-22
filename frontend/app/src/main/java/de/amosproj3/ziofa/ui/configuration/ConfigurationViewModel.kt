@@ -5,49 +5,87 @@
 package de.amosproj3.ziofa.ui.configuration
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import de.amosproj3.ziofa.api.ConfigurationAccess
+import de.amosproj3.ziofa.api.ConfigurationUpdate
+import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
 import de.amosproj3.ziofa.ui.configuration.data.EBpfProgramOption
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import timber.log.Timber
+import uniffi.shared.Configuration
 
-class ConfigurationViewModel : ViewModel() {
+class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : ViewModel() {
 
-    val mockOptions =
-        mutableListOf(
-                EBpfProgramOption("uprobe 1", false),
-                EBpfProgramOption("uprobe 2", true),
-                EBpfProgramOption("uprobe 3", true),
-                EBpfProgramOption("uprobe 4", true),
-                EBpfProgramOption("uprobe 5", true),
-                EBpfProgramOption("uprobe 6", true),
-                EBpfProgramOption("uprobe 7", true),
-                EBpfProgramOption("uprobe 8", true),
-                EBpfProgramOption("uprobe 9", true),
-                EBpfProgramOption("uprobe 10", true),
-                EBpfProgramOption("uprobe 11", true),
-                EBpfProgramOption("uprobe 12", true),
-                EBpfProgramOption("uprobe 13", true),
-                EBpfProgramOption("uprobe 14", true),
-                EBpfProgramOption("uprobe 15", true),
-                EBpfProgramOption("uprobe 16", true),
-                EBpfProgramOption("uprobe 17", true),
-            )
-            .associateBy { it.name }
-            .toMutableMap() // TODO delete
+    private val _changed = MutableStateFlow(false)
+    val changed = _changed.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
-    private val _programList: MutableStateFlow<List<EBpfProgramOption>> =
-        MutableStateFlow(mockOptions.values.toList())
-    val programList: StateFlow<List<EBpfProgramOption>> = _programList.asStateFlow()
+    private val checkedOptions =
+        MutableStateFlow<MutableMap<String, EBpfProgramOption>>(mutableMapOf())
+
+    private val _configurationScreenState =
+        MutableStateFlow<ConfigurationScreenState>(ConfigurationScreenState.Loading)
+    val configurationScreenState: StateFlow<ConfigurationScreenState> =
+        _configurationScreenState
+            .onEach { Timber.i(it.toString()) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.Loading)
+
+    init {
+        viewModelScope.launch { updateUIFromBackend() }
+    }
+
+    private suspend fun updateUIFromBackend() {
+        configurationAccess.configuration.collect { receivedConfiguration ->
+            _configurationScreenState.update { receivedConfiguration.toUIUpdate() }
+        }
+    }
 
     fun optionChanged(eBpfProgramOption: EBpfProgramOption, newState: Boolean) {
-        mockOptions[eBpfProgramOption.name] = EBpfProgramOption(eBpfProgramOption.name, newState)
-        _programList.update { mockOptions.values.toList() }
+        checkedOptions.update { currentMap ->
+            currentMap.computeIfPresent(eBpfProgramOption.name) { _, oldValue ->
+                oldValue.copy(active = newState)
+            }
+            currentMap
+        }
+        _configurationScreenState.update {
+            ConfigurationScreenState.Valid(checkedOptions.value.values.toList())
+        }
+        _changed.update { true }
     }
 
     fun configurationSubmitted() {
-        Timber.i("configurationSubmitted")
-        // TODO send to backend and display popup with loading anim
+        viewModelScope.launch {
+            configurationAccess.submitConfiguration(checkedOptions.value.toConfiguration())
+        }
+        _changed.update { false }
+    }
+
+    private fun ConfigurationUpdate.toUIUpdate(): ConfigurationScreenState {
+        return when (this) {
+            is ConfigurationUpdate.Valid -> {
+                checkedOptions.update { this.toUIOptions().associateBy { it.name }.toMutableMap() }
+                ConfigurationScreenState.Valid(checkedOptions.value.values.toList())
+            }
+
+            is ConfigurationUpdate.Invalid ->
+                ConfigurationScreenState.Invalid(this.error.stackTraceToString())
+
+            is ConfigurationUpdate.Unknown -> ConfigurationScreenState.Loading
+        }
+    }
+
+    private fun ConfigurationUpdate.Valid.toUIOptions(): List<EBpfProgramOption> {
+        return this.configuration.entries.map {
+            EBpfProgramOption(it.hrName, active = it.attach, true, it)
+        }
+    }
+
+    private fun MutableMap<String, EBpfProgramOption>.toConfiguration(): Configuration {
+        return Configuration(this.values.map { it.ebpfEntry })
     }
 }

@@ -69,7 +69,7 @@ class VisualizationViewModel(private val clientFactory: ClientFactory) : ViewMod
             try {
                 val counterFlow =
                     clientFactory
-                        .connect(viewModelScope, "http://[::1]:50051")
+                        .connect()
                         .also {
                             // TODO: separate try catch because we have no good error handling yet
                             // the load, attach and startCollecting method return an error
@@ -88,7 +88,7 @@ class VisualizationViewModel(private val clientFactory: ClientFactory) : ViewMod
                                 Log.e("Counter Error", e.stackTraceToString())
                             }
                         }
-                        .serverCount
+                        .serverCount()
                         .stateIn(this, SharingStarted.Eagerly, 0u)
 
                 packagesPerSecond(counterFlow).toIndexedTimeSeries(20).collect {

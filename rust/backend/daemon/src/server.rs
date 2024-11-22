@@ -23,6 +23,7 @@ use crate::{
     configuration, constants,
     counter::Counter,
     ebpf_utils::{update_from_config, ProbeID},
+    procfs_utils::{list_processes, ProcErrorWrapper},
     constants::DEV_DEFAULT_CONFIG_PATH,
 };
 
@@ -50,20 +51,8 @@ impl Ziofa for ZiofaImpl {
     }
 
     async fn list_processes(&self, _: Request<()>) -> Result<Response<ProcessList>, Status> {
-        // dummy data
-        let response = ProcessList {
-            processes: vec![
-                Process {
-                    pid: 1,
-                    package: "systemd".to_string(),
-                },
-                Process {
-                    pid: 1741231,
-                    package: "com.example.org".to_string(),
-                },
-            ],
-        };
-        Ok(Response::new(response))
+        let processes = list_processes().map_err(ProcErrorWrapper::from)?;
+        Ok(Response::new(processes))
     }
 
     async fn get_configuration(&self, _: Request<()>) -> Result<Response<Configuration>, Status> {

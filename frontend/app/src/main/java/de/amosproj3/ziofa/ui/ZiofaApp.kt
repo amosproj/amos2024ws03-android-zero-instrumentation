@@ -22,6 +22,7 @@ import de.amosproj3.ziofa.ui.about.AboutScreen
 import de.amosproj3.ziofa.ui.configuration.ConfigurationScreen
 import de.amosproj3.ziofa.ui.navigation.HomeScreen
 import de.amosproj3.ziofa.ui.navigation.composables.ZiofaTopBar
+import de.amosproj3.ziofa.ui.processes.ProcessesScreen
 import de.amosproj3.ziofa.ui.visualization.VisualizationScreen
 
 /** Main application composable. All calls to [NavController] should happen here. */
@@ -41,6 +42,7 @@ fun ZIOFAApp() {
                     toVisualize = { navController.navigate(Routes.Visualize.name) },
                     toConfiguration = { navController.navigate(Routes.Configuration.name) },
                     toAbout = { navController.navigate(Routes.About.name) },
+                    toProcesses = { navController.navigate(Routes.Processes.name) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -49,7 +51,10 @@ fun ZIOFAApp() {
                 enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
                 exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
             ) {
-                ConfigurationScreen(Modifier.padding(innerPadding))
+                ConfigurationScreen(
+                    Modifier.padding(innerPadding),
+                    onBack = { navController.backToHome() },
+                )
             }
             composable(
                 Routes.Visualize.name,
@@ -64,6 +69,14 @@ fun ZIOFAApp() {
                 exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
             ) {
                 AboutScreen(Modifier.padding(innerPadding))
+            }
+
+            composable(
+                Routes.Processes.name,
+                enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
+            ) {
+                ProcessesScreen(Modifier.padding(innerPadding))
             }
         }
     }
@@ -82,15 +95,12 @@ fun DynamicTopBar(navController: NavController) {
             }
 
             else -> {
-                ZiofaTopBar(
-                    screenName = currentRoute,
-                    onBack = {
-                        navController.navigate(Routes.Home.name) {
-                            popUpTo(Routes.Home.name) { inclusive = false }
-                        }
-                    },
-                )
+                ZiofaTopBar(screenName = currentRoute, onBack = { navController.backToHome() })
             }
         }
     }
+}
+
+fun NavController.backToHome() {
+    this.navigate(Routes.Home.name) { popUpTo(Routes.Home.name) { inclusive = false } }
 }

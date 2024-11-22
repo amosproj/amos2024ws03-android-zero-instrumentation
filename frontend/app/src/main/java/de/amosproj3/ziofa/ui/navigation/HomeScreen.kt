@@ -30,6 +30,13 @@ import androidx.compose.ui.unit.dp
 
 data class MenuOptionData(val title: String, val logoEmoji: String, val onClick: () -> Unit)
 
+enum class Emoji(val unicode: String) {
+    Chart("\uD83D\uDCCA"),
+    Gear("⚙\uFE0F"),
+    MagnifyingGlass("\uD83D\uDD0E"),
+    Info("ℹ\uFE0F"),
+}
+
 /** Static home screen for navigation */
 @Composable
 @Preview(device = Devices.AUTOMOTIVE_1024p)
@@ -38,6 +45,7 @@ fun HomeScreen(
     toVisualize: () -> Unit = {},
     toConfiguration: () -> Unit = {},
     toAbout: () -> Unit = {},
+    toProcesses: () -> Unit = {},
 ) {
     Box(
         modifier =
@@ -50,9 +58,18 @@ fun HomeScreen(
             MenuOptions(
                 menuOptions =
                     listOf(
-                        MenuOptionData(title = "Visualize", "\uD83D\uDCCA", toVisualize),
-                        MenuOptionData(title = "Configuration", "⚙\uFE0F", toConfiguration),
-                        MenuOptionData(title = "About", "ℹ\uFE0F", toAbout),
+                        MenuOptionData(title = "Visualize", Emoji.Chart.unicode, toVisualize),
+                        MenuOptionData(
+                            title = "Configuration",
+                            Emoji.Gear.unicode,
+                            toConfiguration,
+                        ),
+                        MenuOptionData(
+                            title = "Processes",
+                            Emoji.MagnifyingGlass.unicode,
+                            toProcesses,
+                        ),
+                        MenuOptionData(title = "About", Emoji.Info.unicode, toAbout),
                     )
             )
         }

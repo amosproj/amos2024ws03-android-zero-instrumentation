@@ -4,6 +4,7 @@
 
 use std::{pin::Pin, sync::Arc};
 
+use shared::{config::Configuration, ziofa::Process};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
 
@@ -67,13 +68,29 @@ impl Client {
         Ok(self.0.lock().await.stop_collecting().await?)
     }
 
-    async fn server_count(&self) -> Result<CountStream> {
+    pub async fn server_count(&self) -> Result<Arc<CountStream>> {
         let mut guard = self.0.lock().await;
         let stream = guard
             .server_count()
             .await?
             .map(|x| x.map_err(ClientError::from));
 
-        Ok(CountStream(Mutex::new(Box::pin(stream))))
+        Ok(Arc::new(CountStream(Mutex::new(Box::pin(stream)))))
+    }
+
+    pub async fn check_server(&self) -> Result<()> {
+        Ok(self.0.lock().await.check_server().await?)
+    }
+
+    pub async fn list_processes(&self) -> Result<Vec<Process>> {
+        Ok(self.0.lock().await.list_processes().await?)
+    }
+
+    pub async fn get_configuration(&self) -> Result<Configuration> {
+        Ok(self.0.lock().await.get_configuration().await?)
+    }
+
+    pub async fn set_configuration(&self, configuration: Configuration) -> Result<()> {
+        Ok(self.0.lock().await.set_configuration(configuration).await?)
     }
 }

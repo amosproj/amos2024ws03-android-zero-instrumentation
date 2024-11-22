@@ -1,5 +1,5 @@
 #![no_std]
-#![no_main]
+#![cfg_attr(not(test), no_main)]
 
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
@@ -14,7 +14,7 @@ use aya_ebpf::{
     maps::{PerCpuArray, RingBuf},
     programs::XdpContext,
 };
-pub use backend_ebpf::{vfs_write, KPROBES};
+pub use backend_ebpf::{vfs_write, VFS_WRITE_MAP};
 
 #[map(name = "COUNTER")]
 static PACKET_COUNTER: PerCpuArray<u32> = PerCpuArray::with_max_entries(1, 0);

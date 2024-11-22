@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -51,6 +52,18 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    // Flavors and build types need to at least contain the ones of the app
+    flavorDimensions.add("version")
+    productFlavors {
+        create("real") {
+            dimension = "version"
+        }
+        create("mock") {
+            dimension = "version"
+        }
+    }
+
     sourceSets {
         getByName("debug") {
             kotlin.srcDir(generatedDir("debug"))
@@ -124,19 +137,16 @@ afterEvaluate {
                 "--library",
                 layout.buildDirectory.file("rustJniLibs/${cargoTask.toolchain!!.folder}/lib${rustLibName}.so")
                     .get().asFile.path,
-                "--out-dir", generatedDir(variant.name)
+                "--out-dir", generatedDir(variant.buildType.name)
             )
         }
-
         tasks.getByName("compile${variant.name.capitalized()}Kotlin").dependsOn(task)
     }
 
     val cargoBuild = tasks.getByName("cargoBuild")
     android.libraryVariants.forEach { variant ->
-        val productFlavor = variant.productFlavors.map { it.name.capitalized() }.joinToString { "" }
-        val buildType = variant.buildType.name.capitalized()
-
-        tasks.getByName("generate${productFlavor}${buildType}Assets").dependsOn(cargoBuild)
+        tasks.getByName("generate${variant.name.capitalized()}Assets").dependsOn(cargoBuild)
     }
 }
+
 

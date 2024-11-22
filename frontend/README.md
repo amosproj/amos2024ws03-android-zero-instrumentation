@@ -11,6 +11,10 @@ SPDX-License-Identifier: MIT
 `./gradlew build` <br/>
 The resulting APKs for release/debug build types can then be found under `frontend/app/build/outputs/apk`.
 
+### Installing the app:
+`./gradlew installRealDebug` or `./gradlew iRD` for installing a version with a **real** backend <br/>
+`./gradlew installMockDebug` or `./gradlew iMD` for installing a version with a **mocked** backend <br/>
+
 ### Generating the report for the bill of materials (BOM)
 To generate a BOM of all *release runtime dependencies*, the following Gradle task can be run: <br/>
 `./gradlew cyclonedxBom` <br/>
