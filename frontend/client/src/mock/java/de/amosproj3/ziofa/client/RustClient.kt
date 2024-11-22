@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.client.mocks
+package de.amosproj3.ziofa.client
 
-import de.amosproj3.ziofa.client.Client
 import kotlin.random.Random
 import kotlin.random.nextUInt
 import kotlinx.coroutines.delay
@@ -18,8 +17,8 @@ import uniffi.shared.UprobeConfig
 
 const val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-object MockClient : Client {
-    var configuration: Configuration =
+object RustClient : Client {
+    private var configuration: Configuration =
         Configuration(
             listOf(
                 EbpfEntry(
@@ -87,6 +86,12 @@ object MockClient : Client {
     }
 
     override suspend fun setConfiguration(configuration: Configuration) {
-        MockClient.configuration = configuration
+        this.configuration = configuration
+    }
+}
+
+class RustClientFactory(val url: String) : ClientFactory {
+    override suspend fun connect(): Client {
+        return RustClient
     }
 }
