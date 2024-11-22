@@ -2,12 +2,17 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::sync::{Arc, Mutex};
-use aya::Ebpf;
 use aya::maps::{MapData, RingBuf};
-use ringbuf::{CachingProd, SharedRb};
+use aya::Ebpf;
 use ringbuf::storage::Heap;
-use shared::ziofa::EbpfStreamObject;
+use ringbuf::{CachingProd, SharedRb};
+use shared::ziofa::{EbpfStreamObject, VfsWriteCall};
+use std::sync::{Arc, Mutex};
+use std::thread::spawn;
+use tokio::io::unix::AsyncFd;
+use tokio_stream::StreamExt;
+
+type ServerConsType = Arc<Mutex<CachingProd<Arc<SharedRb<Heap<EbpfStreamObject>>>>>>;
 
 fn map_as_ringbuf(ebpf: Arc<Mutex<Ebpf>>, map_name: &str) -> RingBuf<MapData>{
     ebpf
@@ -19,7 +24,7 @@ fn map_as_ringbuf(ebpf: Arc<Mutex<Ebpf>>, map_name: &str) -> RingBuf<MapData>{
         .expect("VFS_TRACING should be a RingBuf")
 }
 
-type ServerConsType = fn(RingBuf<MapData>, Arc<Mutex<CachingProd<Arc<SharedRb<Heap<EbpfStreamObject>>>>>>);
+
 
 async fn collect_from_all_maps(
     ebpf: Arc<Mutex<Ebpf>>,
@@ -30,22 +35,51 @@ async fn collect_from_all_maps(
         ("VFS_WRITE_MAP", &(vfs_tracing_taker as fn(RingBuf<MapData>, ServerConsType))),
     ];
     
-    let name_function_buffer_tuples: Vec<(&str, fn(RingBuf<MapData>, ServerConsType), RingBuf<MapData>)> = name_function_tuples
+    let name_function_buffer_tuples: Vec<(fn(RingBuf<MapData>, ServerConsType), RingBuf<MapData>)> = name_function_tuples
         .iter()
         .map(
             |(map_name, func)| {
-                (*map_name, *func, map_as_ringbuf(ebpf.clone(), *map_name))
+                (*func, map_as_ringbuf(ebpf.clone(), *map_name))
             })
         .collect();
     
-    for (_, func, buffer) in name_function_buffer_tuples{
-        func(buffer, server_buffer)
+    for (func, buffer) in name_function_buffer_tuples{
+        spawn(
+            async move { 
+                func(buffer,  server_buffer.clone()).await;   
+            }
+        );
     }
     
 }
 
 
-fn vfs_tracing_taker(bpf_buffer: RingBuf<MapData>, server_buffer: ServerConsType ){
-    
+async fn vfs_tracing_taker(bpf_buffer: RingBuf<MapData>, server_buffer: ServerConsType ){
+    let map_async_fd= AsyncFd::new(bpf_buffer)
+        .unwrap();
+    loop{ 
+        let mut guard = match map_async_fd.readable().await {
+            Ok(guard) => guard,
+            Err(..) => {
+                println!("[vfs_tracing_taker] failed to read from vfs map");
+                break
+            },
+        };
+        
+        guard.clear_ready();
+
+        if let Some(raw_item) = guard.get_ref().next() {
+            match raw_item.try_into::<VfsWriteCall>() {
+                Ok(item) => {
+                    let mut server_buffer_guard = server_buffer.lock().await;
+                    server_buffer_guard.push(item);
+                }
+                Err(e) => {
+                    println!("[vfs_tracing_taker] Failed to convert item: {:?}", e);
+                }
+            }
+        }
+    }
 }
 
+ 
