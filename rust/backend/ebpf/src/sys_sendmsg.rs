@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use aya_ebpf::{macros::{tracepoint, map}, maps::{HashMap, RingBuf}, programs::{TracePointContext}, EbpfContext, helpers::gen::bpf_ktime_get_ns, bpf_printk};
+use aya_ebpf::{macros::{tracepoint, map}, maps::{HashMap, RingBuf}, programs::{TracePointContext}, EbpfContext, helpers::gen::bpf_ktime_get_ns};
 use backend_common::{generate_id, SysSendmsgCall};
 
 #[map(name = "SYS_SENDMSG_MAP")]
@@ -17,8 +17,6 @@ struct SysSendmsgIntern {
     begin_time_stamp: u64,
     fd: i32,
 }
-
-
 
 #[tracepoint]
 pub fn sys_enter_sendmsg(ctx: TracePointContext) -> u32 {

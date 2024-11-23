@@ -8,7 +8,5 @@
 
 // This file exists to enable the library target.
 
-mod vfs_write;
+pub mod vfs_write;
 pub mod sys_sendmsg;
-
-pub use vfs_write::{vfs_write, VFS_WRITE_MAP};
