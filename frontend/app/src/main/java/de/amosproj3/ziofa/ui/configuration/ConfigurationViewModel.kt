@@ -58,7 +58,12 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
         _changed.update { true }
     }
 
-    fun configurationSubmitted() {
+    /**
+     * Submit the configuration to the backend.
+     *
+     * @param pids the affected Process IDs or null if the configuration should be set globally
+     */
+    fun configurationSubmitted(pids: IntArray?) {
         viewModelScope.launch {
             configurationAccess.submitConfiguration(checkedOptions.value.toConfiguration())
         }

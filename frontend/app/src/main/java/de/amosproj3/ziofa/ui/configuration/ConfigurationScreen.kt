@@ -28,7 +28,9 @@ fun ConfigurationScreen(
     modifier: Modifier = Modifier,
     viewModel: ConfigurationViewModel = koinViewModel(),
     onBack: () -> Unit = {},
+    pids: IntArray? = null,
 ) {
+
     Box(modifier = modifier.fillMaxSize()) {
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
         val configurationChangedByUser by remember { viewModel.changed }.collectAsState()
@@ -47,7 +49,7 @@ fun ConfigurationScreen(
                 if (configurationChangedByUser) {
                     SubmitFab(
                         modifier = Modifier.align(Alignment.BottomEnd),
-                        onClick = { viewModel.configurationSubmitted() },
+                        onClick = { viewModel.configurationSubmitted(pids) },
                     )
                 }
             }
