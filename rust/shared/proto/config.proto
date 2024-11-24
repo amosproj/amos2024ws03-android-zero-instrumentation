@@ -9,21 +9,37 @@ syntax = "proto3";
 package config;
 
 // the configurations has entries for all Ebpf Programms (not only the ones that should be loaded)
-message Configuration {
-  repeated EbpfEntry entries = 1;
+// message Configuration {
+//   repeated EbpfEntry entries = 1;
+// }
+
+// message EbpfEntry {
+//   message UprobeConfig {
+//     uint64 offset = 1;                      // offset of the aya attach function
+//     string target = 2;                      // target of the aya attach function
+//     optional int32 pid = 3;                 // pid of the aya attach function
+//   }
+//   string hr_name = 1;                       // Human-readable name
+//   string description = 2;                   // Human-readable description
+//   string ebpf_name = 3;                     // Name of the eBPF function to be loaded
+//   uint64 fn_id = 4;                         // Optional ID of the function interpreting the eBPF map
+//   optional UprobeConfig uprobe_info = 5;    // uprobe requires additional information
+//   string hook = 6;                          // hook the eBPF function gets attached to
+//   bool attach = 7;                          // attach when true, detach when false
+// }
+
+message UprobeConfig {
+  string fn_name = 1;
+  uint64 offset = 2;                      // offset of the aya attach function
+  string target = 3;                      // target of the aya attach function
+  optional int32 pid = 4;                 // pid of the aya attach function
 }
 
-message EbpfEntry {
-  message UprobeConfig {
-    uint64 offset = 1;                      // offset of the aya attach function
-    string target = 2;                      // target of the aya attach function
-    optional int32 pid = 3;                 // pid of the aya attach function
-  }
-  string hr_name = 1;                       // Human-readable name
-  string description = 2;                   // Human-readable description
-  string ebpf_name = 3;                     // Name of the eBPF function to be loaded
-  uint64 fn_id = 4;                         // Optional ID of the function interpreting the eBPF map
-  optional UprobeConfig uprobe_info = 5;    // uprobe requires additional information
-  string hook = 6;                          // hook the eBPF function gets attached to
-  bool attach = 7;                          // attach when true, detach when false
+message Configuration {
+  VfsWriteConfig vfs_write = 1;
+  repeated UprobeConfig uprobes = 2;
+}
+
+message VfsWriteConfig {
+  repeated uint32 pids = 1;
 }

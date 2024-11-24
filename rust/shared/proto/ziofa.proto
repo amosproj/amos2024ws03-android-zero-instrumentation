@@ -16,7 +16,7 @@ service Ziofa {
     rpc GetConfiguration(google.protobuf.Empty) returns (config.Configuration){}
     rpc SetConfiguration(config.Configuration) returns (SetConfigurationResponse){}
 
-//    rpc InitStream(google.protobuf.Empty) returns (stream EbpfStreamObject) {}      // all Responses genereated by the ebpf-programms are send via this stream
+   rpc InitStream(google.protobuf.Empty) returns (stream EbpfStreamObject) {}      // all Responses genereated by the ebpf-programms are send via this stream
 
 }
 
@@ -47,17 +47,15 @@ message SetConfigurationResponse{
     uint32 response_type = 1;
 }
 
-
-//message EbpfStreamObject{
-//    oneof concrete {
-//        ConcreteEbpfStreamObject1 concrete1 = 1;
-//        ConcreteEbpfStreamObject2 concrete2 = 2;
-//    }
-//}
-//
-//message ConcreteEbpfStreamObject1 {
-//    uint64 time = 1;
-//}
-//message ConcreteEbpfStreamObject2 {
-//    string time = 1;
-//}
+message EbpfStreamObject{
+    oneof concrete {
+        VfsWriteCall vfs_write_call = 1;
+    }
+}
+message VfsWriteCall {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 begin_time_stamp = 3;
+    int32 fd = 4;
+    uint64 bytes_written = 5;  // needs to be bits of target architecture
+}
