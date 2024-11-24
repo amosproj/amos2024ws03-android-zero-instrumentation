@@ -4,18 +4,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{collections::HashMap, sync::Arc};
-
 use aya::{
-    maps::RingBuf,
-    programs::{kprobe::KProbeLinkId, uprobe::UProbeLinkId, KProbe, UProbe},
-    Ebpf,
+    programs::{kprobe::KProbeLinkId, uprobe::UProbeLinkId, KProbe},
+    Ebpf, EbpfError,
 };
-use clap::Error;
-use shared::config::UprobeConfig;
-use tokio::{io::unix::AsyncFd, sync::Mutex};
-
-use crate::configuration::load_from_file;
 pub enum ProbeID {
     KProbeID(KProbeLinkId),
     UProbeID(UProbeLinkId),
@@ -27,25 +19,36 @@ struct VfsFeature {
 }
 
 impl VfsFeature {
-    fn create(&mut self, ebpf: &mut Ebpf) {
-        // TODO Error handling
-        let vfs_write: &mut KProbe = ebpf.program_mut("vfs_write").unwrap().try_into().unwrap();
+    fn create(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+        let vfs_write: &mut KProbe = ebpf
+            .program_mut("vfs_write")
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: "vfs_write".to_string(),
+                },
+            ))?
+            .try_into()?;
         vfs_write.load();
-        self.vfs_write_id = vfs_write.attach("vfs_write", 0).unwrap();
+        self.vfs_write_id = vfs_write.attach("vfs_write", 0)?;
 
         let vfs_write_ret: &mut KProbe = ebpf
             .program_mut("vfs_write_ret")
-            .unwrap()
-            .try_into()
-            .unwrap();
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: "vfs_write_ret".to_string(),
+                },
+            ))?
+            .try_into()?;
         vfs_write_ret.load();
-        self.vfs_write_ret_id = vfs_write_ret.attach("vfs_write", 0).unwrap();
+        self.vfs_write_ret_id = vfs_write_ret.attach("vfs_write", 0)?;
+
+        Ok(())
     }
 
-    fn update(&mut self, ebpf: &mut Ebpf) {
-        // update pids that are attached
-        !todo!();
-    }
+    // fn update(&mut self, ebpf: &mut Ebpf) {
+    //     // update pids that are attached
+    //     !todo!();
+    // }
 
     fn events(&mut self, ebpf: &mut Ebpf) {
         // return buffered stream of events
@@ -53,20 +56,31 @@ impl VfsFeature {
         !todo!()
     }
 
-    fn destroy(ebpf: &mut Ebpf) {
+    fn destroy(ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         // TODO Error handling
-        let vfs_write: &mut KProbe = ebpf.program_mut("vfs_write").unwrap().try_into().unwrap();
+        let vfs_write: &mut KProbe = ebpf
+            .program_mut("vfs_write")
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: "vfs_write".to_string(),
+                },
+            ))?
+            .try_into()?;
         vfs_write.unload();
 
         let vfs_write_ret: &mut KProbe = ebpf
             .program_mut("vfs_write_ret")
-            .unwrap()
-            .try_into()
-            .unwrap();
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: "vfs_write_ret".to_string(),
+                },
+            ))?
+            .try_into()?;
         vfs_write_ret.unload();
+
+        Ok(())
     }
 }
-
 
 // fn load_function(
 //     ebpf: &mut Ebpf,
