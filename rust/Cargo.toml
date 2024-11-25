@@ -7,7 +7,7 @@
 
 [workspace]
 resolver = "2"
-members = ["xtask", "backend/daemon", "backend/ebpf", "backend/common", "shared", "client"]
+members = ["xtask", "backend/daemon", "backend/ebpf", "backend/common", "shared", "client", "playground/sendmsg-demo"]
 default-members = ["xtask", "backend/daemon", "backend/common", "shared", "client"]
 
 [workspace.package]
@@ -49,6 +49,10 @@ tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 procfs = "0.17.0"
 async-broadcast = "0.7.1"
+console = "0.15.8"
+dialoguer = "0.11.0"
+indicatif = "0.17.9"
+nix = "0.29.0"
 
 [profile.dev]
 panic = "abort"
