@@ -7,6 +7,7 @@
 use std::{collections::HashMap, ops::DerefMut, sync::Arc};
 
 use aya::Ebpf;
+use aya_log::EbpfLogger;
 use shared::{
     config::Configuration,
     counter::counter_server::CounterServer,
@@ -95,11 +96,13 @@ impl Ziofa for ZiofaImpl {
 }
 
 pub async fn serve_forever() {
-    let ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+    let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/backend-ebpf"
-    )))
-    .unwrap();
+    ))).unwrap();
+
+    EbpfLogger::init(&mut ebpf).unwrap();
+
     let probe_id_map = HashMap::new();
     let ebpf = Arc::new(Mutex::new(ebpf));
     let ziofa_server = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf.clone()));

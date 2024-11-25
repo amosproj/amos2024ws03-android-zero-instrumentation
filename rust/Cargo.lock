@@ -269,6 +269,7 @@ dependencies = [
  "object",
  "once_cell",
  "thiserror 1.0.68",
+ "tokio",
 ]
 
 [[package]]
@@ -308,6 +309,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "aya-log"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b600d806c1d07d3b81ab5f4a2a95fd80f479a0d3f1d68f29064d660865f85f02"
+dependencies = [
+ "aya",
+ "aya-log-common",
+ "bytes",
+ "log",
+ "thiserror 1.0.68",
+ "tokio",
 ]
 
 [[package]]
@@ -378,6 +393,7 @@ name = "backend-daemon"
 version = "0.1.0"
 dependencies = [
  "aya",
+ "aya-log",
  "backend-common",
  "cargo_metadata 0.18.1",
  "clap",

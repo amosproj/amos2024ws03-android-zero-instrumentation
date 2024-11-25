@@ -25,6 +25,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 procfs = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
+aya-log = { workspace = true }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }

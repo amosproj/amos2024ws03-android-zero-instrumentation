@@ -9,6 +9,7 @@ use aya_ebpf::{
     EbpfContext,
     helpers::gen::bpf_ktime_get_ns,
 };
+use aya_log_ebpf::error;
 use backend_common::{generate_id, VfsWriteCall, TIME_LIMIT_NS};
 
 
@@ -74,7 +75,10 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
 
         let mut entry = match VFS_WRITE_MAP.reserve::<VfsWriteCall>(0) {
             Some(entry) => entry,
-            None => return Err(0),
+            None => {
+                error!(&ctx, "could not reserve space in VFS_WRITE_MAP");
+                return Err(0)
+            },
         };
 
         entry.write(data);
