@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use aya::{
     programs::{kprobe::KProbeLinkId, KProbe},
     Ebpf, EbpfError,
