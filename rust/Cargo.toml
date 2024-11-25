@@ -48,6 +48,7 @@ backend-ebpf = { path = "./backend/ebpf" }
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 procfs = "0.17.0"
+async-broadcast = "0.7.1"
 
 [profile.dev]
 panic = "abort"
