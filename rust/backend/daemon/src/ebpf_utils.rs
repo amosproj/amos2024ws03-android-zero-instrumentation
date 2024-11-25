@@ -42,7 +42,8 @@ fn load_function(
             let program: &mut UProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
 
             // load ebpf program
-            program.load().unwrap();
+            //programs have to be loaded at startup
+            //program.load().unwrap();
 
             // attach ebpf program and insert its ProbeID into the hash map
             hash_map.insert(
@@ -53,7 +54,8 @@ fn load_function(
         // KPROBE/KRETPROBE
         None => {
             let program: &mut KProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
-            program.load().unwrap();
+            //programs have to be loaded at startup
+            //program.load().unwrap();
             hash_map.insert(
                 func.to_string(),
                 ProbeID::KProbeID(program.attach(hook, 0).unwrap()),
@@ -69,14 +71,16 @@ fn unload_function(ebpf: &mut Ebpf, hash_map: &mut HashMap<String, ProbeID>, fun
     match probe {
         ProbeID::UProbeID(_link_id) => {
             // get ebpf program
-            let program: &mut UProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
+            let _program: &mut UProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
 
-            // unload ebpf program
-            program.unload().unwrap();
+            // unload ebpf
+            // programs cannot be unloaded, as we cannot reload them at runtime anyway
+            //program.unload().unwrap();
         }
         ProbeID::KProbeID(_link_id) => {
-            let program: &mut KProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
-            program.unload().unwrap();
+            let _program: &mut KProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
+            // programs cannot be unloaded, as we cannot reload them at runtime anyway
+            //program.unload().unwrap();
         }
     }
 }

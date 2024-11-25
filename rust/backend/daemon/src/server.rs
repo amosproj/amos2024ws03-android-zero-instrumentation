@@ -7,6 +7,7 @@
 use std::{collections::HashMap, ops::DerefMut, sync::Arc};
 
 use aya::Ebpf;
+use aya::programs::{KProbe, ProgramError};
 use aya_log::EbpfLogger;
 use shared::{
     config::Configuration,
@@ -95,6 +96,20 @@ impl Ziofa for ZiofaImpl {
     // }
 }
 
+fn load_programs(ebpf: &mut Ebpf) -> Result<(), ProgramError> {
+    let vfs_write: &mut KProbe = ebpf.program_mut("vfs_write")
+        .ok_or(ProgramError::InvalidName { name: "vfs_write".to_owned() })?
+        .try_into()?;
+    vfs_write.load()?;
+
+    let vfs_write_ret: &mut KProbe = ebpf.program_mut("vfs_write_ret")
+        .ok_or(ProgramError::InvalidName { name: "vfs_write_ret".to_owned() })?
+        .try_into()?;
+    vfs_write_ret.load()?;
+
+    Ok(())
+}
+
 pub async fn serve_forever() {
     let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
@@ -102,6 +117,7 @@ pub async fn serve_forever() {
     ))).unwrap();
 
     EbpfLogger::init(&mut ebpf).unwrap();
+    load_programs(&mut ebpf).unwrap();
 
     let probe_id_map = HashMap::new();
     let ebpf = Arc::new(Mutex::new(ebpf));
