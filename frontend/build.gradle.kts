@@ -19,7 +19,6 @@ plugins {
     alias(libs.plugins.rust.android) apply false
 }
 
-
 subprojects {
     apply { plugin(rootProject.libs.plugins.com.ncorti.ktfmt.gradle.get().pluginId) }
 

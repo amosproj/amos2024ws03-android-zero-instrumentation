@@ -22,7 +22,11 @@ import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.data.EbpfProgramOptions
 
 @Composable
-fun EbpfOptions(options: EbpfProgramOptions, onVfsWriteChanged: (Boolean) -> Unit) {
+fun EbpfOptions(
+    options: EbpfProgramOptions,
+    onVfsWriteChanged: (Boolean) -> Unit,
+    onSendMessageChanged: (Boolean) -> Unit,
+) {
     LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
         item { Spacer(Modifier.height(15.dp)) }
 
@@ -36,6 +40,20 @@ fun EbpfOptions(options: EbpfProgramOptions, onVfsWriteChanged: (Boolean) -> Uni
                 Checkbox(
                     checked = options.vfsWriteOption.enabled,
                     onCheckedChange = onVfsWriteChanged,
+                )
+            }
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Send Message Analysis")
+                Checkbox(
+                    checked = options.sendMessageOption.enabled,
+                    onCheckedChange = onSendMessageChanged,
                 )
             }
         }

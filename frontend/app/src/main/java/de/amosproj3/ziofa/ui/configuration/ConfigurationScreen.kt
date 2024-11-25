@@ -42,6 +42,9 @@ fun ConfigurationScreen(
                 EbpfOptions(
                     options = state.options,
                     onVfsWriteChanged = { newValue -> viewModel.vfsWriteChanged(pids, newValue) },
+                    onSendMessageChanged = { newValue ->
+                        viewModel.sendMessageChanged(pids, newValue)
+                    },
                 )
 
                 // Show the submit button if the user changed settings

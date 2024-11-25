@@ -4,7 +4,6 @@
 
 package de.amosproj3.ziofa.ui.visualization.composables
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
@@ -21,22 +20,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MetricDropdown(
-    options: List<Pair<String, ImageVector?>>, // TODO replace with data class
+    options: List<DropdownOption>, // TODO replace with data class
     title: String,
     modifier: Modifier = Modifier,
+    optionSelected: (DropdownOption) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf(options[0].first) }
+    var selected by remember { mutableStateOf(options[0].displayName) }
 
     Box(modifier = modifier) {
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = { !expanded },
+            onExpandedChange = { expanded = it },
             modifier = modifier,
         ) {
             TextField(
@@ -45,20 +46,27 @@ fun MetricDropdown(
                 readOnly = true,
                 label = { Text(title) },
                 trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
-                modifier = Modifier.clickable { expanded = !expanded }.fillMaxWidth(),
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
             )
             ExposedDropdownMenu(
                 modifier = modifier,
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
             ) {
-                options.forEach { (displayName, icon) ->
+                options.forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(displayName) },
+                        text = { Text(option.displayName) },
                         trailingIcon = {
-                            icon?.let { Icon(imageVector = it, contentDescription = "") }
+                            if (option is DropdownOption.AppOption) {
+                                val painter = rememberDrawablePainter(option.icon)
+                                Icon(painter = painter, contentDescription = "")
+                            }
                         },
-                        onClick = {},
+                        onClick = {
+                            optionSelected(option)
+                            selected = option.displayName
+                            expanded = false
+                        },
                     )
                 }
             }
