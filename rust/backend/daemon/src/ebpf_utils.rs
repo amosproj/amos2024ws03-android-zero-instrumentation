@@ -14,8 +14,8 @@ pub enum ProbeID {
 }
 
 struct VfsFeature {
-    vfs_write_id: KProbeLinkId,
-    vfs_write_ret_id: KProbeLinkId,
+    vfs_write_id: Option<KProbeLinkId>,
+    vfs_write_ret_id: Option<KProbeLinkId>,
 }
 
 impl VfsFeature {
@@ -29,7 +29,6 @@ impl VfsFeature {
             ))?
             .try_into()?;
         vfs_write.load();
-        self.vfs_write_id = vfs_write.attach("vfs_write", 0)?;
 
         let vfs_write_ret: &mut KProbe = ebpf
             .program_mut("vfs_write_ret")
@@ -40,7 +39,67 @@ impl VfsFeature {
             ))?
             .try_into()?;
         vfs_write_ret.load();
-        self.vfs_write_ret_id = vfs_write_ret.attach("vfs_write", 0)?;
+
+        Ok(())
+    }
+
+    fn attach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+        let vfs_write: &mut KProbe = ebpf
+            .program_mut("vfs_write")
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: "vfs_write".to_string(),
+                },
+            ))?
+            .try_into()?;
+        self.vfs_write_id = Some(vfs_write.attach("vfs_write", 0)?);
+
+        let vfs_write_ret: &mut KProbe = ebpf
+            .program_mut("vfs_write_ret")
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: "vfs_write_ret".to_string(),
+                },
+            ))?
+            .try_into()?;
+        self.vfs_write_ret_id = Some(vfs_write_ret.attach("vfs_write", 0)?);
+        Ok(())
+    }
+
+    fn detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+        let vfs_write: &mut KProbe = ebpf
+            .program_mut("vfs_write")
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: "vfs_write".to_string(),
+                },
+            ))?
+            .try_into()?;
+
+        if let Some(vfs_write_id) = self.vfs_write_id.take() {
+            vfs_write.detach(vfs_write_id)?;
+        } else {
+            return Err(EbpfError::ProgramError(
+                aya::programs::ProgramError::NotAttached,
+            ));
+        }
+
+        let vfs_write_ret: &mut KProbe = ebpf
+            .program_mut("vfs_write_ret")
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: "vfs_write_ret".to_string(),
+                },
+            ))?
+            .try_into()?;
+
+        if let Some(vfs_write_ret_id) = self.vfs_write_ret_id.take() {
+            vfs_write_ret.detach(vfs_write_ret_id)?;
+        } else {
+            return Err(EbpfError::ProgramError(
+                aya::programs::ProgramError::NotAttached,
+            ));
+        }
 
         Ok(())
     }
