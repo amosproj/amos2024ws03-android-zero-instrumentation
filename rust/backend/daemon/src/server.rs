@@ -4,7 +4,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{collections::HashMap, ops::DerefMut, sync::Arc};
+use std::{ops::DerefMut, sync::Arc};
 
 use aya::Ebpf;
 use shared::{
@@ -21,22 +21,19 @@ use tonic::{transport::Server, Request, Response, Status};
 use crate::{
     configuration, constants,
     counter::Counter,
-    ebpf_utils::{update_from_config, ProbeID},
+    ebpf_utils::{EbpfErrorWrapper, State},
     procfs_utils::{list_processes, ProcErrorWrapper},
 };
 
 pub struct ZiofaImpl {
     // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
-    probe_id_map: Arc<Mutex<HashMap<String, ProbeID>>>,
     ebpf: Arc<Mutex<Ebpf>>,
+    state: Arc<Mutex<State>>,
 }
 
 impl ZiofaImpl {
-    pub fn new(probe_id_map: HashMap<String, ProbeID>, ebpf: Arc<Mutex<Ebpf>>) -> ZiofaImpl {
-        ZiofaImpl {
-            probe_id_map: Arc::new(Mutex::new(probe_id_map)),
-            ebpf,
-        }
+    pub fn new(ebpf: Arc<Mutex<Ebpf>>, state: Arc<Mutex<State>>) -> ZiofaImpl {
+        ZiofaImpl { ebpf, state }
     }
 }
 
@@ -71,14 +68,12 @@ impl Ziofa for ZiofaImpl {
         configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
 
         let mut ebpf_guard = self.ebpf.lock().await;
-        let mut probe_id_map_guard = self.probe_id_map.lock().await;
+        let mut state_guard = self.state.lock().await;
 
         // TODO: set config path
-        update_from_config(
-            ebpf_guard.deref_mut(),
-            "ziofa.json",
-            probe_id_map_guard.deref_mut(),
-        );
+        state_guard
+            .update_from_config(ebpf_guard.deref_mut(), "ziofa.json")
+            .map_err(EbpfErrorWrapper::from)?;
 
         Ok(Response::new(SetConfigurationResponse { response_type: 0 }))
     }
@@ -95,14 +90,18 @@ impl Ziofa for ZiofaImpl {
 }
 
 pub async fn serve_forever() {
-    let ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+    let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/backend-ebpf"
     )))
     .unwrap();
-    let probe_id_map = HashMap::new();
+
+    let mut state = State::new();
+    state.init(&mut ebpf).expect("should work");
+
     let ebpf = Arc::new(Mutex::new(ebpf));
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(probe_id_map, ebpf.clone()));
+    let state = Arc::new(Mutex::new(state));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), state));
     let counter_server = CounterServer::new(Counter::new(ebpf).await);
     Server::builder()
         .add_service(ziofa_server)

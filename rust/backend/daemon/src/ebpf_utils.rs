@@ -5,21 +5,41 @@
 // SPDX-License-Identifier: MIT
 
 use aya::{
-    programs::{kprobe::KProbeLinkId, uprobe::UProbeLinkId, KProbe},
+    programs::{kprobe::KProbeLinkId, KProbe},
     Ebpf, EbpfError,
 };
-pub enum ProbeID {
-    KProbeID(KProbeLinkId),
-    UProbeID(UProbeLinkId),
+use thiserror::Error;
+// pub enum ProbeID {
+//     KProbeID(KProbeLinkId),
+//     UProbeID(UProbeLinkId),
+// }
+
+#[derive(Debug, Error)]
+pub enum EbpfErrorWrapper {
+    #[error(transparent)]
+    EbpfError(#[from] EbpfError),
 }
 
-struct VfsFeature {
+impl From<EbpfErrorWrapper> for tonic::Status {
+    fn from(err: EbpfErrorWrapper) -> Self {
+        Self::from_error(Box::new(err))
+    }
+}
+
+pub struct VfsFeature {
     vfs_write_id: Option<KProbeLinkId>,
     vfs_write_ret_id: Option<KProbeLinkId>,
 }
 
 impl VfsFeature {
-    fn create(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    pub fn new() -> VfsFeature {
+        VfsFeature {
+            vfs_write_id: None,
+            vfs_write_ret_id: None,
+        }
+    }
+
+    pub fn create(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         let vfs_write: &mut KProbe = ebpf
             .program_mut("vfs_write")
             .ok_or(EbpfError::ProgramError(
@@ -28,7 +48,7 @@ impl VfsFeature {
                 },
             ))?
             .try_into()?;
-        vfs_write.load();
+        vfs_write.load()?;
 
         let vfs_write_ret: &mut KProbe = ebpf
             .program_mut("vfs_write_ret")
@@ -38,12 +58,12 @@ impl VfsFeature {
                 },
             ))?
             .try_into()?;
-        vfs_write_ret.load();
+        vfs_write_ret.load()?;
 
         Ok(())
     }
 
-    fn attach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    pub fn attach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         let vfs_write: &mut KProbe = ebpf
             .program_mut("vfs_write")
             .ok_or(EbpfError::ProgramError(
@@ -66,7 +86,7 @@ impl VfsFeature {
         Ok(())
     }
 
-    fn detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    pub fn _detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         let vfs_write: &mut KProbe = ebpf
             .program_mut("vfs_write")
             .ok_or(EbpfError::ProgramError(
@@ -109,13 +129,12 @@ impl VfsFeature {
     //     !todo!();
     // }
 
-    fn events(&mut self, ebpf: &mut Ebpf) {
+    pub fn _events(&mut self, _ebpf: &mut Ebpf) {
         // return buffered stream of events
         // will be discussed by Felix and Beni
-        !todo!()
     }
 
-    fn destroy(ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    pub fn _destroy(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         // TODO Error handling
         let vfs_write: &mut KProbe = ebpf
             .program_mut("vfs_write")
@@ -125,7 +144,7 @@ impl VfsFeature {
                 },
             ))?
             .try_into()?;
-        vfs_write.unload();
+        vfs_write.unload()?;
 
         let vfs_write_ret: &mut KProbe = ebpf
             .program_mut("vfs_write_ret")
@@ -135,7 +154,7 @@ impl VfsFeature {
                 },
             ))?
             .try_into()?;
-        vfs_write_ret.unload();
+        vfs_write_ret.unload()?;
 
         Ok(())
     }
@@ -204,24 +223,26 @@ impl VfsFeature {
 //     }
 // }
 
-// pub fn update_from_config(
-//     ebpf: &mut Ebpf,
-//     config_path: &str,
-//     loaded_functions: &mut HashMap<String, ProbeID>,
-// ) {
-//     let entries = load_from_file(config_path).unwrap().entries;
+pub struct State {
+    vfs_write_feature: VfsFeature,
+}
 
-//     for entry in entries {
-//         match (entry.attach, loaded_functions.get(entry.ebpf_name.as_str())) {
-//             (true, None) => load_function(
-//                 ebpf,
-//                 loaded_functions,
-//                 entry.uprobe_info,
-//                 entry.ebpf_name.as_str(),
-//                 entry.hook.as_str(),
-//             ),
-//             (false, Some(_)) => unload_function(ebpf, loaded_functions, entry.ebpf_name.as_str()),
-//             _ => {}
-//         }
-//     }
-// }
+impl State {
+    pub fn new() -> State {
+        State {
+            vfs_write_feature: VfsFeature::new(),
+        }
+    }
+    
+    pub fn init(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+        self.vfs_write_feature.create(ebpf)?;
+
+        Ok(())
+    }
+
+    pub fn update_from_config(&mut self, ebpf: &mut Ebpf, _config_path: &str) -> Result<(), EbpfError> {
+        self.vfs_write_feature.attach(ebpf)?;
+
+        Ok(())
+    }
+}

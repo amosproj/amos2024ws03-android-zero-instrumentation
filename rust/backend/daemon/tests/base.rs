@@ -3,11 +3,11 @@
 //
 // SPDX-License-Identifier: MIT
 
+use shared::config::{Configuration, VfsWriteConfig};
 use shared::ziofa::{process::Cmd, ziofa_client::ZiofaClient};
 use tonic::transport::Channel;
-use shared::config::{Configuration, EbpfEntry};
 
-/* 
+/*
 static RUNNING: Mutex<bool> = Mutex::new(false);
 
 async fn ensure_running() {
@@ -22,31 +22,31 @@ async fn ensure_running() {
 
 async fn setup() -> ZiofaClient<Channel> {
     //ensure_running().await;
-    ZiofaClient::connect("http://[::1]:50051").await.expect("server should run")
+    ZiofaClient::connect("http://[::1]:50051")
+        .await
+        .expect("server should run")
 }
-
 
 #[tokio::test]
 async fn list_processes() {
     let mut client = setup().await;
 
-    let processes = client.list_processes(())
+    let processes = client
+        .list_processes(())
         .await
         .expect("should work")
         .into_inner()
         .processes;
 
-    let server_process = processes.iter().find(|process| {
-        match &process.cmd {
-            Some(Cmd::Cmdline(d)) => {
-                if let Some(name) = d.args.first() {
-                    name.split('/').last() == Some("backend-daemon")
-                } else {
-                    false
-                }
+    let server_process = processes.iter().find(|process| match &process.cmd {
+        Some(Cmd::Cmdline(d)) => {
+            if let Some(name) = d.args.first() {
+                name.split('/').last() == Some("backend-daemon")
+            } else {
+                false
             }
-            None | Some(_) => false,
         }
+        None | Some(_) => false,
     });
 
     assert!(server_process.is_some());
@@ -55,46 +55,34 @@ async fn list_processes() {
 #[tokio::test]
 async fn check_server() {
     let mut client = setup().await;
-    client.check_server(())
-    .await
-    .expect("should work");
+    client.check_server(()).await.expect("should work");
 }
 
 #[tokio::test]
 async fn set_get_configuration() {
     let mut client = setup().await;
-    let default_config: Vec<EbpfEntry> = vec![
-        EbpfEntry {
-            hr_name: "vfs_write".to_string(),
-            description: "vfs_write".to_string(),
-            ebpf_name: "vfs_write".to_string(),
-            fn_id: 0,
-            hook: "vfs_write".to_string(),
-            attach: false,
-            uprobe_info: None,
-        },
-        EbpfEntry {
-            hr_name: "vfs_write_ret".to_string(),
-            description: "vfs_write_ret".to_string(),
-            ebpf_name: "vfs_write_ret".to_string(),
-            fn_id: 0,
-            hook: "vfs_write".to_string(),
-            attach: false,
-            uprobe_info: None,
-        },
-    ];
+    let default_config = Configuration {
+        uprobes: vec![],
+        vfs_write: Some(VfsWriteConfig { pids: vec![] }),
+    };
+    assert_eq!(
+        client
+            .set_configuration(default_config.clone())
+            .await
+            .expect("should work")
+            .into_inner()
+            .response_type,
+        0
+    );
 
-    assert_eq!(client.set_configuration(Configuration { entries: default_config.clone() })
-    .await
-    .expect("should work")
-    .into_inner()
-    .response_type, 0);
+    let res_config = client
+        .get_configuration(())
+        .await
+        .expect("should work")
+        .into_inner();
 
-    let res_config = client.get_configuration(())
-    .await
-    .expect("should work")
-    .into_inner()
-    .entries;
-
-    assert_eq!(res_config, default_config);
+    assert_eq!(
+        res_config,
+        default_config
+    );
 }

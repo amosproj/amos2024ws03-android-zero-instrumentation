@@ -16,7 +16,7 @@ service Ziofa {
     rpc GetConfiguration(google.protobuf.Empty) returns (config.Configuration){}
     rpc SetConfiguration(config.Configuration) returns (SetConfigurationResponse){}
 
-   rpc InitStream(google.protobuf.Empty) returns (stream EbpfStreamObject) {}      // all Responses genereated by the ebpf-programms are send via this stream
+//    rpc InitStream(google.protobuf.Empty) returns (stream EbpfStreamObject) {}      // all Responses genereated by the ebpf-programms are send via this stream
 
 }
 
