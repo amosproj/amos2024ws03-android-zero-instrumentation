@@ -25,11 +25,11 @@ pub fn sys_enter_sendmsg(ctx: TracePointContext) -> u32 {
     let begin_time_stamp;
     let fd: i32;
     unsafe {
-        begin_time_stamp = bpf_ktime_get_ns();
         fd = match ctx.read_at(16) {
             Ok(arg) => arg,
             Err(_) => return 1,
         };
+        begin_time_stamp = bpf_ktime_get_ns();
     }
 
     let data: SysSendmsgIntern = SysSendmsgIntern {begin_time_stamp, fd};
@@ -43,6 +43,7 @@ pub fn sys_enter_sendmsg(ctx: TracePointContext) -> u32 {
 
 #[tracepoint]
 pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
+    let end_time = unsafe { bpf_ktime_get_ns() };
     let pid = ctx.pid();
     let tgid = ctx.tgid();
     let call_id = generate_id(pid, tgid);
@@ -51,8 +52,8 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
         Some(entry) => {entry}
     };
 
-
-    let result_data = SysSendmsgCall::new(pid, tgid, data.begin_time_stamp, data.fd);
+    let duration_micro_sec = (end_time - data.begin_time_stamp)/1000;
+    let result_data = SysSendmsgCall::new(pid, tgid, data.begin_time_stamp, data.fd, duration_micro_sec);
 
     let mut entry = match SYS_SENDMSG_MAP.reserve::<SysSendmsgCall>(0) {
         Some(entry) => entry,
