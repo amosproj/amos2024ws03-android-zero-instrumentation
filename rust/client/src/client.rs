@@ -12,6 +12,7 @@ use tonic::{
     transport::{Channel, Endpoint},
     Request,
 };
+use shared::ziofa::Event;
 
 #[derive(Clone, Debug)]
 pub struct Client {
@@ -100,5 +101,9 @@ impl Client {
     pub async fn set_configuration(&mut self, configuration: Configuration) -> Result<()> {
         self.ziofa.set_configuration(configuration).await?;
         Ok(())
+    }
+
+    pub async fn init_stream(&mut self) -> Result<impl Stream<Item = Result<Event>>> {
+        Ok(self.ziofa.init_stream(()).await?.into_inner().map(|s| Ok(s?)))
     }
 }

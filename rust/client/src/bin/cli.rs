@@ -6,6 +6,7 @@ use clap::Parser;
 use client::{Client, ClientError};
 use tokio::{join, select, signal::ctrl_c, sync::oneshot};
 use tokio_stream::StreamExt;
+use shared::config::{Configuration, EbpfEntry};
 
 #[derive(Debug, Clone, Parser)]
 struct Cli {
@@ -13,12 +14,7 @@ struct Cli {
     iface: String,
 }
 
-#[tokio::main]
-pub async fn main() -> anyhow::Result<()> {
-    let Cli { iface, .. } = Cli::parse();
-
-    let mut client = Client::connect("http://[::1]:50051".to_owned()).await?;
-
+pub async fn counter_cli(mut client: Client, iface: String) -> anyhow::Result<()> {
     if let Err(e) = client.load().await {
         println!("{e:?}");
     }
@@ -59,6 +55,44 @@ pub async fn main() -> anyhow::Result<()> {
     });
 
     let _ = join!(handle, shutdown);
+
+    Ok(())
+}
+
+#[tokio::main]
+pub async fn main() -> anyhow::Result<()> {
+    let Cli {  .. } = Cli::parse();
+
+    let mut client = Client::connect("http://[::1]:50051".to_owned()).await?;
+
+    client.set_configuration(Configuration {
+        entries: vec![
+            EbpfEntry {
+                attach: true,
+                uprobe_info: None,
+                hook: "vfs_write".to_owned(),
+                fn_id: 0,
+                ebpf_name: "vfs_write".to_owned(),
+                description: "".to_owned(),
+                hr_name: "vfs_write".to_owned(),
+            },
+            EbpfEntry {
+                attach: true,
+                uprobe_info: None,
+                hook: "vfs_write".to_owned(),
+                fn_id: 1,
+                ebpf_name: "vfs_write_ret".to_owned(),
+                description: "".to_owned(),
+                hr_name: "vfs_write_ret".to_owned(),
+            }
+        ]
+    }).await?;
+
+    let mut stream = client.init_stream().await?;
+
+    while let Some(next) = stream.next().await {
+        println!("{next:?}");
+    }
 
     Ok(())
 }

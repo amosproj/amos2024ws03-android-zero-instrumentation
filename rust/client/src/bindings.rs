@@ -7,6 +7,7 @@ use std::{pin::Pin, sync::Arc};
 use shared::{config::Configuration, ziofa::Process};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
+use shared::ziofa::Event;
 
 type Result<T> = core::result::Result<T, ClientError>;
 
@@ -16,6 +17,21 @@ struct CountStream(Mutex<Pin<Box<dyn Stream<Item = Result<u32>> + Send>>>);
 #[uniffi::export(async_runtime = "tokio")]
 impl CountStream {
     pub async fn next(&self) -> Result<Option<u32>> {
+        let mut guard = self.0.lock().await;
+        match guard.next().await {
+            Some(Ok(x)) => Ok(Some(x)),
+            Some(Err(e)) => Err(e),
+            None => Ok(None),
+        }
+    }
+}
+
+#[derive(uniffi::Object)]
+struct EventStream(Mutex<Pin<Box<dyn Stream<Item = Result<Event>> + Send>>>);
+
+#[uniffi::export(async_runtime = "tokio")]
+impl EventStream {
+    pub async fn next(&self) -> Result<Option<Event>> {
         let mut guard = self.0.lock().await;
         match guard.next().await {
             Some(Ok(x)) => Ok(Some(x)),
@@ -68,14 +84,14 @@ impl Client {
         Ok(self.0.lock().await.stop_collecting().await?)
     }
 
-    pub async fn server_count(&self) -> Result<Arc<CountStream>> {
+    pub async fn server_count(&self) -> Result<CountStream> {
         let mut guard = self.0.lock().await;
         let stream = guard
             .server_count()
             .await?
             .map(|x| x.map_err(ClientError::from));
 
-        Ok(Arc::new(CountStream(Mutex::new(Box::pin(stream)))))
+        Ok(CountStream(Mutex::new(Box::pin(stream))))
     }
 
     pub async fn check_server(&self) -> Result<()> {
@@ -92,5 +108,15 @@ impl Client {
 
     pub async fn set_configuration(&self, configuration: Configuration) -> Result<()> {
         Ok(self.0.lock().await.set_configuration(configuration).await?)
+    }
+
+    pub async fn init_stream(&self) -> Result<EventStream> {
+        let mut guard = self.0.lock().await;
+        let stream = guard
+            .init_stream()
+            .await?
+            .map(|x| x.map_err(ClientError::from));
+
+        Ok(EventStream(Mutex::new(Box::pin(stream))))
     }
 }
