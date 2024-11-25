@@ -16,6 +16,8 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "Configuration",
             "EbpfEntry",
             "UprobeConfig",
+            "Event",
+            "VfsWriteEvent"
         ]
     } else {
         vec![]
@@ -24,7 +26,7 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
 static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     if cfg!(feature = "uniffi") {
-        vec!["Process.cmd"]
+        vec!["Process.cmd", "Event.event_data"]
     } else {
         vec![]
     }
