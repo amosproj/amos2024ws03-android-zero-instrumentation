@@ -7,7 +7,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-pub const TIME_LIMIT_NS: u64 = 100_000_000;
+pub const TIME_LIMIT_NS: u64 = 1_000_000;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
