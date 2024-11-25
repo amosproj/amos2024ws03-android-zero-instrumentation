@@ -9,6 +9,7 @@ mod ebpf_utils;
 mod helpers;
 mod procfs_utils;
 mod server;
+mod features;
 
 pub async fn run_server() {
     helpers::bump_rlimit();
