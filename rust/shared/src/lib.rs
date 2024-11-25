@@ -4,6 +4,9 @@
 //
 // SPDX-License-Identifier: MIT
 
+#[cfg(feature = "uniffi")]
+uniffi::setup_scaffolding!();
+
 pub mod counter {
     tonic::include_proto!("com.example.counter");
 }
@@ -12,6 +15,6 @@ pub mod ziofa {
     tonic::include_proto!("ziofa");
 }
 
-pub mod config{
+pub mod config {
     tonic::include_proto!("config");
 }

@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{sync::Arc, pin::Pin};
+use std::{pin::Pin, sync::Arc};
 
+use shared::{config::Configuration, ziofa::Process};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
 
@@ -31,26 +32,65 @@ struct Client(Mutex<crate::client::Client>);
 #[uniffi(flat_error)] // TODO: convert errors
 enum ClientError {
     #[error(transparent)]
-    Inner(#[from] crate::client::ClientError)
+    Inner(#[from] crate::client::ClientError),
 }
 
 #[uniffi::export(async_runtime = "tokio")]
 impl Client {
     #[uniffi::constructor]
     async fn connect(url: String) -> Result<Arc<Self>> {
-        Ok(Arc::new(Client(Mutex::new(crate::client::Client::connect(url).await?))))
+        Ok(Arc::new(Client(Mutex::new(
+            crate::client::Client::connect(url).await?,
+        ))))
     }
 
-    async fn load_program(&self, name: String) -> Result<()> {
-        let mut guard = self.0.lock().await;
-        Ok(guard.load_program(name).await?)
+    pub async fn load(&self) -> Result<()> {
+        Ok(self.0.lock().await.load().await?)
     }
-    
-    async fn server_count(&self) -> Result<CountStream> {
+
+    pub async fn unload(&self) -> Result<()> {
+        Ok(self.0.lock().await.unload().await?)
+    }
+
+    pub async fn attach(&self, iface: String) -> Result<()> {
+        Ok(self.0.lock().await.attach(iface).await?)
+    }
+
+    pub async fn detach(&self, iface: String) -> Result<()> {
+        Ok(self.0.lock().await.detach(iface).await?)
+    }
+
+    pub async fn start_collecting(&self) -> Result<()> {
+        Ok(self.0.lock().await.start_collecting().await?)
+    }
+
+    pub async fn stop_collecting(&self) -> Result<()> {
+        Ok(self.0.lock().await.stop_collecting().await?)
+    }
+
+    pub async fn server_count(&self) -> Result<Arc<CountStream>> {
         let mut guard = self.0.lock().await;
-        let stream = guard.server_count().await?
+        let stream = guard
+            .server_count()
+            .await?
             .map(|x| x.map_err(ClientError::from));
-        
-        Ok(CountStream(Mutex::new(Box::pin(stream))))
+
+        Ok(Arc::new(CountStream(Mutex::new(Box::pin(stream)))))
+    }
+
+    pub async fn check_server(&self) -> Result<()> {
+        Ok(self.0.lock().await.check_server().await?)
+    }
+
+    pub async fn list_processes(&self) -> Result<Vec<Process>> {
+        Ok(self.0.lock().await.list_processes().await?)
+    }
+
+    pub async fn get_configuration(&self) -> Result<Configuration> {
+        Ok(self.0.lock().await.get_configuration().await?)
+    }
+
+    pub async fn set_configuration(&self, configuration: Configuration) -> Result<()> {
+        Ok(self.0.lock().await.set_configuration(configuration).await?)
     }
 }

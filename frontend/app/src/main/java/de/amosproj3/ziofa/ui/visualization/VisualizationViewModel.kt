@@ -69,10 +69,27 @@ class VisualizationViewModel(private val clientFactory: ClientFactory) : ViewMod
             try {
                 val counterFlow =
                     clientFactory
-                        .connect(viewModelScope, "http://[::1]:50051")
-                        .also { it.loadProgram("example") }
-                        .serverCount
-                        .stateIn(this, SharingStarted.Eagerly, initialValue = 0u)
+                        .connect()
+                        .also {
+                            // TODO: separate try catch because we have no good error handling yet
+                            // the load, attach and startCollecting method return an error
+                            // for AlreadyLoaded, AlreadyAttached, AlreadyCollecting which
+                            // is typed on the rust side but not yet exported.
+                            // In this case we just ignore all errors as we do not care
+                            // about whether the daemon is already doing stuff as it is
+                            // not managed by the apps lifecycle.
+                            // If the counter does not work, it will error later.
+                            try {
+                                it.load()
+                                // default wifi interface on android, now configurable
+                                it.attach("wlan0")
+                                it.startCollecting()
+                            } catch (e: Exception) {
+                                Log.e("Counter Error", e.stackTraceToString())
+                            }
+                        }
+                        .serverCount()
+                        .stateIn(this, SharingStarted.Eagerly, 0u)
 
                 packagesPerSecond(counterFlow).toIndexedTimeSeries(20).collect {
                     _graphedData.value = it

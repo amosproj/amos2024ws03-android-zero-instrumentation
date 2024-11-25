@@ -5,13 +5,14 @@
 // SPDX-License-Identifier: MIT
 
 use std::path::PathBuf;
+
 use cargo_metadata::MetadataCommand;
 
 pub const AYA_BUILD_EBPF: &str = "AYA_BUILD_EBPF";
 
 pub fn workspace_root() -> PathBuf {
     let metadata = MetadataCommand::new()
-        .no_deps()  // You don't need to fetch dependency info here
+        .no_deps() // You don't need to fetch dependency info here
         .exec()
         .expect("Failed to get cargo metadata");
 

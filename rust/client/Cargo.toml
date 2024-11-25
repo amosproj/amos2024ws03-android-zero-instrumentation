@@ -20,18 +20,21 @@ default-run = "client"
 anyhow = { workspace = true }
 prost = { workspace = true }
 tonic = { workspace = true }
-tokio = { workspace = true, features = [ "rt-multi-thread" ] }
+tokio = { workspace = true }
 tokio-stream = { workspace = true }
 thiserror = { workspace = true }
 uniffi = { workspace = true, optional = true, features = ["tokio"] }
 shared = { workspace = true }
+clap = { workspace = true, optional = true, default-features = true, features = ["derive"] }
 
 [features]
-uniffi = [ "dep:uniffi" ]
+uniffi = [ "dep:uniffi", "shared/uniffi" ]
+cli = [ "dep:clap", "tokio/rt-multi-thread", "tokio/signal" ]
 
 [[bin]]
 name = "client"
 path = "src/bin/cli.rs"
+required-features = [ "cli" ]
 
 [[bin]]
 name = "uniffi-bindgen"

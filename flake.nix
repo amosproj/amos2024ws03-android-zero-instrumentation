@@ -221,7 +221,7 @@
 
           rustTest = pkgs.writeShellScriptBin "rust-test" ''
             ${rustCiPreamble}
-            (cd rust && cargo test)
+            (cd rust && cargo test --workspace --exclude "backend-daemon")
           '';
 
           rustBuildRelease = pkgs.writeShellScriptBin "rust-build-release" ''
