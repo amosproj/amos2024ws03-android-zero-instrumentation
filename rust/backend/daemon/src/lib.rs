@@ -11,6 +11,7 @@ mod procfs_utils;
 mod server;
 mod features;
 
+mod collector;
 pub async fn run_server() {
     helpers::bump_rlimit();
 

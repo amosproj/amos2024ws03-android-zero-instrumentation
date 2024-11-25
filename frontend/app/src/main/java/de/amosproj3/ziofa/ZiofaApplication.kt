@@ -5,9 +5,12 @@
 package de.amosproj3.ziofa
 
 import android.app.Application
+import android.content.Context
+import android.content.pm.PackageManager
 import de.amosproj3.ziofa.api.ConfigurationAccess
 import de.amosproj3.ziofa.api.ProcessListAccess
 import de.amosproj3.ziofa.bl.ConfigurationManager
+import de.amosproj3.ziofa.bl.PackageInformationProvider
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.RustClientFactory
 import de.amosproj3.ziofa.ui.configuration.ConfigurationViewModel
@@ -24,11 +27,15 @@ import timber.log.Timber
 class ZiofaApplication : Application() {
 
     val appModule = module {
+        single<PackageManager> { get<Context>().packageManager }
+        single<PackageInformationProvider> { PackageInformationProvider(get()) }
         single<ClientFactory> { RustClientFactory("http://[::1]:50051") }
         single { ConfigurationManager(clientFactory = get()) } binds
             arrayOf(ConfigurationAccess::class, ProcessListAccess::class)
         viewModel { ConfigurationViewModel(configurationAccess = get()) }
-        viewModel { ProcessesViewModel(processListAccess = get()) }
+        viewModel {
+            ProcessesViewModel(processListAccess = get(), packageInformationProvider = get())
+        }
         viewModel { VisualizationViewModel(clientFactory = get()) }
     }
 

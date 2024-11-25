@@ -13,22 +13,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.navigation.composables.MenuOptionData
 import de.amosproj3.ziofa.ui.navigation.composables.MenuOptions
 import de.amosproj3.ziofa.ui.navigation.data.Emoji
 
-/** Static home screen for navigation */
 @Composable
-@Preview(device = Devices.AUTOMOTIVE_1024p)
-fun HomeScreen(
+fun ConfigurationMenu(
     modifier: Modifier = Modifier,
-    toVisualize: () -> Unit = {},
-    toConfiguration: () -> Unit = {},
-    toAbout: () -> Unit = {},
+    toPresets: () -> Unit,
+    toProcesses: () -> Unit,
+    toGlobalConfiguration: () -> Unit,
 ) {
+
     Box(
         modifier =
             modifier
@@ -40,13 +37,21 @@ fun HomeScreen(
             MenuOptions(
                 menuOptions =
                     listOf(
-                        MenuOptionData(title = "Visualize", Emoji.Chart.unicode, toVisualize),
                         MenuOptionData(
-                            title = "Configuration",
-                            Emoji.Gear.unicode,
-                            toConfiguration,
+                            title = "Presets",
+                            logoEmoji = Emoji.Bookmarks.unicode,
+                            onClick = toPresets,
                         ),
-                        MenuOptionData(title = "About", Emoji.Info.unicode, toAbout),
+                        MenuOptionData(
+                            title = "Global",
+                            logoEmoji = Emoji.Globe.unicode,
+                            onClick = toGlobalConfiguration,
+                        ),
+                        MenuOptionData(
+                            title = "Per Process",
+                            logoEmoji = Emoji.MagnifyingGlass.unicode,
+                            onClick = toProcesses,
+                        ),
                     )
             )
         }

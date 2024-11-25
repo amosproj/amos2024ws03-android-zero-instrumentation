@@ -9,6 +9,10 @@ SPDX-License-Identifier: MIT
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- not a problem since we are not publishing to Play Store -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
     <application
         android:name=".ZiofaApplication"
         android:allowBackup="true"
