@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+[package]
+name = "sendmsg-demo"
+version = "0.1.0"
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+console = { workspace = true }
+dialoguer = { workspace = true }
+indicatif = { workspace = true }
+nix = { workspace = true, features = ["socket", "uio"] }
