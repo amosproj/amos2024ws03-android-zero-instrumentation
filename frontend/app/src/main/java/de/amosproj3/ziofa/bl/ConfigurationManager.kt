@@ -57,7 +57,9 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                 client!!.getConfiguration()
             } catch (e: ClientException) {
                 // TODO this should be handled on the backend
-                client!!.setConfiguration(Configuration(vfsWrite = null, uprobes = listOf()))
+                client!!.setConfiguration(
+                    Configuration(vfsWrite = null, sysSendmsg = null, uprobes = listOf())
+                )
                 client!!.getConfiguration()
             }
         configuration.update { ConfigurationUpdate.Valid(initializedConfiguration) }

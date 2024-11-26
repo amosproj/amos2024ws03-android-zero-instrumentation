@@ -19,7 +19,9 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "UprobeConfig",
             "Event",
             "VfsWriteEvent",
+            "SysSendmsgEvent",
             "VfsWriteConfig",
+            "SysSendmsgConfig",
         ]
     } else {
         vec![]

@@ -104,6 +104,7 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
                 VfsWriteConfig(this.vfsWriteOption.pids)
             } else null
 
-        return Configuration(vfsWrite = vfsConfig, uprobes = listOf())
+        // TODO: sysSendmsg
+        return Configuration(vfsWrite = vfsConfig, sysSendmsg = null, uprobes = listOf())
     }
 }

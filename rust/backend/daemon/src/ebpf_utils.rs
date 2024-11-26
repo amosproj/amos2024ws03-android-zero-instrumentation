@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
@@ -5,9 +6,10 @@
 // SPDX-License-Identifier: MIT
 
 use aya::{Ebpf, EbpfError};
+use shared::config::Configuration;
 use thiserror::Error;
 
-use crate::features::VfsFeature;
+use crate::features::{SysSendmsgFeature, VfsFeature};
 
 #[derive(Debug, Error)]
 pub enum EbpfErrorWrapper {
@@ -23,17 +25,20 @@ impl From<EbpfErrorWrapper> for tonic::Status {
 
 pub struct State {
     vfs_write_feature: VfsFeature,
+    sys_sendmsg_feature: SysSendmsgFeature,
 }
 
 impl State {
     pub fn new() -> State {
         State {
             vfs_write_feature: VfsFeature::new(),
+            sys_sendmsg_feature: SysSendmsgFeature::new(),
         }
     }
 
     pub fn init(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         self.vfs_write_feature.create(ebpf)?;
+        self.sys_sendmsg_feature.create(ebpf)?;
 
         Ok(())
     }
@@ -41,9 +46,10 @@ impl State {
     pub fn update_from_config(
         &mut self,
         ebpf: &mut Ebpf,
-        _config_path: &str,
+        config: &Configuration,
     ) -> Result<(), EbpfError> {
         self.vfs_write_feature.attach(ebpf)?;
+        self.sys_sendmsg_feature.apply(ebpf, config.sys_sendmsg.as_ref())?;
 
         Ok(())
     }
