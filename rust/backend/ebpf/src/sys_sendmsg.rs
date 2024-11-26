@@ -60,6 +60,7 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
         None => {return 1}
         Some(entry) => {entry}
     };
+    let _ = SYS_SENDMSG_TIMESTAMPS.remove(&call_id);
 
     let duration_micro_sec = (end_time - data.begin_time_stamp)/1000;
     let result_data = SysSendmsgCall::new(pid, tgid, data.begin_time_stamp, data.fd, duration_micro_sec);
