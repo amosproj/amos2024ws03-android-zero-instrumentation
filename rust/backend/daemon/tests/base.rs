@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use shared::config::{Configuration, VfsWriteConfig};
+use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig};
 use shared::ziofa::{process::Cmd, ziofa_client::ZiofaClient};
 use tonic::transport::Channel;
 
@@ -64,6 +64,7 @@ async fn set_get_configuration() {
     let default_config = Configuration {
         uprobes: vec![],
         vfs_write: Some(VfsWriteConfig { pids: vec![] }),
+        sys_sendmsg: Some(SysSendmsgConfig { pids: vec![] }),
     };
     assert_eq!(
         client

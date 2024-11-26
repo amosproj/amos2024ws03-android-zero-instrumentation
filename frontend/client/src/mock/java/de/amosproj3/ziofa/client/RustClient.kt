@@ -22,7 +22,11 @@ const val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 object RustClient : Client {
     private var configuration: Configuration =
-        Configuration(vfsWrite = VfsWriteConfig(listOf(1234u, 43124u)), uprobes = listOf())
+        Configuration(
+            vfsWrite = VfsWriteConfig(listOf(1234u, 43124u)),
+            sysSendmsg = null,
+            uprobes = listOf(),
+        )
 
     override suspend fun serverCount(): Flow<UInt> = flow {
         var ctr = 0u

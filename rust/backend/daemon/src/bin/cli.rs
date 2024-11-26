@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 use clap::Parser;
 use shared::{
-    config::{Configuration, VfsWriteConfig},
+    config::{Configuration, SysSendmsgConfig, VfsWriteConfig},
     ziofa::ziofa_client::ZiofaClient,
 };
 use tonic::transport::Channel;
@@ -48,6 +49,7 @@ async fn test_get_configuration(client: &mut ZiofaClient<Channel>, verbose: bool
             Configuration {
                 uprobes: vec![],
                 vfs_write: Some(VfsWriteConfig { pids: vec![] }),
+                sys_sendmsg: Some(SysSendmsgConfig { pids: vec![] }),
             }
         }
     };

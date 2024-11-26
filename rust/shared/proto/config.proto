@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
@@ -17,9 +18,14 @@ message UprobeConfig {
 
 message Configuration {
   VfsWriteConfig vfs_write = 1;
-  repeated UprobeConfig uprobes = 2;
+  SysSendmsgConfig sys_sendmsg = 2;
+  repeated UprobeConfig uprobes = 3;
 }
 
 message VfsWriteConfig {
+  repeated uint32 pids = 1;
+}
+
+message SysSendmsgConfig {
   repeated uint32 pids = 1;
 }
