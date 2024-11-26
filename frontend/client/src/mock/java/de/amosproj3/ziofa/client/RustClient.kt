@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -11,27 +12,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import uniffi.shared.Cmd
 import uniffi.shared.Configuration
-import uniffi.shared.EbpfEntry
+import uniffi.shared.Event
+import uniffi.shared.EventData
 import uniffi.shared.Process
-import uniffi.shared.UprobeConfig
+import uniffi.shared.VfsWriteConfig
+import uniffi.shared.VfsWriteEvent
 
 const val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 object RustClient : Client {
     private var configuration: Configuration =
-        Configuration(
-            listOf(
-                EbpfEntry(
-                    "Test HR name",
-                    "this is a test",
-                    "ebpf_name",
-                    12345u,
-                    UprobeConfig(0u, "target", 54321),
-                    "hook",
-                    false,
-                )
-            )
-        )
+        Configuration(vfsWrite = VfsWriteConfig(listOf(1234u, 43124u)), uprobes = listOf())
 
     override suspend fun serverCount(): Flow<UInt> = flow {
         var ctr = 0u
@@ -87,6 +78,25 @@ object RustClient : Client {
 
     override suspend fun setConfiguration(configuration: Configuration) {
         this.configuration = configuration
+    }
+
+    override suspend fun initStream(): Flow<Event> = flow {
+        while (true) {
+            delay(Random.nextUInt(500u).toLong())
+            emit(
+                Event(
+                    EventData.VfsWrite(
+                        VfsWriteEvent(
+                            pid = 12415u,
+                            tid = 1234u,
+                            fp = 125123123u,
+                            bytesWritten = 123121u,
+                            beginTimeStamp = 12312412u,
+                        )
+                    )
+                )
+            )
+        }
     }
 }
 

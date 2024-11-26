@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -9,7 +10,8 @@ import androidx.lifecycle.viewModelScope
 import de.amosproj3.ziofa.api.ConfigurationAccess
 import de.amosproj3.ziofa.api.ConfigurationUpdate
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
-import de.amosproj3.ziofa.ui.configuration.data.EBpfProgramOption
+import de.amosproj3.ziofa.ui.configuration.data.EbpfProgramOptions
+import de.amosproj3.ziofa.ui.configuration.data.VfsWriteOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import uniffi.shared.Configuration
+import uniffi.shared.VfsWriteConfig
 
 class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : ViewModel() {
 
@@ -26,7 +29,9 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
     val changed = _changed.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     private val checkedOptions =
-        MutableStateFlow<MutableMap<String, EBpfProgramOption>>(mutableMapOf())
+        MutableStateFlow(
+            EbpfProgramOptions(vfsWriteOption = VfsWriteOption(enabled = false, pids = listOf()))
+        )
 
     private val _configurationScreenState =
         MutableStateFlow<ConfigurationScreenState>(ConfigurationScreenState.Loading)
@@ -45,16 +50,17 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
         }
     }
 
-    fun optionChanged(eBpfProgramOption: EBpfProgramOption, newState: Boolean) {
-        checkedOptions.update { currentMap ->
-            currentMap.computeIfPresent(eBpfProgramOption.name) { _, oldValue ->
-                oldValue.copy(active = newState)
-            }
-            currentMap
+    fun vfsWriteChanged(pids: IntArray?, newState: Boolean) {
+        checkedOptions.update {
+            it.copy(
+                vfsWriteOption =
+                    VfsWriteOption(
+                        enabled = newState,
+                        pids = pids?.let { it.map { it.toUInt() } } ?: listOf(),
+                    )
+            )
         }
-        _configurationScreenState.update {
-            ConfigurationScreenState.Valid(checkedOptions.value.values.toList())
-        }
+        _configurationScreenState.update { ConfigurationScreenState.Valid(checkedOptions.value) }
         _changed.update { true }
     }
 
@@ -73,8 +79,8 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
     private fun ConfigurationUpdate.toUIUpdate(): ConfigurationScreenState {
         return when (this) {
             is ConfigurationUpdate.Valid -> {
-                checkedOptions.update { this.toUIOptions().associateBy { it.name }.toMutableMap() }
-                ConfigurationScreenState.Valid(checkedOptions.value.values.toList())
+                checkedOptions.update { this.toUIOptions() }
+                ConfigurationScreenState.Valid(checkedOptions.value)
             }
 
             is ConfigurationUpdate.Invalid ->
@@ -84,13 +90,20 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
         }
     }
 
-    private fun ConfigurationUpdate.Valid.toUIOptions(): List<EBpfProgramOption> {
-        return this.configuration.entries.map {
-            EBpfProgramOption(it.hrName, active = it.attach, true, it)
-        }
+    private fun ConfigurationUpdate.Valid.toUIOptions(): EbpfProgramOptions {
+        val vfsOption =
+            this.configuration.vfsWrite?.let { VfsWriteOption(enabled = true, pids = it.pids) }
+                ?: VfsWriteOption(enabled = false, pids = listOf())
+
+        return EbpfProgramOptions(vfsWriteOption = vfsOption)
     }
 
-    private fun MutableMap<String, EBpfProgramOption>.toConfiguration(): Configuration {
-        return Configuration(this.values.map { it.ebpfEntry })
+    private fun EbpfProgramOptions.toConfiguration(): Configuration {
+        val vfsConfig =
+            if (this.vfsWriteOption.enabled) {
+                VfsWriteConfig(this.vfsWriteOption.pids)
+            } else null
+
+        return Configuration(vfsWrite = vfsConfig, uprobes = listOf())
     }
 }
