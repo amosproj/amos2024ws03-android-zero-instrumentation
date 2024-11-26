@@ -6,6 +6,7 @@ package de.amosproj3.ziofa.client
 
 import kotlinx.coroutines.flow.Flow
 import uniffi.shared.Configuration
+import uniffi.shared.Event
 import uniffi.shared.Process
 
 interface Client {
@@ -30,6 +31,8 @@ interface Client {
     suspend fun getConfiguration(): Configuration
 
     suspend fun setConfiguration(configuration: Configuration)
+
+    suspend fun initStream(): Flow<Event>
 }
 
 interface ClientFactory {

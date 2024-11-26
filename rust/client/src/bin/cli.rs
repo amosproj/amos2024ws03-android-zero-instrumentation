@@ -4,9 +4,9 @@
 
 use clap::Parser;
 use client::{Client, ClientError};
+use shared::config::{Configuration, VfsWriteConfig};
 use tokio::{join, select, signal::ctrl_c, sync::oneshot};
 use tokio_stream::StreamExt;
-use shared::config::{Configuration, EbpfEntry};
 
 #[derive(Debug, Clone, Parser)]
 struct Cli {
@@ -61,32 +61,16 @@ pub async fn counter_cli(mut client: Client, iface: String) -> anyhow::Result<()
 
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
-    let Cli {  .. } = Cli::parse();
+    let Cli { .. } = Cli::parse();
 
     let mut client = Client::connect("http://[::1]:50051".to_owned()).await?;
 
-    client.set_configuration(Configuration {
-        entries: vec![
-            EbpfEntry {
-                attach: true,
-                uprobe_info: None,
-                hook: "vfs_write".to_owned(),
-                fn_id: 0,
-                ebpf_name: "vfs_write".to_owned(),
-                description: "".to_owned(),
-                hr_name: "vfs_write".to_owned(),
-            },
-            EbpfEntry {
-                attach: true,
-                uprobe_info: None,
-                hook: "vfs_write".to_owned(),
-                fn_id: 1,
-                ebpf_name: "vfs_write_ret".to_owned(),
-                description: "".to_owned(),
-                hr_name: "vfs_write_ret".to_owned(),
-            }
-        ]
-    }).await?;
+    client
+        .set_configuration(Configuration {
+            uprobes: vec![],
+            vfs_write: Some(VfsWriteConfig { pids: vec![] }),
+        })
+        .await?;
 
     let mut stream = client.init_stream().await?;
 

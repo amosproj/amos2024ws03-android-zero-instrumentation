@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -40,9 +41,7 @@ fun ConfigurationScreen(
                 // Render list of options
                 EbpfOptions(
                     options = state.options,
-                    onCheckedChanged = { option, newValue ->
-                        viewModel.optionChanged(option, newValue)
-                    },
+                    onVfsWriteChanged = { newValue -> viewModel.vfsWriteChanged(pids, newValue) },
                 )
 
                 // Show the submit button if the user changed settings

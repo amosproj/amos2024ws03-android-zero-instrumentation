@@ -60,17 +60,3 @@ message VfsWriteEvent {
     uint64 fp = 4;
     uint64 bytes_written = 5;
 }
-
-//message EbpfStreamObject{
-//    oneof concrete {
-//        ConcreteEbpfStreamObject1 concrete1 = 1;
-//        ConcreteEbpfStreamObject2 concrete2 = 2;
-//    }
-//}
-//
-//message ConcreteEbpfStreamObject1 {
-//    uint64 time = 1;
-//}
-//message ConcreteEbpfStreamObject2 {
-//    string time = 1;
-//}

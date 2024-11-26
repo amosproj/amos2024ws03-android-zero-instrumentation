@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -56,7 +57,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                 client!!.getConfiguration()
             } catch (e: ClientException) {
                 // TODO this should be handled on the backend
-                client!!.setConfiguration(Configuration(listOf()))
+                client!!.setConfiguration(Configuration(vfsWrite = null, uprobes = listOf()))
                 client!!.getConfiguration()
             }
         configuration.update { ConfigurationUpdate.Valid(initializedConfiguration) }
