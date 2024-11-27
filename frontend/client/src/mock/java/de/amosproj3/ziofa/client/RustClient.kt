@@ -15,6 +15,8 @@ import uniffi.shared.Configuration
 import uniffi.shared.Event
 import uniffi.shared.EventData
 import uniffi.shared.Process
+import uniffi.shared.SysSendmsgConfig
+import uniffi.shared.SysSendmsgEvent
 import uniffi.shared.VfsWriteConfig
 import uniffi.shared.VfsWriteEvent
 
@@ -24,7 +26,7 @@ object RustClient : Client {
     private var configuration: Configuration =
         Configuration(
             vfsWrite = VfsWriteConfig(listOf(1234u, 43124u)),
-            sysSendmsg = null,
+            sysSendmsg = SysSendmsgConfig(listOf(1234u, 43124u)),
             uprobes = listOf(),
         )
 
@@ -96,6 +98,21 @@ object RustClient : Client {
                             fp = 125123123u,
                             bytesWritten = 123121u,
                             beginTimeStamp = 12312412u,
+                        )
+                    )
+                )
+            )
+
+            emit(
+                Event(
+                    EventData.SysSendmsg(
+                        SysSendmsgEvent(
+                            pid = 12345u,
+                            tid = 1234u,
+                            fd = 125123123,
+                            durationMicroSec =
+                                (System.currentTimeMillis() + Random.nextLong(1000)).toULong(),
+                            beginTimeStamp = System.currentTimeMillis().toULong(),
                         )
                     )
                 )

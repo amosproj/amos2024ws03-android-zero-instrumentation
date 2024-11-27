@@ -5,6 +5,13 @@
 
 package de.amosproj3.ziofa.ui.configuration.data
 
-data class EbpfProgramOptions(val vfsWriteOption: VfsWriteOption)
+data class EbpfProgramOptions(
+    val vfsWriteOption: WriteOption.VfsWriteOption,
+    val sendMessageOption: WriteOption.SendMessageOption,
+)
 
-data class VfsWriteOption(val enabled: Boolean, val pids: List<UInt>)
+sealed class WriteOption() {
+    data class VfsWriteOption(val enabled: Boolean, val pids: List<UInt>)
+
+    data class SendMessageOption(val enabled: Boolean, val pids: List<UInt>)
+}

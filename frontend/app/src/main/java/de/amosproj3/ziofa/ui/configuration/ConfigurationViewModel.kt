@@ -11,7 +11,7 @@ import de.amosproj3.ziofa.api.ConfigurationAccess
 import de.amosproj3.ziofa.api.ConfigurationUpdate
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
 import de.amosproj3.ziofa.ui.configuration.data.EbpfProgramOptions
-import de.amosproj3.ziofa.ui.configuration.data.VfsWriteOption
+import de.amosproj3.ziofa.ui.configuration.data.WriteOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import uniffi.shared.Configuration
+import uniffi.shared.SysSendmsgConfig
 import uniffi.shared.VfsWriteConfig
 
 class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : ViewModel() {
@@ -30,7 +31,10 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
 
     private val checkedOptions =
         MutableStateFlow(
-            EbpfProgramOptions(vfsWriteOption = VfsWriteOption(enabled = false, pids = listOf()))
+            EbpfProgramOptions(
+                vfsWriteOption = WriteOption.VfsWriteOption(enabled = false, pids = listOf()),
+                sendMessageOption = WriteOption.SendMessageOption(enabled = false, pids = listOf()),
+            )
         )
 
     private val _configurationScreenState =
@@ -54,7 +58,21 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
         checkedOptions.update {
             it.copy(
                 vfsWriteOption =
-                    VfsWriteOption(
+                    WriteOption.VfsWriteOption(
+                        enabled = newState,
+                        pids = pids?.let { it.map { it.toUInt() } } ?: listOf(),
+                    )
+            )
+        }
+        _configurationScreenState.update { ConfigurationScreenState.Valid(checkedOptions.value) }
+        _changed.update { true }
+    }
+
+    fun sendMessageChanged(pids: IntArray?, newState: Boolean) {
+        checkedOptions.update {
+            it.copy(
+                sendMessageOption =
+                    WriteOption.SendMessageOption(
                         enabled = newState,
                         pids = pids?.let { it.map { it.toUInt() } } ?: listOf(),
                     )
@@ -92,10 +110,16 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
 
     private fun ConfigurationUpdate.Valid.toUIOptions(): EbpfProgramOptions {
         val vfsOption =
-            this.configuration.vfsWrite?.let { VfsWriteOption(enabled = true, pids = it.pids) }
-                ?: VfsWriteOption(enabled = false, pids = listOf())
+            this.configuration.vfsWrite?.let {
+                WriteOption.VfsWriteOption(enabled = true, pids = it.pids)
+            } ?: WriteOption.VfsWriteOption(enabled = false, pids = listOf())
 
-        return EbpfProgramOptions(vfsWriteOption = vfsOption)
+        val sendMsgOption =
+            this.configuration.sysSendmsg?.let {
+                WriteOption.SendMessageOption(enabled = true, pids = it.pids)
+            } ?: WriteOption.SendMessageOption(enabled = false, pids = listOf())
+
+        return EbpfProgramOptions(vfsWriteOption = vfsOption, sendMessageOption = sendMsgOption)
     }
 
     private fun EbpfProgramOptions.toConfiguration(): Configuration {
@@ -103,8 +127,15 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
             if (this.vfsWriteOption.enabled) {
                 VfsWriteConfig(this.vfsWriteOption.pids)
             } else null
+        val sendMessageConfig =
+            if (this.sendMessageOption.enabled) {
+                SysSendmsgConfig(this.sendMessageOption.pids)
+            } else null
 
-        // TODO: sysSendmsg
-        return Configuration(vfsWrite = vfsConfig, sysSendmsg = null, uprobes = listOf())
+        return Configuration(
+            vfsWrite = vfsConfig,
+            sysSendmsg = sendMessageConfig,
+            uprobes = listOf(),
+        )
     }
 }
