@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -28,18 +29,21 @@ fun ConfigurationScreen(
     modifier: Modifier = Modifier,
     viewModel: ConfigurationViewModel = koinViewModel(),
     onBack: () -> Unit = {},
+    pids: IntArray? = null,
 ) {
+
     Box(modifier = modifier.fillMaxSize()) {
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
         val configurationChangedByUser by remember { viewModel.changed }.collectAsState()
         when (val state = screenState) { // needed for immutability
-            is ConfigurationScreenState.LIST -> {
+            is ConfigurationScreenState.Valid -> {
 
                 // Render list of options
                 EbpfOptions(
                     options = state.options,
-                    onCheckedChanged = { option, newValue ->
-                        viewModel.optionChanged(option, newValue)
+                    onVfsWriteChanged = { newValue -> viewModel.vfsWriteChanged(pids, newValue) },
+                    onSendMessageChanged = { newValue ->
+                        viewModel.sendMessageChanged(pids, newValue)
                     },
                 )
 
@@ -47,16 +51,16 @@ fun ConfigurationScreen(
                 if (configurationChangedByUser) {
                     SubmitFab(
                         modifier = Modifier.align(Alignment.BottomEnd),
-                        onClick = { viewModel.configurationSubmitted() },
+                        onClick = { viewModel.configurationSubmitted(pids) },
                     )
                 }
             }
 
-            is ConfigurationScreenState.ERROR -> {
+            is ConfigurationScreenState.Invalid -> {
                 ErrorScreen(state.errorMessage, onBack)
             }
 
-            is ConfigurationScreenState.LOADING -> {
+            is ConfigurationScreenState.Loading -> {
                 // Display loading anim while state is unknown
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }

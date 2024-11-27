@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uniffi.shared.Configuration
+import uniffi.shared.Event
 import uniffi.shared.Process
 
 class RustClient(private val inner: uniffi.client.Client) : Client {
@@ -35,6 +36,8 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun setConfiguration(configuration: Configuration) =
         inner.setConfiguration(configuration)
+
+    override suspend fun initStream(): Flow<Event> = inner.initStreamFlow()
 }
 
 class RustClientFactory(val url: String) : ClientFactory {
@@ -62,6 +65,14 @@ fun uniffi.client.Client.serverCountFlow() = flow {
     serverCount().use { stream ->
         while (true) {
             stream.next()?.also { count -> emit(count) } ?: break
+        }
+    }
+}
+
+fun uniffi.client.Client.initStreamFlow() = flow {
+    initStream().use { stream ->
+        while (true) {
+            stream.next()?.also { event -> emit(event) } ?: break
         }
     }
 }

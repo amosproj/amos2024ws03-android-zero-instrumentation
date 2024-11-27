@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -28,7 +29,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
 
     override val processesList = MutableStateFlow<List<Process>>(listOf())
     override val configuration: MutableStateFlow<ConfigurationUpdate> =
-        MutableStateFlow(ConfigurationUpdate.UNKNOWN)
+        MutableStateFlow(ConfigurationUpdate.Unknown)
 
     override fun submitConfiguration(configuration: Configuration) {
         coroutineScope.launch {
@@ -45,7 +46,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                 initializeConfigurationState()
                 startProcessListUpdates()
             } catch (e: ClientException) {
-                configuration.update { ConfigurationUpdate.NOK(e) }
+                configuration.update { ConfigurationUpdate.Invalid(e) }
             }
         }
     }
@@ -56,10 +57,12 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                 client!!.getConfiguration()
             } catch (e: ClientException) {
                 // TODO this should be handled on the backend
-                client!!.setConfiguration(Configuration(listOf()))
+                client!!.setConfiguration(
+                    Configuration(vfsWrite = null, sysSendmsg = null, uprobes = listOf())
+                )
                 client!!.getConfiguration()
             }
-        configuration.update { ConfigurationUpdate.OK(initializedConfiguration) }
+        configuration.update { ConfigurationUpdate.Valid(initializedConfiguration) }
     }
 
     private suspend fun startProcessListUpdates() {
@@ -73,11 +76,11 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
     private suspend fun getAndUpdateConfiguration() {
         configuration.update {
             try {
-                (client?.getConfiguration()?.let { ConfigurationUpdate.OK(it) }
-                        ?: ConfigurationUpdate.UNKNOWN)
+                (client?.getConfiguration()?.let { ConfigurationUpdate.Valid(it) }
+                        ?: ConfigurationUpdate.Unknown)
                     .also { Timber.i("Received config $it") }
             } catch (e: Exception) {
-                ConfigurationUpdate.NOK(e)
+                ConfigurationUpdate.Invalid(e)
             }
         }
     }

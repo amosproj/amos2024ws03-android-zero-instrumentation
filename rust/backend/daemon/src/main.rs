@@ -12,6 +12,8 @@ mod ebpf_utils;
 mod helpers;
 mod procfs_utils;
 mod server;
+mod features;
+mod collector;
 
 #[tokio::main]
 async fn main() {

@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -9,7 +10,8 @@ import androidx.lifecycle.viewModelScope
 import de.amosproj3.ziofa.api.ConfigurationAccess
 import de.amosproj3.ziofa.api.ConfigurationUpdate
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
-import de.amosproj3.ziofa.ui.configuration.data.EBpfProgramOption
+import de.amosproj3.ziofa.ui.configuration.data.EbpfProgramOptions
+import de.amosproj3.ziofa.ui.configuration.data.WriteOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +21,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import uniffi.shared.Configuration
+import uniffi.shared.SysSendmsgConfig
+import uniffi.shared.VfsWriteConfig
 
 class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : ViewModel() {
 
@@ -26,14 +30,19 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
     val changed = _changed.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     private val checkedOptions =
-        MutableStateFlow<MutableMap<String, EBpfProgramOption>>(mutableMapOf())
+        MutableStateFlow(
+            EbpfProgramOptions(
+                vfsWriteOption = WriteOption.VfsWriteOption(enabled = false, pids = listOf()),
+                sendMessageOption = WriteOption.SendMessageOption(enabled = false, pids = listOf()),
+            )
+        )
 
     private val _configurationScreenState =
-        MutableStateFlow<ConfigurationScreenState>(ConfigurationScreenState.LOADING)
+        MutableStateFlow<ConfigurationScreenState>(ConfigurationScreenState.Loading)
     val configurationScreenState: StateFlow<ConfigurationScreenState> =
         _configurationScreenState
             .onEach { Timber.i(it.toString()) }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.LOADING)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.Loading)
 
     init {
         viewModelScope.launch { updateUIFromBackend() }
@@ -45,20 +54,40 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
         }
     }
 
-    fun optionChanged(eBpfProgramOption: EBpfProgramOption, newState: Boolean) {
-        checkedOptions.update { currentMap ->
-            currentMap.computeIfPresent(eBpfProgramOption.name) { _, oldValue ->
-                oldValue.copy(active = newState)
-            }
-            currentMap
+    fun vfsWriteChanged(pids: IntArray?, newState: Boolean) {
+        checkedOptions.update {
+            it.copy(
+                vfsWriteOption =
+                    WriteOption.VfsWriteOption(
+                        enabled = newState,
+                        pids = pids?.let { it.map { it.toUInt() } } ?: listOf(),
+                    )
+            )
         }
-        _configurationScreenState.update {
-            ConfigurationScreenState.LIST(checkedOptions.value.values.toList())
-        }
+        _configurationScreenState.update { ConfigurationScreenState.Valid(checkedOptions.value) }
         _changed.update { true }
     }
 
-    fun configurationSubmitted() {
+    fun sendMessageChanged(pids: IntArray?, newState: Boolean) {
+        checkedOptions.update {
+            it.copy(
+                sendMessageOption =
+                    WriteOption.SendMessageOption(
+                        enabled = newState,
+                        pids = pids?.let { it.map { it.toUInt() } } ?: listOf(),
+                    )
+            )
+        }
+        _configurationScreenState.update { ConfigurationScreenState.Valid(checkedOptions.value) }
+        _changed.update { true }
+    }
+
+    /**
+     * Submit the configuration to the backend.
+     *
+     * @param pids the affected Process IDs or null if the configuration should be set globally
+     */
+    fun configurationSubmitted(pids: IntArray?) {
         viewModelScope.launch {
             configurationAccess.submitConfiguration(checkedOptions.value.toConfiguration())
         }
@@ -67,25 +96,46 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
 
     private fun ConfigurationUpdate.toUIUpdate(): ConfigurationScreenState {
         return when (this) {
-            is ConfigurationUpdate.OK -> {
-                checkedOptions.update { this.toUIOptions().associateBy { it.name }.toMutableMap() }
-                ConfigurationScreenState.LIST(checkedOptions.value.values.toList())
+            is ConfigurationUpdate.Valid -> {
+                checkedOptions.update { this.toUIOptions() }
+                ConfigurationScreenState.Valid(checkedOptions.value)
             }
 
-            is ConfigurationUpdate.NOK ->
-                ConfigurationScreenState.ERROR(this.error.stackTraceToString())
+            is ConfigurationUpdate.Invalid ->
+                ConfigurationScreenState.Invalid(this.error.stackTraceToString())
 
-            is ConfigurationUpdate.UNKNOWN -> ConfigurationScreenState.LOADING
+            is ConfigurationUpdate.Unknown -> ConfigurationScreenState.Loading
         }
     }
 
-    private fun ConfigurationUpdate.OK.toUIOptions(): List<EBpfProgramOption> {
-        return this.configuration.entries.map {
-            EBpfProgramOption(it.hrName, active = it.attach, true, it)
-        }
+    private fun ConfigurationUpdate.Valid.toUIOptions(): EbpfProgramOptions {
+        val vfsOption =
+            this.configuration.vfsWrite?.let {
+                WriteOption.VfsWriteOption(enabled = true, pids = it.pids)
+            } ?: WriteOption.VfsWriteOption(enabled = false, pids = listOf())
+
+        val sendMsgOption =
+            this.configuration.sysSendmsg?.let {
+                WriteOption.SendMessageOption(enabled = true, pids = it.pids)
+            } ?: WriteOption.SendMessageOption(enabled = false, pids = listOf())
+
+        return EbpfProgramOptions(vfsWriteOption = vfsOption, sendMessageOption = sendMsgOption)
     }
 
-    private fun MutableMap<String, EBpfProgramOption>.toConfiguration(): Configuration {
-        return Configuration(this.values.map { it.ebpfEntry })
+    private fun EbpfProgramOptions.toConfiguration(): Configuration {
+        val vfsConfig =
+            if (this.vfsWriteOption.enabled) {
+                VfsWriteConfig(this.vfsWriteOption.pids)
+            } else null
+        val sendMessageConfig =
+            if (this.sendMessageOption.enabled) {
+                SysSendmsgConfig(this.sendMessageOption.pids)
+            } else null
+
+        return Configuration(
+            vfsWrite = vfsConfig,
+            sysSendmsg = sendMessageConfig,
+            uprobes = listOf(),
+        )
     }
 }

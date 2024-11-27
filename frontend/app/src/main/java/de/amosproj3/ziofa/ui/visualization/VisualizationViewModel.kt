@@ -4,121 +4,250 @@
 
 package de.amosproj3.ziofa.ui.visualization
 
-import android.util.Log
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.client.ClientFactory
-import de.amosproj3.ziofa.ui.visualization.data.MetricOption
-import de.amosproj3.ziofa.ui.visualization.data.PackageOption
-import de.amosproj3.ziofa.ui.visualization.data.SelectionData
-import de.amosproj3.ziofa.ui.visualization.data.TimeframeOption
+import de.amosproj3.ziofa.api.ConfigurationAccess
+import de.amosproj3.ziofa.api.ConfigurationUpdate
+import de.amosproj3.ziofa.api.DataStreamProvider
+import de.amosproj3.ziofa.api.WriteEvent
+import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
-import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.delay
+import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_CHART_METADATA
+import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_GRAPHED_DATA
+import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_SELECTION_DATA
+import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_TIMEFRAME_OPTIONS
+import de.amosproj3.ziofa.ui.visualization.utils.DisplayModes
+import de.amosproj3.ziofa.ui.visualization.utils.OPTION_SEND_MESSAGE_EVENTS
+import de.amosproj3.ziofa.ui.visualization.utils.OPTION_VFS_WRITE
+import de.amosproj3.ziofa.ui.visualization.utils.TIME_SERIES_SIZE
+import de.amosproj3.ziofa.ui.visualization.utils.sortAndClip
+import de.amosproj3.ziofa.ui.visualization.utils.toAveragedDurationOverTimeframe
+import de.amosproj3.ziofa.ui.visualization.utils.toBucketedData
+import kotlin.time.toDuration
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.update
+import timber.log.Timber
 
-// TODO add loadProgram from the backend and filter stream for respective metric
-class VisualizationViewModel(private val clientFactory: ClientFactory) : ViewModel() {
-    private val defaultGraphedData = listOf(0 to 0) // TODO replace with reasonable defaults
-    private val _graphedData = MutableStateFlow(defaultGraphedData)
-    val graphedData =
-        _graphedData.stateIn(viewModelScope, started = SharingStarted.Eagerly, defaultGraphedData)
+class VisualizationViewModel(
+    private val configurationManager: ConfigurationAccess,
+    private val dataStreamProvider: DataStreamProvider,
+) : ViewModel() {
 
-    private val defaultMetadata = // TODO replace with reasonable defaults
-        VisualizationMetaData(
-            visualizationTitle = "Packages per second",
-            xLabel = "Seconds since start",
-            yLabel = "#Packages",
-        )
+    private val _displayMode = MutableStateFlow(DisplayModes.CHART)
 
-    val chartMetadata =
-        flowOf(defaultMetadata)
-            .stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = defaultMetadata)
+    /** Selection data from which both the dropdowns and the displayed data is derived */
+    private val _selectionData = MutableStateFlow(DEFAULT_SELECTION_DATA)
 
-    private val defaultSelectionData = // TODO replace with reasonable defaults
-        SelectionData(
-            packageOptions =
-                listOf(PackageOption("de.example.app", "Example app", logo = Icons.Filled.Info)),
-            metricOptions = listOf(MetricOption("Packages per X")),
-            timeframeOptions = listOf(TimeframeOption(1, TimeUnit.SECONDS)),
-        )
+    /** Selection data for displaying the dropdowns */
     val selectionData =
-        flowOf(defaultSelectionData)
-            .stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = defaultSelectionData)
+        _selectionData.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            initialValue = DEFAULT_SELECTION_DATA,
+        )
 
-    init {
-        start()
-    }
+    /** Chart metadata derived from selection */
+    val chartMetadata =
+        _selectionData
+            .combine(_displayMode) { a, b -> a to b }
+            .map { (selection, mode) ->
+                if (
+                    mode == DisplayModes.CHART &&
+                        selection.selectedMetric is DropdownOption.MetricOption &&
+                        selection.selectedTimeframe is DropdownOption.TimeframeOption
+                ) {
+                    when (selection.selectedMetric.metricName) {
+                        OPTION_VFS_WRITE.metricName ->
+                            VisualizationMetaData(
+                                "Top file descriptors",
+                                "File Descriptor Name",
+                                "Sum of bytes written",
+                            )
+
+                        OPTION_SEND_MESSAGE_EVENTS.metricName ->
+                            VisualizationMetaData(
+                                "Average duration of messages",
+                                "Seconds since start",
+                                "Average duration in ms",
+                            )
+
+                        else -> {
+                            Timber.e("needs metadata!")
+                            DEFAULT_CHART_METADATA
+                        }
+                    }
+                } else DEFAULT_CHART_METADATA
+            }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, initialValue = DEFAULT_CHART_METADATA)
 
     /**
-     * Connect to the backend and start updating the [_graphedData]. //TODO move connecting to
-     * initialization (before home screen)
+     * Based on the selection, switch to a new flow everytime it changes. FlatMapLatest will cancel
+     * the last flow for us. If the selection is incomplete, show the default.
      */
-    private fun start() {
-        viewModelScope.launch {
-            try {
-                val counterFlow =
-                    clientFactory
-                        .connect()
-                        .also {
-                            // TODO: separate try catch because we have no good error handling yet
-                            // the load, attach and startCollecting method return an error
-                            // for AlreadyLoaded, AlreadyAttached, AlreadyCollecting which
-                            // is typed on the rust side but not yet exported.
-                            // In this case we just ignore all errors as we do not care
-                            // about whether the daemon is already doing stuff as it is
-                            // not managed by the apps lifecycle.
-                            // If the counter does not work, it will error later.
-                            try {
-                                it.load()
-                                // default wifi interface on android, now configurable
-                                it.attach("wlan0")
-                                it.startCollecting()
-                            } catch (e: Exception) {
-                                Log.e("Counter Error", e.stackTraceToString())
-                            }
-                        }
-                        .serverCount()
-                        .stateIn(this, SharingStarted.Eagerly, 0u)
-
-                packagesPerSecond(counterFlow).toIndexedTimeSeries(20).collect {
-                    _graphedData.value = it
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val graphedData =
+        _selectionData
+            .combine(_displayMode) { a, b -> a to b }
+            .flatMapLatest { (selection, mode) ->
+                if (
+                    selection.selectedMetric != null &&
+                        selection.selectedMetric is DropdownOption.MetricOption &&
+                        selection.selectedTimeframe != null &&
+                        selection.selectedTimeframe is DropdownOption.TimeframeOption
+                ) {
+                    if (mode == DisplayModes.CHART) {
+                        getGraphedDataForSelection(
+                            selectedMetric = selection.selectedMetric,
+                            selectedTimeframe = selection.selectedTimeframe,
+                        )
+                    } else {
+                        getEventsForSelection(
+                            selectedMetric = selection.selectedMetric,
+                            selectedTimeframe = selection.selectedTimeframe,
+                        )
+                    }
+                } else {
+                    flowOf(DEFAULT_GRAPHED_DATA)
                 }
-            } catch (e: Exception) {
-                Log.e("Counter Error", e.stackTraceToString())
+            }
+            .stateIn(viewModelScope, started = SharingStarted.Eagerly, DEFAULT_GRAPHED_DATA)
+
+    private suspend fun getGraphedDataForSelection(
+        selectedMetric: DropdownOption.MetricOption,
+        selectedTimeframe: DropdownOption.TimeframeOption,
+    ): Flow<GraphedData> {
+        return when (selectedMetric.metricName) {
+            OPTION_VFS_WRITE.metricName ->
+                dataStreamProvider
+                    .vfsWriteEvents(pids = listOf()) // TODO filter PIDS
+                    .toBucketedData(
+                        selectedTimeframe.amount
+                            .toDuration(selectedTimeframe.unit)
+                            .inWholeMilliseconds
+                            .toULong()
+                    )
+                    .sortAndClip(10)
+                    .map { GraphedData.HistogramData(it) }
+
+            OPTION_SEND_MESSAGE_EVENTS.metricName ->
+                dataStreamProvider
+                    .sendMessageEvents(pids = listOf()) // TODO filter PIDS
+                    .toAveragedDurationOverTimeframe(
+                        TIME_SERIES_SIZE,
+                        selectedTimeframe.amount
+                            .toDuration(selectedTimeframe.unit)
+                            .inWholeMilliseconds,
+                    )
+                    .map { GraphedData.TimeSeriesData(it) }
+
+            else -> flowOf<GraphedData>(DEFAULT_GRAPHED_DATA)
+        }
+    }
+
+    private suspend fun getEventsForSelection(
+        selectedMetric: DropdownOption.MetricOption,
+        selectedTimeframe: DropdownOption.TimeframeOption,
+    ): Flow<GraphedData> {
+        return when (selectedMetric.metricName) {
+            OPTION_VFS_WRITE.metricName ->
+                dataStreamProvider
+                    .vfsWriteEvents(pids = listOf())
+                    .scan(initial = listOf<WriteEvent.VfsWriteEvent>()) { prev, next ->
+                        prev.plus(next)
+                    }
+                    .map { GraphedData.EventListData(it) }
+
+            OPTION_SEND_MESSAGE_EVENTS.metricName ->
+                dataStreamProvider
+                    .sendMessageEvents(pids = listOf())
+                    .scan(initial = listOf<WriteEvent.SendMessageEvent>()) { prev, next ->
+                        prev.plus(next)
+                    }
+                    .map { GraphedData.EventListData(it) }
+
+            else -> flowOf<GraphedData>(DEFAULT_GRAPHED_DATA)
+        }
+    }
+
+    /** Called when a filter is selected */
+    fun filterSelected(filterOption: DropdownOption) {
+        when (filterOption) {
+            is DropdownOption.Global -> {
+                displayGlobalOptions()
+            }
+
+            is DropdownOption.Process -> {
+                displayGlobalOptions() // everything is per process or global for now
+            }
+
+            is DropdownOption.AppOption -> {
+                displayGlobalOptions() // everything is per process or global for now
+            }
+
+            else -> Timber.e("Invalid option in filter list!!! $filterOption")
+        }
+        _selectionData.update { prev -> prev.copy(selectedFilter = filterOption) }
+    }
+
+    /** Called when a metric is selected */
+    fun metricSelected(metricOption: DropdownOption) {
+        if (metricOption is DropdownOption.MetricOption) {
+            _selectionData.update {
+                it.copy(
+                    selectedMetric = metricOption,
+                    timeframeOptions = DEFAULT_TIMEFRAME_OPTIONS, // display timeframe options
+                )
+            }
+        } else {
+            Timber.e("Invalid option in metric list!!! $metricOption")
+        }
+    }
+
+    /** Called when a timeframe is selected */
+    fun timeframeSelected(timeframeOption: DropdownOption) {
+        if (timeframeOption is DropdownOption.TimeframeOption) {
+            _selectionData.update { it.copy(selectedTimeframe = timeframeOption) }
+        } else {
+            Timber.e("Invalid option in timeframe list!!! $timeframeOption")
+        }
+    }
+
+    fun switchMode() {
+        _displayMode.update { prev ->
+            if (prev == DisplayModes.CHART) DisplayModes.EVENTS else DisplayModes.CHART
+        }
+    }
+
+    /** Display the dropdown with the global options based on [ConfigurationUpdate] */
+    private fun displayGlobalOptions() {
+        val configurationUpdate = configurationManager.configuration.value
+        if (configurationUpdate is ConfigurationUpdate.Valid) {
+            // TODO This needs to filter for global entries only
+            _selectionData.update { prev ->
+                prev.copy(
+                    metricOptions =
+                        configurationUpdate.configuration.let {
+                            val displayedOptions = mutableListOf<DropdownOption.MetricOption>()
+                            if (it.vfsWrite != null) {
+                                displayedOptions.add(OPTION_VFS_WRITE)
+                            }
+                            if (it.sysSendmsg != null) {
+                                displayedOptions.add(OPTION_SEND_MESSAGE_EVENTS)
+                            }
+                            displayedOptions.toList()
+                        }
+                )
             }
         }
     }
-
-    /**
-     * Obtain a flow that emits the amount of packages in the last second every second based on a
-     * monotonically increasing [counterSource]. TODO generalize or replace
-     */
-    private fun packagesPerSecond(counterSource: StateFlow<UInt>) = flow {
-        var previousCount = counterSource.value
-        while (true) {
-            delay(1000)
-            val currentCount = counterSource.value
-            val packagesLastSecond = currentCount - previousCount
-            emit(packagesLastSecond)
-            previousCount = currentCount
-        }
-    }
-
-    /** Emit a indexed time series where the length of the list will never surpass [seriesSize]. */
-    private fun Flow<UInt>.toIndexedTimeSeries(seriesSize: Int) =
-        this.scan(listOf<Pair<Int, Int>>()) { prev, next ->
-            val idx = ((prev.lastOrNull()?.first) ?: 0) + 1
-            prev.plus(idx to next.toInt()).takeLast(seriesSize)
-        }
 }

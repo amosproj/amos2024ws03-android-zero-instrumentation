@@ -1,104 +1,56 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
-use std::collections::HashMap;
+use aya::{Ebpf, EbpfError};
+use shared::config::Configuration;
+use thiserror::Error;
 
-use aya::{
-    programs::{kprobe::KProbeLinkId, uprobe::UProbeLinkId, KProbe, UProbe},
-    Ebpf,
-};
-use shared::config::ebpf_entry::UprobeConfig;
+use crate::features::{SysSendmsgFeature, VfsFeature};
 
-use crate::configuration::load_from_file;
-pub enum ProbeID {
-    KProbeID(KProbeLinkId),
-    UProbeID(UProbeLinkId),
+#[derive(Debug, Error)]
+pub enum EbpfErrorWrapper {
+    #[error(transparent)]
+    EbpfError(#[from] EbpfError),
 }
-fn load_function(
-    ebpf: &mut Ebpf,
-    hash_map: &mut HashMap<String, ProbeID>,
-    probe_type: Option<UprobeConfig>,
-    func: &str,
-    hook: &str,
-) {
-    /* examples:
-     * func: "kprobetcp"
-     * hook: "tcp_connect"
-     */
 
-    // TODO: Error checking
-
-    match probe_type {
-        // UPROBE
-        Some(UprobeConfig {
-            offset,
-            target,
-            pid,
-        }) => {
-            // get ebpf program
-            let program: &mut UProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
-
-            // load ebpf program
-            program.load().unwrap();
-
-            // attach ebpf program and insert its ProbeID into the hash map
-            hash_map.insert(
-                func.to_string(),
-                ProbeID::UProbeID(program.attach(Some(hook), offset, target, pid).unwrap()),
-            );
-        }
-        // KPROBE/KRETPROBE
-        None => {
-            let program: &mut KProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
-            program.load().unwrap();
-            hash_map.insert(
-                func.to_string(),
-                ProbeID::KProbeID(program.attach(hook, 0).unwrap()),
-            );
-        }
+impl From<EbpfErrorWrapper> for tonic::Status {
+    fn from(err: EbpfErrorWrapper) -> Self {
+        Self::from_error(Box::new(err))
     }
 }
 
-fn unload_function(ebpf: &mut Ebpf, hash_map: &mut HashMap<String, ProbeID>, func: &str) {
-    // get ProbeID and remove it from hash map
-    let probe = hash_map.remove(func).unwrap();
-
-    match probe {
-        ProbeID::UProbeID(_link_id) => {
-            // get ebpf program
-            let program: &mut UProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
-
-            // unload ebpf program
-            program.unload().unwrap();
-        }
-        ProbeID::KProbeID(_link_id) => {
-            let program: &mut KProbe = ebpf.program_mut(func).unwrap().try_into().unwrap();
-            program.unload().unwrap();
-        }
-    }
+pub struct State {
+    vfs_write_feature: VfsFeature,
+    sys_sendmsg_feature: SysSendmsgFeature,
 }
 
-pub fn update_from_config(
-    ebpf: &mut Ebpf,
-    config_path: &str,
-    loaded_functions: &mut HashMap<String, ProbeID>,
-) {
-    let entries = load_from_file(config_path).unwrap().entries;
-
-    for entry in entries {
-        match (entry.attach, loaded_functions.get(entry.ebpf_name.as_str())) {
-            (true, None) => load_function(
-                ebpf,
-                loaded_functions,
-                entry.uprobe_info,
-                entry.ebpf_name.as_str(),
-                entry.hook.as_str(),
-            ),
-            (false, Some(_)) => unload_function(ebpf, loaded_functions, entry.ebpf_name.as_str()),
-            _ => {}
+impl State {
+    pub fn new() -> State {
+        State {
+            vfs_write_feature: VfsFeature::new(),
+            sys_sendmsg_feature: SysSendmsgFeature::new(),
         }
+    }
+
+    pub fn init(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+        self.vfs_write_feature.create(ebpf)?;
+        self.sys_sendmsg_feature.create(ebpf)?;
+
+        Ok(())
+    }
+
+    pub fn update_from_config(
+        &mut self,
+        ebpf: &mut Ebpf,
+        config: &Configuration,
+    ) -> Result<(), EbpfError> {
+        self.vfs_write_feature.attach(ebpf)?;
+        self.sys_sendmsg_feature.apply(ebpf, config.sys_sendmsg.as_ref())?;
+
+        Ok(())
     }
 }

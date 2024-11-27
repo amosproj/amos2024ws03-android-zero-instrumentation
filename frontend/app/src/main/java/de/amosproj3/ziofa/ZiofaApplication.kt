@@ -5,12 +5,16 @@
 package de.amosproj3.ziofa
 
 import android.app.Application
+import android.content.Context
+import android.content.pm.PackageManager
 import de.amosproj3.ziofa.api.ConfigurationAccess
+import de.amosproj3.ziofa.api.DataStreamProvider
 import de.amosproj3.ziofa.api.ProcessListAccess
 import de.amosproj3.ziofa.bl.ConfigurationManager
+import de.amosproj3.ziofa.bl.DataStreamManager
+import de.amosproj3.ziofa.bl.PackageInformationProvider
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.RustClientFactory
-import de.amosproj3.ziofa.client.mocks.MockClientFactory
 import de.amosproj3.ziofa.ui.configuration.ConfigurationViewModel
 import de.amosproj3.ziofa.ui.processes.ProcessesViewModel
 import de.amosproj3.ziofa.ui.visualization.VisualizationViewModel
@@ -25,18 +29,19 @@ import timber.log.Timber
 class ZiofaApplication : Application() {
 
     val appModule = module {
-        single<ClientFactory> {
-            if (BuildConfig.FLAVOR == "mockedBackend") {
-                MockClientFactory()
-            } else {
-                RustClientFactory("http://[::1]:50051")
-            }
-        }
+        single<PackageManager> { get<Context>().packageManager }
+        single<PackageInformationProvider> { PackageInformationProvider(get()) }
+        single<ClientFactory> { RustClientFactory("http://[::1]:50051") }
+        single<DataStreamProvider> { DataStreamManager(get()) }
         single { ConfigurationManager(clientFactory = get()) } binds
             arrayOf(ConfigurationAccess::class, ProcessListAccess::class)
         viewModel { ConfigurationViewModel(configurationAccess = get()) }
-        viewModel { ProcessesViewModel(processListAccess = get()) }
-        viewModel { VisualizationViewModel(clientFactory = get()) }
+        viewModel {
+            ProcessesViewModel(processListAccess = get(), packageInformationProvider = get())
+        }
+        viewModel {
+            VisualizationViewModel(configurationManager = get(), dataStreamProvider = get())
+        }
     }
 
     override fun onCreate() {

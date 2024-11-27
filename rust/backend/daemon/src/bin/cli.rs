@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 use clap::Parser;
 use shared::{
-    config::{Configuration, EbpfEntry},
+    config::{Configuration, SysSendmsgConfig, VfsWriteConfig},
     ziofa::ziofa_client::ZiofaClient,
 };
 use tonic::transport::Channel;
@@ -30,37 +31,35 @@ async fn test_check_server(client: &mut ZiofaClient<Channel>) {
     println!();
 }
 
-async fn test_get_configuration(
-    client: &mut ZiofaClient<Channel>,
-    verbose: bool,
-) -> Vec<EbpfEntry> {
+async fn test_get_configuration(client: &mut ZiofaClient<Channel>, verbose: bool) -> Configuration {
     println!("TEST get_configuration");
     let config = match client.get_configuration(()).await {
         Ok(t) => {
-            let res = t.into_inner().entries;
+            let res = t.into_inner();
             println!("SUCCESS");
+
             if verbose {
-                for (i, e) in res.iter().enumerate() {
-                    println!("Entry {}: {:?}", i, e);
-                }
+                println!("{:?}", res);
             }
+            
             res
         }
         Err(e) => {
             println!("ERROR: {:?}", e);
-            Vec::new()
+            Configuration {
+                uprobes: vec![],
+                vfs_write: Some(VfsWriteConfig { pids: vec![] }),
+                sys_sendmsg: Some(SysSendmsgConfig { pids: vec![] }),
+            }
         }
     };
     println!();
     config
 }
 
-async fn test_set_configuration(client: &mut ZiofaClient<Channel>, config: Vec<EbpfEntry>) {
+async fn test_set_configuration(client: &mut ZiofaClient<Channel>, config: Configuration) {
     println!("TEST set_configuration");
-    match client
-        .set_configuration(Configuration { entries: config })
-        .await
-    {
+    match client.set_configuration(config).await {
         Ok(t) => {
             let res = t.into_inner().response_type;
             println!("SUCCESS: {}", res);

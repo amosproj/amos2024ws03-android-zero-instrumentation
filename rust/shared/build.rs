@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -16,6 +17,11 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "Configuration",
             "EbpfEntry",
             "UprobeConfig",
+            "Event",
+            "VfsWriteEvent",
+            "SysSendmsgEvent",
+            "VfsWriteConfig",
+            "SysSendmsgConfig",
         ]
     } else {
         vec![]
@@ -24,7 +30,7 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
 static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     if cfg!(feature = "uniffi") {
-        vec!["Process.cmd"]
+        vec!["Process.cmd", "Event.event_data"]
     } else {
         vec![]
     }

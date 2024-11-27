@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,11 +17,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import de.amosproj3.ziofa.ui.visualization.composables.EventList
 import de.amosproj3.ziofa.ui.visualization.composables.MetricDropdown
+import de.amosproj3.ziofa.ui.visualization.composables.SwitchModeFab
+import de.amosproj3.ziofa.ui.visualization.composables.VicoBar
 import de.amosproj3.ziofa.ui.visualization.composables.VicoTimeSeries
+import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
+import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_CHART_METADATA
 import org.koin.androidx.compose.koinViewModel
 
 /** Screen for visualizing data. */
@@ -30,15 +38,37 @@ fun VisualizationScreen(
     viewModel: VisualizationViewModel = koinViewModel(),
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        val seriesData by remember { viewModel.graphedData }.collectAsState()
+        val graphedData by remember { viewModel.graphedData }.collectAsState()
         val chartMetadata by remember { viewModel.chartMetadata }.collectAsState()
         val selectionData by remember { viewModel.selectionData }.collectAsState()
 
         Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxSize()) {
-            MetricSelection(selectionData)
-            VisualizationTitle(chartMetadata.visualizationTitle)
-            VicoTimeSeries(seriesData = seriesData, chartMetadata = chartMetadata)
+            MetricSelection(
+                selectionData = selectionData,
+                filterSelected = { viewModel.filterSelected(it) },
+                metricSelected = { viewModel.metricSelected(it) },
+                timeframeSelected = { viewModel.timeframeSelected(it) },
+            )
+            if (
+                chartMetadata != DEFAULT_CHART_METADATA && graphedData !is GraphedData.EventListData
+            ) {
+                VisualizationTitle(chartMetadata.visualizationTitle)
+            }
+
+            when (val data = graphedData) {
+                is GraphedData.TimeSeriesData ->
+                    VicoTimeSeries(seriesData = data.data, chartMetadata = chartMetadata)
+
+                is GraphedData.HistogramData ->
+                    VicoBar(seriesData = data.data, chartMetadata = chartMetadata)
+
+                is GraphedData.EventListData -> EventList(data.data)
+
+                GraphedData.EMPTY -> {}
+            }
         }
+
+        SwitchModeFab(Modifier.align(Alignment.BottomEnd), onClick = { viewModel.switchMode() })
     }
 }
 
@@ -53,22 +83,38 @@ fun VisualizationTitle(title: String) {
 }
 
 @Composable
-fun MetricSelection(selectionData: SelectionData) {
+fun MetricSelection(
+    selectionData: SelectionData,
+    filterSelected: (DropdownOption) -> Unit,
+    metricSelected: (DropdownOption) -> Unit,
+    timeframeSelected: (DropdownOption) -> Unit,
+) {
     Row(Modifier.fillMaxWidth()) {
         MetricDropdown(
-            selectionData.packageOptions.map { it.packageName to it.logo },
+            selectionData.filterOptions,
             "Select a package",
             modifier = Modifier.weight(1f).padding(end = 0.dp),
+            optionSelected = { filterSelected(it) },
         )
-        MetricDropdown(
-            selectionData.metricOptions.map { it.displayName to null },
-            "Select a metric",
-            modifier = Modifier.weight(1f).padding(end = 0.dp),
-        )
-        MetricDropdown(
-            selectionData.timeframeOptions.map { "${it.amount} ${it.unit}" to null },
-            "Select an interval",
-            modifier = Modifier.weight(1f).padding(end = 0.dp),
-        )
+        selectionData.metricOptions
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { metricOptions ->
+                MetricDropdown(
+                    metricOptions,
+                    "Select a metric",
+                    modifier = Modifier.weight(1f).padding(end = 0.dp),
+                    optionSelected = { metricSelected(it) },
+                )
+            } ?: Spacer(Modifier.weight(1f))
+        selectionData.timeframeOptions
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { timeframeOptions ->
+                MetricDropdown(
+                    timeframeOptions,
+                    "Select an interval for aggregation",
+                    modifier = Modifier.weight(1f).padding(end = 0.dp),
+                    optionSelected = { timeframeSelected(it) },
+                )
+            } ?: Spacer(Modifier.weight(1f))
     }
 }

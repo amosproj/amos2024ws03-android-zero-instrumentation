@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 [versions]
+accompanistDrawablepainter = "0.36.0"
 activityCompose = "1.9.3"
 # @pin incompatible otherwise
 agp = "8.6.0"
@@ -24,6 +25,7 @@ versioncatalogueupdate = "0.8.5"
 vico = "2.0.0-beta.2"
 
 [libraries]
+accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanistDrawablepainter" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
