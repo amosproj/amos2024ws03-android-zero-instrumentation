@@ -32,12 +32,12 @@ pub struct SysSendmsgCall {
     pub tid: u32,
     pub begin_time_stamp: u64,
     pub fd: i32,
-    pub duration_micro_sec: u64, // in microseconds
+    pub duration_nano_sec: u64, // in nanoseconds
 }
 
 impl SysSendmsgCall {
-    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: i32, duration_micro_sec: u64) -> Self {
-        Self { pid, tid, begin_time_stamp, fd, duration_micro_sec }
+    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: i32, duration_nano_sec: u64) -> Self {
+        Self { pid, tid, begin_time_stamp, fd, duration_nano_sec }
     }
 }
 

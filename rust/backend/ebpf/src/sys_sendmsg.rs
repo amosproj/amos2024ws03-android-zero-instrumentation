@@ -10,7 +10,7 @@ use backend_common::{generate_id, SysSendmsgCall};
 pub static SYS_SENDMSG_MAP: RingBuf = RingBuf::with_byte_size(1024, 0);
 
 #[map(name = "PIDS_TO_TRACK")]
-static PIDS_TO_TRACK: HashMap<u32, u32> = HashMap::with_max_entries(4096, 0);
+static PIDS_TO_TRACK: HashMap<u32, u64> = HashMap::with_max_entries(4096, 0);
 
 #[map]
 static SYS_SENDMSG_TIMESTAMPS: HashMap<u64, SysSendmsgIntern> = HashMap::with_max_entries(1024, 0);
@@ -49,7 +49,7 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
     let end_time = unsafe { bpf_ktime_get_ns() };
     let pid = ctx.pid();
 
-    let duration_threshold_micro_sec = match unsafe { PIDS_TO_TRACK.get(&pid) } {
+    let duration_threshold_nano_sec = match unsafe { PIDS_TO_TRACK.get(&pid) } {
         None => return 0, // pid should not be tracked
         Some(duration) => duration,
     };
@@ -63,13 +63,13 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
     };
     let _ = SYS_SENDMSG_TIMESTAMPS.remove(&call_id);
 
-    let duration_micro_sec = (end_time - data.begin_time_stamp)/1000;
+    let duration_nano_sec = end_time - data.begin_time_stamp;
 
-    if duration_micro_sec < *duration_threshold_micro_sec as u64 {
+    if duration_nano_sec < *duration_threshold_nano_sec {
         return 0;
     }
 
-    let result_data = SysSendmsgCall::new(pid, tgid, data.begin_time_stamp, data.fd, duration_micro_sec);
+    let result_data = SysSendmsgCall::new(pid, tgid, data.begin_time_stamp, data.fd, duration_nano_sec);
 
     let mut entry = match SYS_SENDMSG_MAP.reserve::<SysSendmsgCall>(0) {
         Some(entry) => entry,
