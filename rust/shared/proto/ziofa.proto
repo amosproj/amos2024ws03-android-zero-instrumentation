@@ -68,5 +68,5 @@ message SysSendmsgEvent {
     uint32 tid = 2;
     uint64 begin_time_stamp = 3;
     uint64 fd = 4;
-    uint64 duration_micro_sec = 5;
+    uint64 duration_nano_sec = 5;
 }

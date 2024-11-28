@@ -31,8 +31,8 @@ sealed class Event {
         val pid: UInt,
         val tid: UInt,
         val beginTimeStamp: ULong,
-        val fd: Int,
-        val durationMicroSec: ULong,
+        val fd: ULong,
+        val durationNanoSecs: ULong,
     ) : Event()
 }
 

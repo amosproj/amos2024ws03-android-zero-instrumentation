@@ -54,7 +54,7 @@ impl CollectFromMap for SysSendmsgCollect {
                 tid: data.tid,
                 begin_time_stamp: data.begin_time_stamp,
                 fd: data.fd,
-                duration_micro_sec: data.duration_micro_sec
+                duration_nano_sec: data.duration_nano_sec
             }))
         })
     }

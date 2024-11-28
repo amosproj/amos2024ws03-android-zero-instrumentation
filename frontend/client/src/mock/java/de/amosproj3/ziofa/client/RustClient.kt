@@ -94,8 +94,8 @@ object RustClient : Client {
                 Event.SysSendmsg(
                     pid = 12345u,
                     tid = 1234u,
-                    fd = 125123123,
-                    durationMicroSec =
+                    fd = 125123123u,
+                    durationNanoSecs =
                         (System.currentTimeMillis() + Random.nextLong(1000)).toULong(),
                     beginTimeStamp = System.currentTimeMillis().toULong(),
                 )
