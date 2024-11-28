@@ -18,7 +18,7 @@ static SYS_SENDMSG_TIMESTAMPS: HashMap<u64, SysSendmsgIntern> = HashMap::with_ma
 
 struct SysSendmsgIntern {
     begin_time_stamp: u64,
-    fd: i32,
+    fd: u64,
 }
 
 #[tracepoint]
@@ -26,7 +26,7 @@ pub fn sys_enter_sendmsg(ctx: TracePointContext) -> u32 {
     let id = generate_id(ctx.pid(), ctx.tgid());
 
     let begin_time_stamp;
-    let fd: i32;
+    let fd: u64;
     unsafe {
         fd = match ctx.read_at(16) {
             Ok(arg) => arg,
