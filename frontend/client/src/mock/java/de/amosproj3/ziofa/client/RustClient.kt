@@ -58,8 +58,8 @@ object RustClient : Client {
         // NOP
     }
 
-    override suspend fun listProcesses(): List<Process> {
-        return alphabet.indices.map {
+    private val processes =
+        alphabet.indices.map {
             Process(
                 pid = Random.nextUInt(1000u).toInt(),
                 ppid = Random.nextUInt(1000u).toInt(),
@@ -67,6 +67,9 @@ object RustClient : Client {
                 cmd = Command.Comm("/bin/sh/${alphabet.substring(it, it + 1)}"),
             )
         }
+
+    override suspend fun listProcesses(): List<Process> {
+        return processes
     }
 
     override suspend fun getConfiguration(): Configuration {

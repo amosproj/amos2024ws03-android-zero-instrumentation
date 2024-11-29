@@ -6,32 +6,22 @@ package de.amosproj3.ziofa.ui.processes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.api.ProcessListAccess
-import de.amosproj3.ziofa.bl.PackageInformationProvider
-import de.amosproj3.ziofa.ui.shared.toReadableString
+import de.amosproj3.ziofa.api.RunningComponent
+import de.amosproj3.ziofa.api.RunningComponentsAccess
+import de.amosproj3.ziofa.ui.shared.AccessedFromUI
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-class ProcessesViewModel(
-    processListAccess: ProcessListAccess,
-    packageInformationProvider: PackageInformationProvider,
-) : ViewModel() {
-    val processesList =
-        processListAccess.processesList
-            .map { processList -> processList.groupBy { it.cmd.toReadableString() } }
-            .map { packageProcessMap ->
-                packageProcessMap.entries.map {
-                    val packageNameOrOther = it.key
-                    val processList = it.value
-                    // TODO We probably should not retrieve the info of all packages everytime
-                    packageInformationProvider.getPackageInfo(packageNameOrOther)?.let {
-                        ProcessListEntry.ApplicationEntry(it, processList)
-                    } ?: ProcessListEntry.ProcessEntry(processList[0])
-                }
-            }
-            .map { uiEntryList ->
-                uiEntryList.sortedBy { if (it is ProcessListEntry.ApplicationEntry) -1 else 1 }
-            }
+class ProcessesViewModel(runningComponentsProvider: RunningComponentsAccess) : ViewModel() {
+
+    @AccessedFromUI
+    val applicationsAndProcessesList =
+        runningComponentsProvider.runningComponentsList
+            .sortApplicationsFirst()
             .stateIn(viewModelScope, started = SharingStarted.Lazily, listOf())
+
+    private fun Flow<List<RunningComponent>>.sortApplicationsFirst() =
+        this.map { list -> list.sortedBy { if (it is RunningComponent.Application) -1 else 1 } }
 }

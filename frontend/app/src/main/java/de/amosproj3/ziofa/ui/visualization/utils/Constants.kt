@@ -9,14 +9,12 @@ import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
 import kotlin.time.DurationUnit
+import timber.log.Timber
 
-enum class DisplayModes {
+enum class VisualizationDisplayMode {
     CHART,
     EVENTS,
 }
-
-/** The maximum number of datapoints to show on screen */
-const val TIME_SERIES_SIZE = 20
 
 val DEFAULT_TIMEFRAME_OPTIONS =
     listOf(
@@ -43,7 +41,24 @@ val DEFAULT_SELECTION_DATA =
     )
 
 val DEFAULT_CHART_METADATA = // TODO replace with reasonable defaults
-    VisualizationMetaData(visualizationTitle = "", xLabel = "x", yLabel = "y")
+    VisualizationMetaData(xLabel = "x", yLabel = "y")
 
-val OPTION_VFS_WRITE = DropdownOption.MetricOption("VFS Write")
-val OPTION_SEND_MESSAGE_EVENTS = DropdownOption.MetricOption("Send Message Events Write")
+object BackendFeature {
+    val VFS_WRITE = DropdownOption.MetricOption("VFS Write")
+    val SEND_MESSAGE = DropdownOption.MetricOption("Send Message Events Write")
+    val UPROBE = DropdownOption.MetricOption("uprobe")
+
+    fun getChartMetadata(metricOption: DropdownOption.MetricOption): VisualizationMetaData {
+        return when (metricOption) {
+            VFS_WRITE -> VisualizationMetaData("Top file descriptors", "File Descriptor Name")
+
+            SEND_MESSAGE ->
+                VisualizationMetaData("Average duration of messages", "Seconds since start")
+
+            else -> {
+                Timber.e("needs metadata!")
+                DEFAULT_CHART_METADATA
+            }
+        }
+    }
+}

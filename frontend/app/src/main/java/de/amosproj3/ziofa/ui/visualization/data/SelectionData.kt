@@ -11,10 +11,14 @@ import kotlin.time.DurationUnit
 sealed class DropdownOption(val displayName: String) {
 
     /** Filter options */
-    data class Process(val processName: String) : DropdownOption(processName)
+    data class Process(val processName: String, val pid: UInt) : DropdownOption(processName)
 
-    data class AppOption(val appName: String, val packageName: String, val icon: Drawable) :
-        DropdownOption(appName)
+    data class AppOption(
+        val appName: String,
+        val packageName: String,
+        val icon: Drawable,
+        val pids: List<UInt>,
+    ) : DropdownOption(appName)
 
     data object Global : DropdownOption("Global")
 
