@@ -65,7 +65,7 @@ impl SysSendmsgFeature {
     }
     
     fn update_pids(&mut self, ebpf: &mut Ebpf, pids: &[u32]) -> Result<(), EbpfError> {
-        let mut pids_to_track: HashMap<_, u32, u64> = ebpf.map_mut("PIDS_TO_TRACK")
+        let mut pids_to_track: HashMap<_, u32, u64> = ebpf.map_mut("SYS_SENDMSG_PIDS")
             .ok_or(EbpfError::MapError(
                 aya::maps::MapError::InvalidName {
                     name: "PIDS_TO_TRACK".to_string(),
