@@ -23,9 +23,9 @@ message Configuration {
 }
 
 message VfsWriteConfig {
-  repeated uint32 pids = 1;
+  map<uint32, uint64> entries = 1;
 }
 
 message SysSendmsgConfig {
-  repeated uint32 pids = 1;
+  map<uint32, uint64> entries = 1;
 }
