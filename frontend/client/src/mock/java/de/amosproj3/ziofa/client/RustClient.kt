@@ -16,8 +16,8 @@ const val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 object RustClient : Client {
     private var configuration: Configuration =
         Configuration(
-            vfsWrite = VfsWriteConfig(listOf(1234u, 43124u)),
-            sysSendmsg = SysSendmsgConfig(listOf(1234u, 43124u)),
+            vfsWrite = VfsWriteConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
+            sysSendmsg = SysSendmsgConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
             uprobes = listOf(),
         )
 
