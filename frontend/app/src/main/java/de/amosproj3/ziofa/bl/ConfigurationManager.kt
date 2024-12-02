@@ -10,6 +10,8 @@ import de.amosproj3.ziofa.api.ConfigurationUpdate
 import de.amosproj3.ziofa.api.ProcessListAccess
 import de.amosproj3.ziofa.client.Client
 import de.amosproj3.ziofa.client.ClientFactory
+import de.amosproj3.ziofa.client.Configuration
+import de.amosproj3.ziofa.client.Process
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -17,9 +19,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import uniffi.client.ClientException
-import uniffi.shared.Configuration
-import uniffi.shared.Process
 
 class ConfigurationManager(val clientFactory: ClientFactory) :
     ProcessListAccess, ConfigurationAccess {
@@ -45,7 +44,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                 client = clientFactory.connect()
                 initializeConfigurationState()
                 startProcessListUpdates()
-            } catch (e: ClientException) {
+            } catch (e: Exception) {
                 configuration.update { ConfigurationUpdate.Invalid(e) }
             }
         }
@@ -55,7 +54,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
         val initializedConfiguration =
             try {
                 client!!.getConfiguration()
-            } catch (e: ClientException) {
+            } catch (e: Exception) {
                 // TODO this should be handled on the backend
                 client!!.setConfiguration(
                     Configuration(vfsWrite = null, sysSendmsg = null, uprobes = listOf())

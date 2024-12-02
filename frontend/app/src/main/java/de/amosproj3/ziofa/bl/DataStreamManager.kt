@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -7,11 +8,11 @@ package de.amosproj3.ziofa.bl
 import de.amosproj3.ziofa.api.DataStreamProvider
 import de.amosproj3.ziofa.api.WriteEvent
 import de.amosproj3.ziofa.client.ClientFactory
+import de.amosproj3.ziofa.client.Event
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
-import uniffi.shared.EventData
 
 class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamProvider {
 
@@ -35,16 +36,10 @@ class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamPr
         clientFactory
             .connect()
             .initStream()
-            .map { it.eventData }
-            .filter { it is EventData.VfsWrite }
+            .filter { it is Event.VfsWrite }
             .map {
-                if (it is EventData.VfsWrite) {
-                    WriteEvent.VfsWriteEvent(
-                        it.v1.fp,
-                        it.v1.pid,
-                        it.v1.bytesWritten,
-                        it.v1.beginTimeStamp,
-                    )
+                if (it is Event.VfsWrite) {
+                    WriteEvent.VfsWriteEvent(it.fp, it.pid, it.bytesWritten, it.beginTimeStamp)
                 } else throw Exception("only for the compiler")
             }
 
@@ -52,16 +47,15 @@ class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamPr
         clientFactory
             .connect()
             .initStream()
-            .map { it.eventData }
-            .filter { it is EventData.SysSendmsg }
+            .filter { it is Event.SysSendmsg }
             .map {
-                if (it is EventData.SysSendmsg) {
+                if (it is Event.SysSendmsg) {
                     WriteEvent.SendMessageEvent(
-                        it.v1.fd.toULong(),
-                        it.v1.pid,
-                        it.v1.tid,
-                        it.v1.beginTimeStamp,
-                        it.v1.durationMicroSec,
+                        it.fd.toULong(),
+                        it.pid,
+                        it.tid,
+                        it.beginTimeStamp,
+                        it.durationMicroSec,
                     )
                 } else throw Exception("only for the compiler")
             }
