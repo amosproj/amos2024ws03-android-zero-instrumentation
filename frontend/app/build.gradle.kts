@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
@@ -36,6 +37,12 @@ android {
             reset()
             include("x86_64", "arm64-v8a")
         }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = "11"
     }
 
     lint {
@@ -51,19 +58,9 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
         resources {
