@@ -1,6 +1,8 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 # SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 #
 # SPDX-License-Identifier: MIT
+
 [versions]
 accompanistDrawablepainter = "0.36.0"
 activityCompose = "1.9.3"
@@ -51,6 +53,7 @@ vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "vi
 vico-compose-m2 = { module = "com.patrykandpatrick.vico:compose-m2", version.ref = "vico" }
 vico-compose-m3 = { module = "com.patrykandpatrick.vico:compose-m3", version.ref = "vico" }
 vico-core = { module = "com.patrykandpatrick.vico:core", version.ref = "vico" }
+android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -62,3 +65,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 nl-littlerobots-versioncatalogueupdate = { id = "nl.littlerobots.version-catalog-update", version.ref = "versioncatalogueupdate" }
 org-cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
 rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rust-android" }
+rust-uniffi = { id = "rust.uniffi", version = "unspecified" }
