@@ -6,11 +6,19 @@
 // SPDX-License-Identifier: MIT
 
 use std::{ops::DerefMut, sync::Arc};
-
+use std::path::PathBuf;
+use crate::collector::MultiCollector;
+use crate::{
+    configuration, constants,
+    counter::Counter,
+    ebpf_utils::{EbpfErrorWrapper, State},
+    procfs_utils::{list_processes, ProcErrorWrapper},
+    symbols_stuff::oat_file_exists,
+};
 use async_broadcast::{broadcast, Receiver, Sender};
 use aya::Ebpf;
 use aya_log::EbpfLogger;
-use tokio::join;
+use shared::ziofa::{Event, OatFileExistsResponse, PidMessage};
 use shared::{
     config::Configuration,
     counter::counter_server::CounterServer,
@@ -19,16 +27,9 @@ use shared::{
         CheckServerResponse, ProcessList, SetConfigurationResponse,
     },
 };
+use tokio::join;
 use tokio::sync::Mutex;
 use tonic::{transport::Server, Request, Response, Status};
-use shared::ziofa::Event;
-use crate::collector::MultiCollector;
-use crate::{
-    configuration, constants,
-    counter::Counter,
-    ebpf_utils::{EbpfErrorWrapper, State},
-    procfs_utils::{list_processes, ProcErrorWrapper},
-};
 
 pub struct ZiofaImpl {
     // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
@@ -38,9 +39,19 @@ pub struct ZiofaImpl {
 }
 
 impl ZiofaImpl {
-    pub fn new(ebpf: Arc<Mutex<Ebpf>>, state: Arc<Mutex<State>>, channel: Arc<Channel>) -> ZiofaImpl {
-        ZiofaImpl { ebpf, state, channel }
+    pub fn new(
+        ebpf: Arc<Mutex<Ebpf>>,
+        state: Arc<Mutex<State>>,
+        channel: Arc<Channel>,
+    ) -> ZiofaImpl {
+        ZiofaImpl {
+            ebpf,
+            state,
+            channel,
+        }
     }
+
+
 }
 
 pub struct Channel {
@@ -62,6 +73,7 @@ impl Ziofa for ZiofaImpl {
         let response = CheckServerResponse {};
         Ok(Response::new(response))
     }
+
 
     async fn list_processes(&self, _: Request<()>) -> Result<Response<ProcessList>, Status> {
         let processes = list_processes().map_err(ProcErrorWrapper::from)?;
@@ -104,10 +116,27 @@ impl Ziofa for ZiofaImpl {
     ) -> Result<Response<Self::InitStreamStream>, Status> {
         Ok(Response::new(self.channel.rx.clone()))
     }
+
+
+    async fn test_oat_file_exists(&self, pid_message: Request<PidMessage>) -> Result<Response<OatFileExistsResponse>, Status> {
+        let pid = pid_message.into_inner().pid;
+        let paths: Vec<String> = oat_file_exists(pid)
+            .map_err(ProcErrorWrapper::from)?
+            .into_iter()
+            .map(
+                |path_thinig: PathBuf|{
+                    path_thinig.to_str().unwrap().to_string()
+                }
+            ).collect();
+        Ok(Response::new(OatFileExistsResponse { paths }))
+    }
+
+
+
 }
 
 pub async fn serve_forever() {
-    let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+    let mut ebpf = Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/backend-ebpf"
     )))

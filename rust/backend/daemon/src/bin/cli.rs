@@ -10,6 +10,7 @@ use shared::{
     ziofa::ziofa_client::ZiofaClient,
 };
 use tonic::transport::Channel;
+use shared::ziofa::PidMessage;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -20,7 +21,27 @@ struct Args {
     /// Verbose output (i. e. print processes)
     #[arg(short, long)]
     verbose: bool,
+
+    /// for checking the oat_file_exists method
+    #[arg(long)]
+    pid: i32,
+
 }
+
+async fn test_oat_file_exist(client: &mut ZiofaClient<Channel>, pid: i32) {
+    println!("TEST checking oat_file_exists");
+    match client.test_oat_file_exists(PidMessage { pid }).await {
+        Ok(list_of_oatfiles) => {
+            println!("SUCCESS");
+            for file in list_of_oatfiles.into_inner().paths {
+                println!("{:?}", file);
+            }
+        }
+        Err(e) => println!("ERROR: {:?}", e),
+    };
+    println!();
+}
+
 
 async fn test_check_server(client: &mut ZiofaClient<Channel>) {
     println!("TEST check_server");
@@ -41,7 +62,7 @@ async fn test_get_configuration(client: &mut ZiofaClient<Channel>, verbose: bool
             if verbose {
                 println!("{:?}", res);
             }
-            
+
             res
         }
         Err(e) => {
@@ -101,6 +122,7 @@ async fn main() {
     let config = test_get_configuration(&mut client, args.verbose).await;
     test_set_configuration(&mut client, config).await;
     test_list_processes(&mut client, args.verbose).await;
+    test_oat_file_exist(&mut client, args.pid).await;
 
     if !args.verbose {
         println!("Note: To view verbose output, pass the \"-v\" flag.");
