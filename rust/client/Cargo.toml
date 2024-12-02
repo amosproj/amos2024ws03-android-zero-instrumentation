@@ -25,18 +25,15 @@ tokio-stream = { workspace = true }
 thiserror = { workspace = true }
 uniffi = { workspace = true, optional = true, features = ["tokio"] }
 shared = { workspace = true }
-clap = { workspace = true, optional = true, default-features = true, features = ["derive"] }
+clap = { workspace = true, optional = true, default-features = true, features = [
+  "derive",
+] }
 
 [features]
-uniffi = [ "dep:uniffi", "shared/uniffi" ]
-cli = [ "dep:clap", "tokio/rt-multi-thread", "tokio/signal" ]
+uniffi = ["dep:uniffi", "shared/uniffi"]
+cli = ["dep:clap", "tokio/rt-multi-thread", "tokio/signal"]
 
 [[bin]]
 name = "client"
 path = "src/bin/cli.rs"
-required-features = [ "cli" ]
-
-[[bin]]
-name = "uniffi-bindgen"
-path = "uniffi-bindgen.rs"
-required-features = ["uniffi", "uniffi/cli"]
+required-features = ["cli"]

@@ -60,7 +60,7 @@
 
             sdkBase = with pkgs; [
               ncurses5
-              openjdk
+              openjdk21
             ];
 
             systemImage = pkgs.fetchzip
@@ -101,6 +101,7 @@
               cargo-cyclonedx
               reuse
               asciidoctor-with-extensions
+              (ktlint.overrideAttrs { postFixup = ''wrapProgram $out/bin/ktlint --prefix PATH : "${lib.makeBinPath [ openjdk21 gnused ]}"''; })
             ];
 
             combined =

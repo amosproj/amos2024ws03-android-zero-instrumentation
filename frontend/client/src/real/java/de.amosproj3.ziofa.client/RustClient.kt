@@ -6,11 +6,76 @@ package de.amosproj3.ziofa.client
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import uniffi.shared.Configuration
-import uniffi.shared.Event
-import uniffi.shared.Process
+import uniffi.shared.Cmd
+import uniffi.shared.EventData
+
+private fun uniffi.shared.Process.into() =
+    Process(
+        pid,
+        ppid,
+        state,
+        cmd =
+            when (val c = cmd) {
+                is Cmd.Comm -> Command.Comm(c.v1)
+                is Cmd.Cmdline -> Command.Cmdline(c.v1.args)
+                null -> null
+            },
+    )
+
+private fun uniffi.shared.Event.into() =
+    when (val d = eventData) {
+        is EventData.VfsWrite ->
+            Event.VfsWrite(
+                pid = d.v1.pid,
+                tid = d.v1.tid,
+                beginTimeStamp = d.v1.beginTimeStamp,
+                fp = d.v1.fp,
+                bytesWritten = d.v1.bytesWritten,
+            )
+        is EventData.SysSendmsg ->
+            Event.SysSendmsg(
+                pid = d.v1.pid,
+                tid = d.v1.tid,
+                beginTimeStamp = d.v1.beginTimeStamp,
+                fd = d.v1.fd,
+                durationMicroSec = d.v1.durationMicroSec,
+            )
+        null -> null
+    }
+
+private fun uniffi.shared.Configuration.into() =
+    Configuration(
+        vfsWrite = vfsWrite?.let { VfsWriteConfig(pids = it.pids) },
+        sysSendmsg = sysSendmsg?.let { SysSendmsgConfig(pids = it.pids) },
+        uprobes =
+            uprobes.map {
+                UprobeConfig(
+                    fnName = it.fnName,
+                    offset = it.offset,
+                    target = it.target,
+                    pid = it.pid,
+                )
+            },
+    )
+
+private fun Configuration.into() =
+    uniffi.shared.Configuration(
+        vfsWrite = vfsWrite?.let { uniffi.shared.VfsWriteConfig(it.pids) },
+        sysSendmsg = sysSendmsg?.let { uniffi.shared.SysSendmsgConfig(it.pids) },
+        uprobes =
+            uprobes.map {
+                uniffi.shared.UprobeConfig(
+                    fnName = it.fnName,
+                    offset = it.offset,
+                    target = it.target,
+                    pid = it.pid,
+                )
+            },
+    )
 
 class RustClient(private val inner: uniffi.client.Client) : Client {
 
@@ -30,14 +95,14 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun checkServer() = inner.checkServer()
 
-    override suspend fun listProcesses(): List<Process> = inner.listProcesses()
+    override suspend fun listProcesses(): List<Process> = inner.listProcesses().map { it.into() }
 
-    override suspend fun getConfiguration(): Configuration = inner.getConfiguration()
+    override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
 
     override suspend fun setConfiguration(configuration: Configuration) =
-        inner.setConfiguration(configuration)
+        inner.setConfiguration(configuration.into())
 
-    override suspend fun initStream(): Flow<Event> = inner.initStreamFlow()
+    override suspend fun initStream(): Flow<Event> = inner.initStreamFlow().mapNotNull { it.into() }
 }
 
 class RustClientFactory(val url: String) : ClientFactory {

@@ -9,6 +9,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.amosproj3.ziofa.api.ConfigurationAccess
 import de.amosproj3.ziofa.api.ConfigurationUpdate
+import de.amosproj3.ziofa.client.Configuration
+import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
 import de.amosproj3.ziofa.ui.configuration.data.EbpfProgramOptions
 import de.amosproj3.ziofa.ui.configuration.data.WriteOption
@@ -20,9 +23,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import uniffi.shared.Configuration
-import uniffi.shared.SysSendmsgConfig
-import uniffi.shared.VfsWriteConfig
 
 class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : ViewModel() {
 
