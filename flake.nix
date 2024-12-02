@@ -185,6 +185,7 @@
 
           toolsDevShell = pkgs.mkShell {
             packages = packageGroups.combined;
+            ANDROID_NDK_TOOLCHAIN_DIR = "${(pkgs.androidSdk (_: packageGroups.sdkPkgs))}/share/android-sdk/ndk";
           };
 
           generateSbom =
@@ -199,7 +200,7 @@
             '';
 
           rustCiPreamble = ''
-            export PATH=${pkgs.lib.makeBinPath (with pkgs; [ protobuf clang cargo-ndk bpf-linker ] ++ packageGroups.rustPkgs)}:$PATH
+            export PATH=${pkgs.lib.makeBinPath (with pkgs; [ protobuf clang cargo-ndk bpf-linker python3 ] ++ packageGroups.rustPkgs)}:$PATH
             set -euo pipefail
           '';
           frontendCiPreamble =
