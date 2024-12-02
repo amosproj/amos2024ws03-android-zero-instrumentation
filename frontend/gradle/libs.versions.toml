@@ -6,11 +6,10 @@
 [versions]
 accompanistDrawablepainter = "0.36.0"
 activityCompose = "1.9.3"
-# @pin incompatible otherwise
-agp = "8.6.0"
+agp = "8.7.2"
 benmanes-versions = "0.51.0"
-compose-navigation = "2.8.0"
-composeBom = "2024.10.01"
+compose-navigation = "2.8.4"
+composeBom = "2024.11.00"
 coreKtx = "1.15.0"
 cyclonedx = "1.10.0"
 espressoCore = "3.6.1"
@@ -18,13 +17,13 @@ jna = "5.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 koin = "4.0.0"
-kotlin = "2.0.21"
-ktfmt = "0.20.1"
+kotlin = "2.1.0"
+ktfmt = "0.21.0"
 lifecycleRuntimeKtx = "2.8.7"
-rust-android = "0.9.4"
 timber = "5.0.1"
 versioncatalogueupdate = "0.8.5"
-vico = "2.0.0-beta.2"
+vico = "2.0.0-beta.3"
+coroutines = "1.9.0"
 
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanistDrawablepainter" }

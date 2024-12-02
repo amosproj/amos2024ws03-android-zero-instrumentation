@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -27,6 +28,7 @@ import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import com.patrykandpatrick.vico.compose.common.component.shapeComponent
 import com.patrykandpatrick.vico.compose.common.dimensions
+import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
@@ -74,7 +76,7 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                     ColumnCartesianLayer.ColumnProvider.series(
                         xLabels.map { _ ->
                             rememberLineComponent(
-                                color = Color(0xff6438a7),
+                                fill = fill(Color(0xff6438a7)),
                                 shape =
                                     CorneredShape.rounded(
                                         bottomLeftPercent = 40,
@@ -94,8 +96,8 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                                 padding = dimensions(8.dp, 2.dp),
                                 background =
                                     rememberShapeComponent(
-                                        MaterialTheme.colorScheme.secondary,
-                                        CorneredShape.Pill,
+                                        fill = fill(MaterialTheme.colorScheme.secondary),
+                                        shape = CorneredShape.Pill,
                                     ),
                             ),
                         title = chartMetadata.yLabel,
@@ -109,8 +111,8 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                                 padding = dimensions(8.dp, 2.dp),
                                 background =
                                     shapeComponent(
-                                        MaterialTheme.colorScheme.primary,
-                                        CorneredShape.Pill,
+                                        fill = fill(MaterialTheme.colorScheme.primary),
+                                        shape = CorneredShape.Pill,
                                     ),
                             ),
                         title = chartMetadata.xLabel,

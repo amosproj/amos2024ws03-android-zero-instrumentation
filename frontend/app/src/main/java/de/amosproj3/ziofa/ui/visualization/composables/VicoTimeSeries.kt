@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -82,8 +83,8 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                                 padding = dimensions(8.dp, 2.dp),
                                 background =
                                     rememberShapeComponent(
-                                        MaterialTheme.colorScheme.secondary,
-                                        CorneredShape.Pill,
+                                        fill = fill(MaterialTheme.colorScheme.secondary),
+                                        shape = CorneredShape.Pill,
                                     ),
                             ),
                         title = chartMetadata.yLabel,
@@ -97,8 +98,8 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                                 padding = dimensions(8.dp, 2.dp),
                                 background =
                                     shapeComponent(
-                                        MaterialTheme.colorScheme.primary,
-                                        CorneredShape.Pill,
+                                        fill = fill(MaterialTheme.colorScheme.primary),
+                                        shape = CorneredShape.Pill,
                                     ),
                             ),
                         title = chartMetadata.xLabel,
