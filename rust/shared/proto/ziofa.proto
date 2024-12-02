@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.com>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <68117355+Mr-Kanister@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 //
 // SPDX-License-Identifier: MIT
 
@@ -20,6 +21,7 @@ service Ziofa {
     rpc InitStream(google.protobuf.Empty) returns (stream Event) {}      // all Responses genereated by the ebpf-programms are send via this stream
 
     rpc TestOatFileExists(PidMessage) returns (OatFileExistsResponse){}
+    rpc TestSomeEntryMethod(PidMessage) returns (SomeEntryMethodResponse){}
 
 }
 
@@ -29,6 +31,10 @@ message PidMessage{
 
 message OatFileExistsResponse{
     repeated string paths = 1;
+}
+
+message SomeEntryMethodResponse{
+    uint64 content_length = 1;
 }
 
 

@@ -5,12 +5,12 @@
 // SPDX-License-Identifier: MIT
 
 use clap::Parser;
+use shared::ziofa::PidMessage;
 use shared::{
     config::{Configuration, SysSendmsgConfig, VfsWriteConfig},
     ziofa::ziofa_client::ZiofaClient,
 };
 use tonic::transport::Channel;
-use shared::ziofa::PidMessage;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -25,7 +25,6 @@ struct Args {
     /// for checking the oat_file_exists method
     #[arg(long)]
     pid: i32,
-
 }
 
 async fn test_oat_file_exist(client: &mut ZiofaClient<Channel>, pid: i32) {
@@ -42,6 +41,20 @@ async fn test_oat_file_exist(client: &mut ZiofaClient<Channel>, pid: i32) {
     println!();
 }
 
+async fn test_some_entry_method(client: &mut ZiofaClient<Channel>, pid: i32) {
+    println!("TEST checking some_entry_method");
+    match client.test_some_entry_method(PidMessage { pid }).await {
+        Ok(byte_size_of_odex_file) => {
+            println!("SUCCESS");
+            println!(
+                "Size of odex file in bytes: {}",
+                byte_size_of_odex_file.into_inner().content_length
+            )
+        }
+        Err(e) => println!("ERROR: {:?}", e),
+    };
+    println!();
+}
 
 async fn test_check_server(client: &mut ZiofaClient<Channel>) {
     println!("TEST check_server");
@@ -123,6 +136,7 @@ async fn main() {
     test_set_configuration(&mut client, config).await;
     test_list_processes(&mut client, args.verbose).await;
     test_oat_file_exist(&mut client, args.pid).await;
+    test_some_entry_method(&mut client, args.pid).await;
 
     if !args.verbose {
         println!("Note: To view verbose output, pass the \"-v\" flag.");

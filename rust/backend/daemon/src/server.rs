@@ -5,20 +5,19 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{ops::DerefMut, sync::Arc};
-use std::path::PathBuf;
 use crate::collector::MultiCollector;
+use crate::symbols_stuff::some_entry_method;
 use crate::{
     configuration, constants,
     counter::Counter,
     ebpf_utils::{EbpfErrorWrapper, State},
     procfs_utils::{list_processes, ProcErrorWrapper},
-    symbols_stuff::oat_file_exists,
+    symbols_stuff::get_oat_files,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use aya::Ebpf;
 use aya_log::EbpfLogger;
-use shared::ziofa::{Event, OatFileExistsResponse, PidMessage};
+use shared::ziofa::{Event, OatFileExistsResponse, PidMessage, SomeEntryMethodResponse};
 use shared::{
     config::Configuration,
     counter::counter_server::CounterServer,
@@ -27,6 +26,8 @@ use shared::{
         CheckServerResponse, ProcessList, SetConfigurationResponse,
     },
 };
+use std::path::PathBuf;
+use std::{ops::DerefMut, sync::Arc};
 use tokio::join;
 use tokio::sync::Mutex;
 use tonic::{transport::Server, Request, Response, Status};
@@ -50,8 +51,6 @@ impl ZiofaImpl {
             channel,
         }
     }
-
-
 }
 
 pub struct Channel {
@@ -73,7 +72,6 @@ impl Ziofa for ZiofaImpl {
         let response = CheckServerResponse {};
         Ok(Response::new(response))
     }
-
 
     async fn list_processes(&self, _: Request<()>) -> Result<Response<ProcessList>, Status> {
         let processes = list_processes().map_err(ProcErrorWrapper::from)?;
@@ -117,22 +115,27 @@ impl Ziofa for ZiofaImpl {
         Ok(Response::new(self.channel.rx.clone()))
     }
 
-
-    async fn test_oat_file_exists(&self, pid_message: Request<PidMessage>) -> Result<Response<OatFileExistsResponse>, Status> {
+    async fn test_oat_file_exists(
+        &self,
+        pid_message: Request<PidMessage>,
+    ) -> Result<Response<OatFileExistsResponse>, Status> {
         let pid = pid_message.into_inner().pid;
-        let paths: Vec<String> = oat_file_exists(pid)
+        let paths: Vec<String> = get_oat_files(pid)
             .map_err(ProcErrorWrapper::from)?
             .into_iter()
-            .map(
-                |path_thinig: PathBuf|{
-                    path_thinig.to_str().unwrap().to_string()
-                }
-            ).collect();
+            .map(|path_thing: PathBuf| path_thing.to_str().unwrap().to_string())
+            .collect();
         Ok(Response::new(OatFileExistsResponse { paths }))
     }
 
-
-
+    async fn test_some_entry_method(
+        &self,
+        pid_message: Request<PidMessage>,
+    ) -> Result<Response<SomeEntryMethodResponse>, Status> {
+        let pid = pid_message.into_inner().pid;
+        let content_length = some_entry_method(pid).map_err(ProcErrorWrapper::from)?;
+        Ok(Response::new(SomeEntryMethodResponse { content_length }))
+    }
 }
 
 pub async fn serve_forever() {
