@@ -32,3 +32,4 @@ gradle.rootProject{
 }
 include(":app")
 include(":client")
+include(":bindings")

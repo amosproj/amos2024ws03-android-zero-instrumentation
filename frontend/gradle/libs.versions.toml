@@ -53,6 +53,7 @@ vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "vi
 vico-compose-m2 = { module = "com.patrykandpatrick.vico:compose-m2", version.ref = "vico" }
 vico-compose-m3 = { module = "com.patrykandpatrick.vico:compose-m3", version.ref = "vico" }
 vico-core = { module = "com.patrykandpatrick.vico:core", version.ref = "vico" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
 
 [plugins]
@@ -64,5 +65,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 nl-littlerobots-versioncatalogueupdate = { id = "nl.littlerobots.version-catalog-update", version.ref = "versioncatalogueupdate" }
 org-cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
-rust-android = { id = "org.mozilla.rust-android-gradle.rust-android", version.ref = "rust-android" }
 rust-uniffi = { id = "rust.uniffi", version = "unspecified" }
