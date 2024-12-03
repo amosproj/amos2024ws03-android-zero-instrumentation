@@ -52,7 +52,7 @@ fun VisualizationScreen(
                 is VisualizationScreenState.MetricSelectionValid -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        filterSelected = { viewModel.filterSelected(it) },
+                        filterSelected = { viewModel.componentSelected(it) },
                         metricSelected = { viewModel.metricSelected(it) },
                         timeframeSelected = { viewModel.timeframeSelected(it) },
                     )
@@ -62,7 +62,7 @@ fun VisualizationScreen(
                 is VisualizationScreenState.WaitingForMetricSelection -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        filterSelected = { viewModel.filterSelected(it) },
+                        filterSelected = { viewModel.componentSelected(it) },
                         metricSelected = { viewModel.metricSelected(it) },
                         timeframeSelected = { viewModel.timeframeSelected(it) },
                     )

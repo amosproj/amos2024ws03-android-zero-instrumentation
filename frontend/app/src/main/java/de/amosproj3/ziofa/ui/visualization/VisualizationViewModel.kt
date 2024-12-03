@@ -39,8 +39,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import timber.log.Timber
 
 class VisualizationViewModel(
     private val backendConfigurationAccess: BackendConfigurationAccess,
@@ -55,29 +58,35 @@ class VisualizationViewModel(
     private val displayMode = MutableStateFlow(VisualizationDisplayMode.EVENTS)
 
     // Derived selection data
+    // This needs to be a StateFlow or else we will update the graphed data with every process list
+    // update and get flickering on the UI
     private val selectionData =
         combine(
-            selectedComponent,
-            selectedMetric,
-            selectedTimeframe,
-            runningComponentsAccess.runningComponentsList,
-            backendConfigurationAccess.backendConfiguration,
-        ) { activeComponent, activeMetric, activeTimeframe, runningComponents, backendConfig ->
-            if (backendConfig !is ConfigurationUpdate.Valid) return@combine DEFAULT_SELECTION_DATA
-            val configuredComponents =
-                runningComponents.filter { runningComponent ->
-                    backendConfig.toUIOptionsForPids(runningComponent.pids).any { it.active }
-                }
-            SelectionData(
-                selectedComponent = activeComponent,
-                selectedMetric = activeMetric,
-                selectedTimeframe = activeTimeframe,
-                componentOptions = configuredComponents.toUIOptions(),
-                metricOptions =
-                    backendConfig.getMetricOptionsForPids(pids = activeComponent.getPIDsOrNull()),
-                timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
-            )
-        }
+                selectedComponent,
+                selectedMetric,
+                selectedTimeframe,
+                runningComponentsAccess.runningComponentsList,
+                backendConfigurationAccess.backendConfiguration,
+            ) { activeComponent, activeMetric, activeTimeframe, runningComponents, backendConfig ->
+                if (backendConfig !is ConfigurationUpdate.Valid)
+                    return@combine DEFAULT_SELECTION_DATA
+                val configuredComponents =
+                    runningComponents.filter { runningComponent ->
+                        backendConfig.toUIOptionsForPids(runningComponent.pids).any { it.active }
+                    }
+                SelectionData(
+                    selectedComponent = activeComponent,
+                    selectedMetric = activeMetric,
+                    selectedTimeframe = activeTimeframe,
+                    componentOptions = configuredComponents.toUIOptions(),
+                    metricOptions =
+                        backendConfig.getMetricOptionsForPids(
+                            pids = activeComponent.getPIDsOrNull()
+                        ),
+                    timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.Lazily, DEFAULT_SELECTION_DATA)
 
     /**
      * Based on the [selectionData] and [displayMode], switch to a new flow everytime it changes.
@@ -88,6 +97,7 @@ class VisualizationViewModel(
     val visualizationScreenState =
         combine(selectionData, displayMode) { a, b -> a to b }
             .flatMapLatest { (selection, mode) ->
+                Timber.i("Data flow changed!")
                 if (
                     selection.selectedMetric != null &&
                         selection.selectedMetric is DropdownOption.MetricOption &&
@@ -101,6 +111,8 @@ class VisualizationViewModel(
                             visualizationMetaData = selection.selectedMetric.getChartMetadata(),
                             mode = mode,
                         )
+                        .onStart { Timber.i("Subscribed to displayed data") }
+                        .onCompletion { Timber.i("Displayed data completed") }
                         .map { VisualizationScreenState.MetricSelectionValid(it, selection, mode) }
                 } else {
                     flowOf(VisualizationScreenState.WaitingForMetricSelection(selection, mode))
@@ -113,12 +125,14 @@ class VisualizationViewModel(
             )
 
     /** Called when a filter is selected */
-    fun filterSelected(filterOption: DropdownOption) {
-        selectedComponent.value = filterOption
+    fun componentSelected(componentOption: DropdownOption) {
+        Timber.i("filterSelected()")
+        selectedComponent.value = componentOption
     }
 
     /** Called when a metric is selected */
     fun metricSelected(metricOption: DropdownOption) {
+        Timber.i("metricSelected()")
         if (metricOption is DropdownOption.MetricOption) {
             selectedMetric.value = metricOption
         } else {
@@ -128,6 +142,7 @@ class VisualizationViewModel(
 
     /** Called when a timeframe is selected */
     fun timeframeSelected(timeframeOption: DropdownOption) {
+        Timber.i("timeframeSelected()")
         if (timeframeOption is DropdownOption.TimeframeOption) {
             selectedTimeframe.value = timeframeOption
         } else {
