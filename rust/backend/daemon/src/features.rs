@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -89,12 +90,15 @@ impl JNIReferences {
                 .try_into()?;
             let offset = todo!("get offset of symbol");
             let target = todo!("get absolute path to library/ binary");
-            /*self.trace_add_local = Some(jni_add_local.attach(
+            /*let link_id = jni_add_local.attach(
                 Some("AddLocalRef"),
                 offset,
                 target,
                 None
-            )?);*/
+            )?;
+            self.trace_add_local = Some(jni_add_local.take_link(link_id)?);*/
+
+
         }
 
         if self.trace_del_local.is_none() {
@@ -110,12 +114,13 @@ impl JNIReferences {
             let offset = todo!("get offset of symbol");
             let target = todo!("get absolute path to library/ binary");
 
-            /*self.trace_del_local = Some(jni_del_local.attach(
-                Some("DeleteLocalRef"),
+            /*let link_id = jni_add_global.attach(
+                Some("AddGlobalRef"),
                 offset,
                 target,
                 None
-            )?);*/
+            )?;
+            self.trace_add_global = Some(jni_add_global.take_link(link_id)?);*/
         }
 
         if self.trace_add_global.is_none() {
@@ -131,12 +136,13 @@ impl JNIReferences {
             let offset = todo!("get offset of symbol");
             let target = todo!("get absolute path to library/ binary");
 
-            /*self.trace_add_global = Some(jni_add_global.attach(
+            /*let link_id = jni_add_global.attach(
                 Some("AddGlobalRef"),
                 offset,
                 target,
                 None
-            )?);*/
+            )?;
+            self.trace_add_global = Some(jni_add_global.take_link(link_id)?);*/
         }
 
         if self.trace_del_global.is_none() {
@@ -152,73 +158,23 @@ impl JNIReferences {
             let offset = todo!("get offset of symbol");
             let target = todo!("get absolute path to library/ binary");
 
-            /*self.trace_del_global = Some(jni_del_global.attach(
+            /*let link_id = jni_del_global.attach(
                 Some("DeleteGlobalRef"),
                 offset,
                 target,
                 None
-            )?);*/
+            )?;
+            self.trace_del_global = Some(jni_del_global.take_link(link_id)?);*/
         }
 
         Ok(())
     }
 
     pub fn detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
-        // AddLocalRef
-        let jni_add_local: &mut UProbe = ebpf
-            .program_mut("trace_add_local")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "trace_add_local".to_string(),
-                },
-            ))?
-            .try_into()?;
-
-        if let Some(trace_add_local) = self.trace_add_local.take() {
-            jni_add_local.detach(trace_add_local)?;
-        }
-
-        //DeleteLocalRef
-        let jni_del_local: &mut UProbe = ebpf
-            .program_mut("trace_del_local")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "trace_del_local".to_string(),
-                },
-            ))?
-            .try_into()?;
-
-        if let Some(trace_del_local) = self.trace_del_local.take() {
-            jni_del_local.detach(trace_del_local)?;
-        }
-
-        //AddGlobalRef
-        let jni_add_global: &mut UProbe = ebpf
-            .program_mut("trace_add_global")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "trace_add_global".to_string(),
-                },
-            ))?
-            .try_into()?;
-
-        if let Some(trace_add_global) = self.trace_add_global.take() {
-            jni_add_global.detach(trace_add_global)?;
-        }
-
-        //DeleteGlobalRef
-        let jni_del_global: &mut UProbe = ebpf
-            .program_mut("trace_del_global")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "trace_del_global".to_string(),
-                },
-            ))?
-            .try_into()?;
-
-        if let Some(trace_del_global) = self.trace_del_global.take() {
-            jni_del_global.detach(trace_del_global)?;
-        }
+        let _ = self.trace_add_local.take();
+        let _ = self.trace_del_local.take();
+        let _ = self.trace_add_global.take();
+        let _ = self.trace_del_global.take();
 
         Ok(())
     }
