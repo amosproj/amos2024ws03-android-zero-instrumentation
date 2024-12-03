@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.amosproj3.ziofa.api.RunningComponent
 import de.amosproj3.ziofa.api.RunningComponentsAccess
-import de.amosproj3.ziofa.ui.shared.AccessedFromUI
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -16,7 +15,6 @@ import kotlinx.coroutines.flow.stateIn
 
 class ProcessesViewModel(runningComponentsProvider: RunningComponentsAccess) : ViewModel() {
 
-    @AccessedFromUI
     val applicationsAndProcessesList =
         runningComponentsProvider.runningComponentsList
             .sortApplicationsFirst()

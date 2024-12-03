@@ -118,11 +118,11 @@ fun MetricSelection(
 ) {
     Row(Modifier.fillMaxWidth()) {
         MetricDropdown(
-            selectionData.filterOptions,
+            selectionData.componentOptions,
             "Select a package",
             modifier = Modifier.weight(1f).padding(end = 0.dp),
             optionSelected = { filterSelected(it) },
-            selectedOption = selectionData.selectedFilter.displayName,
+            selectedOption = selectionData.selectedComponent.displayName,
         )
         selectionData.metricOptions
             ?.takeIf { it.isNotEmpty() }

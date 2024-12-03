@@ -83,26 +83,30 @@ object RustClient : Client {
     override suspend fun initStream(): Flow<Event> = flow {
         while (true) {
             delay(Random.nextUInt(500u).toLong())
-            emit(
-                Event.VfsWrite(
-                    pid = 12415u,
-                    tid = 1234u,
-                    fp = 125123123u,
-                    bytesWritten = 123121u,
-                    beginTimeStamp = 12312412u,
-                )
-            )
 
-            emit(
-                Event.SysSendmsg(
-                    pid = 12345u,
-                    tid = 1234u,
-                    fd = 125123123u,
-                    durationNanoSecs =
-                        (System.currentTimeMillis() + Random.nextLong(1000)).toULong(),
-                    beginTimeStamp = System.currentTimeMillis().toULong(),
+            configuration.vfsWrite?.entries?.keys?.forEach {
+                emit(
+                    Event.VfsWrite(
+                        pid = it,
+                        tid = 1234u,
+                        fp = 125123123u,
+                        bytesWritten = 123121u,
+                        beginTimeStamp = 12312412u,
+                    )
                 )
-            )
+            }
+            configuration.sysSendmsg?.entries?.keys?.forEach {
+                emit(
+                    Event.SysSendmsg(
+                        pid = it,
+                        tid = 1234u,
+                        fd = 125123123u,
+                        durationNanoSecs =
+                            (System.currentTimeMillis() + Random.nextLong(1000)).toULong(),
+                        beginTimeStamp = System.currentTimeMillis().toULong(),
+                    )
+                )
+            }
         }
     }
 }

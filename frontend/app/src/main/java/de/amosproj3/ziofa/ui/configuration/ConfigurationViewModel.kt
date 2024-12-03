@@ -14,7 +14,6 @@ import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
-import de.amosproj3.ziofa.ui.shared.AccessedFromUI
 import de.amosproj3.ziofa.ui.shared.DURATION_THRESHOLD
 import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,14 +30,12 @@ class ConfigurationViewModel(
     private val pids: List<UInt>,
 ) : ViewModel() {
 
-    @AccessedFromUI
     val configurationScreenState =
         localConfigurationAccess.localConfiguration
             .onEach { Timber.i("Update from UI: $it") }
             .map { it.toConfigurationScreenState(pids) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.Loading)
 
-    @AccessedFromUI
     val changed =
         combine(
                 localConfigurationAccess.localConfiguration,
@@ -48,7 +45,6 @@ class ConfigurationViewModel(
             }
             .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
-    @AccessedFromUI
     fun optionChanged(option: BackendFeatureOptions, active: Boolean) {
         if (configurationScreenState.value is ConfigurationScreenState.Valid) {
             when (option) {
@@ -76,7 +72,6 @@ class ConfigurationViewModel(
     }
 
     /** Submit the configuration changes to the backend. */
-    @AccessedFromUI
     fun configurationSubmitted() {
         viewModelScope.launch { localConfigurationAccess.submitConfiguration() }
     }

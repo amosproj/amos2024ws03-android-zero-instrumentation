@@ -4,6 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.utils
 
+import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
@@ -32,10 +33,10 @@ val DEFAULT_GRAPHED_DATA = GraphedData.EMPTY // TODO replace with reasonable def
 
 val DEFAULT_SELECTION_DATA =
     SelectionData(
-        filterOptions = listOf(DropdownOption.Global),
+        componentOptions = listOf(DropdownOption.Global),
         metricOptions = null,
         timeframeOptions = null,
-        selectedFilter = DropdownOption.Global,
+        selectedComponent = DropdownOption.Global,
         selectedMetric = null,
         selectedTimeframe = null,
     )
@@ -43,22 +44,17 @@ val DEFAULT_SELECTION_DATA =
 val DEFAULT_CHART_METADATA = // TODO replace with reasonable defaults
     VisualizationMetaData(xLabel = "x", yLabel = "y")
 
-object BackendFeature {
-    val VFS_WRITE = DropdownOption.MetricOption("VFS Write")
-    val SEND_MESSAGE = DropdownOption.MetricOption("Send Message Events Write")
-    val UPROBE = DropdownOption.MetricOption("uprobe")
+fun DropdownOption.MetricOption.getChartMetadata(): VisualizationMetaData {
+    return when (this.backendFeature) {
+        is BackendFeatureOptions.VfsWriteOption ->
+            VisualizationMetaData("Top file descriptors", "File Descriptor Name")
 
-    fun getChartMetadata(metricOption: DropdownOption.MetricOption): VisualizationMetaData {
-        return when (metricOption) {
-            VFS_WRITE -> VisualizationMetaData("Top file descriptors", "File Descriptor Name")
+        is BackendFeatureOptions.SendMessageOption ->
+            VisualizationMetaData("Average duration of messages", "Seconds since start")
 
-            SEND_MESSAGE ->
-                VisualizationMetaData("Average duration of messages", "Seconds since start")
-
-            else -> {
-                Timber.e("needs metadata!")
-                DEFAULT_CHART_METADATA
-            }
+        else -> {
+            Timber.e("needs metadata!")
+            DEFAULT_CHART_METADATA
         }
     }
 }

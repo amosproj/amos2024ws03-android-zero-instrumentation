@@ -17,7 +17,7 @@ fun DropdownOption.getPIDsOrNull(): List<UInt>? {
     }
 }
 
-fun List<RunningComponent>.toFilterOptions() =
+fun List<RunningComponent>.toUIOptions() =
     this.map {
         when (it) {
             is RunningComponent.Application ->
