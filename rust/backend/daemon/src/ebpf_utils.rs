@@ -48,7 +48,7 @@ impl State {
         ebpf: &mut Ebpf,
         config: &Configuration,
     ) -> Result<(), EbpfError> {
-        self.vfs_write_feature.attach(ebpf)?;
+        self.vfs_write_feature.apply(ebpf, config.vfs_write.as_ref())?;
         self.sys_sendmsg_feature.apply(ebpf, config.sys_sendmsg.as_ref())?;
 
         Ok(())

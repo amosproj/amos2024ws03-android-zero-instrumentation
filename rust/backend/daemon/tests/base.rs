@@ -63,8 +63,8 @@ async fn set_get_configuration() {
     let mut client = setup().await;
     let default_config = Configuration {
         uprobes: vec![],
-        vfs_write: Some(VfsWriteConfig { pids: vec![] }),
-        sys_sendmsg: Some(SysSendmsgConfig { pids: vec![] }),
+        vfs_write: Some(VfsWriteConfig { entries: std::collections::HashMap::new() }),
+        sys_sendmsg: Some(SysSendmsgConfig { entries: std::collections::HashMap::new() }),
     };
     assert_eq!(
         client

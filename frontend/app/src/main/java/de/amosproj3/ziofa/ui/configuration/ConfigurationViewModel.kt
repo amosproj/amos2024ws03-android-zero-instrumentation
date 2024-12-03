@@ -32,8 +32,9 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
     private val checkedOptions =
         MutableStateFlow(
             EbpfProgramOptions(
-                vfsWriteOption = WriteOption.VfsWriteOption(enabled = false, pids = listOf()),
-                sendMessageOption = WriteOption.SendMessageOption(enabled = false, pids = listOf()),
+                vfsWriteOption = WriteOption.VfsWriteOption(enabled = false, entries = mapOf()),
+                sendMessageOption =
+                    WriteOption.SendMessageOption(enabled = false, entries = mapOf()),
             )
         )
 
@@ -60,7 +61,8 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
                 vfsWriteOption =
                     WriteOption.VfsWriteOption(
                         enabled = newState,
-                        pids = pids?.let { it.map { it.toUInt() } } ?: listOf(),
+                        entries =
+                            pids?.let { it.map { it.toUInt() }.associateWith { 100u } } ?: mapOf(),
                     )
             )
         }
@@ -74,7 +76,8 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
                 sendMessageOption =
                     WriteOption.SendMessageOption(
                         enabled = newState,
-                        pids = pids?.let { it.map { it.toUInt() } } ?: listOf(),
+                        entries =
+                            pids?.let { it.map { it.toUInt() }.associateWith { 100u } } ?: mapOf(),
                     )
             )
         }
@@ -111,13 +114,13 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
     private fun ConfigurationUpdate.Valid.toUIOptions(): EbpfProgramOptions {
         val vfsOption =
             this.configuration.vfsWrite?.let {
-                WriteOption.VfsWriteOption(enabled = true, pids = it.pids)
-            } ?: WriteOption.VfsWriteOption(enabled = false, pids = listOf())
+                WriteOption.VfsWriteOption(enabled = true, entries = it.entries)
+            } ?: WriteOption.VfsWriteOption(enabled = false, entries = mapOf())
 
         val sendMsgOption =
             this.configuration.sysSendmsg?.let {
-                WriteOption.SendMessageOption(enabled = true, pids = it.pids)
-            } ?: WriteOption.SendMessageOption(enabled = false, pids = listOf())
+                WriteOption.SendMessageOption(enabled = true, entries = it.entries)
+            } ?: WriteOption.SendMessageOption(enabled = false, entries = mapOf())
 
         return EbpfProgramOptions(vfsWriteOption = vfsOption, sendMessageOption = sendMsgOption)
     }
@@ -125,11 +128,11 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
     private fun EbpfProgramOptions.toConfiguration(): Configuration {
         val vfsConfig =
             if (this.vfsWriteOption.enabled) {
-                VfsWriteConfig(this.vfsWriteOption.pids)
+                VfsWriteConfig(this.vfsWriteOption.entries)
             } else null
         val sendMessageConfig =
             if (this.sendMessageOption.enabled) {
-                SysSendmsgConfig(this.sendMessageOption.pids)
+                SysSendmsgConfig(this.sendMessageOption.entries)
             } else null
 
         return Configuration(

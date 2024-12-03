@@ -7,8 +7,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-pub const TIME_LIMIT_NS: u64 = 1_000_000;
-
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VfsWriteCall {

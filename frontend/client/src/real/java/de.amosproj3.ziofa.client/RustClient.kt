@@ -49,8 +49,8 @@ private fun uniffi.shared.Event.into() =
 
 private fun uniffi.shared.Configuration.into() =
     Configuration(
-        vfsWrite = vfsWrite?.let { VfsWriteConfig(pids = it.pids) },
-        sysSendmsg = sysSendmsg?.let { SysSendmsgConfig(pids = it.pids) },
+        vfsWrite = vfsWrite?.let { VfsWriteConfig(entries = it.entries) },
+        sysSendmsg = sysSendmsg?.let { SysSendmsgConfig(entries = it.entries) },
         uprobes =
             uprobes.map {
                 UprobeConfig(
@@ -64,8 +64,8 @@ private fun uniffi.shared.Configuration.into() =
 
 private fun Configuration.into() =
     uniffi.shared.Configuration(
-        vfsWrite = vfsWrite?.let { uniffi.shared.VfsWriteConfig(it.pids) },
-        sysSendmsg = sysSendmsg?.let { uniffi.shared.SysSendmsgConfig(it.pids) },
+        vfsWrite = vfsWrite?.let { uniffi.shared.VfsWriteConfig(it.entries) },
+        sysSendmsg = sysSendmsg?.let { uniffi.shared.SysSendmsgConfig(it.entries) },
         uprobes =
             uprobes.map {
                 uniffi.shared.UprobeConfig(
