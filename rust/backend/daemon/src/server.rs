@@ -133,7 +133,7 @@ impl Ziofa for ZiofaImpl {
         pid_message: Request<PidMessage>,
     ) -> Result<Response<SomeEntryMethodResponse>, Status> {
         let pid = pid_message.into_inner().pid;
-        let content_length = some_entry_method(pid).map_err(ProcErrorWrapper::from)?;
+        let content_length = some_entry_method(pid).await.map_err(ProcErrorWrapper::from)?;
         Ok(Response::new(SomeEntryMethodResponse { content_length }))
     }
 }
