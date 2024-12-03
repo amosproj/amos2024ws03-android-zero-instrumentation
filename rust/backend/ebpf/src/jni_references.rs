@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use core::mem;
 use aya_ebpf::{maps::RingBuf, macros::{uprobe, map}, programs::{ProbeContext}, EbpfContext, helpers::bpf_ktime_get_ns};
 use aya_log_ebpf::error;
