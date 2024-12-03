@@ -4,19 +4,29 @@
 
 use core::mem;
 use aya_ebpf::{maps::RingBuf, macros::{uprobe, map}, programs::{ProbeContext}, EbpfContext, helpers::bpf_ktime_get_ns};
+use aya_ebpf::maps::HashMap;
 use aya_log_ebpf::error;
 use backend_common::{JNICall, JNIMethodName};
 
 const MAP_MAX_ENTRIES: u32 = 100;
 
-#[map(name = "JNI_CALLS" )]
-static JNI_CALLS: RingBuf = RingBuf::with_byte_size(MAP_MAX_ENTRIES * mem::size_of::<JNICall>() as u32, 0);
+#[map(name = "JNI_REF_CALLS" )]
+static JNI_REF_CALLS: RingBuf = RingBuf::with_byte_size(MAP_MAX_ENTRIES * mem::size_of::<JNICall>() as u32, 0);
+
+#[map(name = "JNI_REF_PIDS")]
+static JNI_REF_PIDS: HashMap<u32, u32> = HashMap::with_max_entries(4096, 0);
+
 
 #[uprobe]
 pub fn trace_add_local(ctx: ProbeContext) -> u32 {
     let time_stamp: u64 = unsafe { bpf_ktime_get_ns() };
     let pid = ctx.pid();
     let tid = ctx.tgid();
+
+    if unsafe { JNI_REF_PIDS.get(&pid).is_none() } {
+        // don't track calls from this pid
+        return 0;
+    }
 
     let call = JNICall {
         pid: pid,
@@ -25,10 +35,10 @@ pub fn trace_add_local(ctx: ProbeContext) -> u32 {
         method_name: JNIMethodName::AddLocalRef,
     };
 
-    let mut entry = match JNI_CALLS.reserve::<JNICall>(0) {
+    let mut entry = match JNI_REF_CALLS.reserve::<JNICall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in map: JNI_CALLS");
+            error!(&ctx, "could not reserve space in map: JNI_REF_CALLS");
             return 1;
         }
     };
@@ -45,6 +55,11 @@ pub fn trace_del_local(ctx: ProbeContext) -> u32 {
     let pid = ctx.pid();
     let tid = ctx.tgid();
 
+    if unsafe { JNI_REF_PIDS.get(&pid).is_none() } {
+        // don't track calls from this pid
+        return 0;
+    }
+
     let call = JNICall {
         pid: pid,
         tid: tid,
@@ -52,10 +67,10 @@ pub fn trace_del_local(ctx: ProbeContext) -> u32 {
         method_name: JNIMethodName::DeleteLocalRef,
     };
 
-    let mut entry = match JNI_CALLS.reserve::<JNICall>(0) {
+    let mut entry = match JNI_REF_CALLS.reserve::<JNICall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in map: JNI_CALLS");
+            error!(&ctx, "could not reserve space in map: JNI_REF_CALLS");
             return 1;
         }
     };
@@ -72,6 +87,11 @@ pub fn trace_add_global(ctx: ProbeContext) -> u32 {
     let pid = ctx.pid();
     let tid = ctx.tgid();
 
+    if unsafe { JNI_REF_PIDS.get(&pid).is_none() } {
+        // don't track calls from this pid
+        return 0;
+    }
+
     let call = JNICall {
         pid: pid,
         tid: tid,
@@ -79,10 +99,10 @@ pub fn trace_add_global(ctx: ProbeContext) -> u32 {
         method_name: JNIMethodName::AddGlobalRef,
     };
 
-    let mut entry = match JNI_CALLS.reserve::<JNICall>(0) {
+    let mut entry = match JNI_REF_CALLS.reserve::<JNICall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in map: JNI_CALLS");
+            error!(&ctx, "could not reserve space in map: JNI_REF_CALLS");
             return 1;
         }
     };
@@ -99,6 +119,11 @@ pub fn trace_del_global(ctx: ProbeContext) -> u32 {
     let pid = ctx.pid();
     let tid = ctx.tgid();
 
+    if unsafe { JNI_REF_PIDS.get(&pid).is_none() } {
+        // don't track calls from this pid
+        return 0;
+    }
+
     let call = JNICall {
         pid: pid,
         tid: tid,
@@ -106,10 +131,10 @@ pub fn trace_del_global(ctx: ProbeContext) -> u32 {
         method_name: JNIMethodName::DeleteGlobalRef,
     };
 
-    let mut entry = match JNI_CALLS.reserve::<JNICall>(0) {
+    let mut entry = match JNI_REF_CALLS.reserve::<JNICall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in map: JNI_CALLS");
+            error!(&ctx, "could not reserve space in map: JNI_REF_CALLS");
             return 1;
         }
     };
