@@ -12,9 +12,9 @@ data class Configuration(
     val uprobes: List<UprobeConfig>,
 )
 
-data class VfsWriteConfig(val pids: List<UInt>)
+data class VfsWriteConfig(val entries: Map<UInt, ULong>)
 
-data class SysSendmsgConfig(val pids: List<UInt>)
+data class SysSendmsgConfig(val entries: Map<UInt, ULong>)
 
 data class UprobeConfig(val fnName: String, val offset: ULong, var target: String, val pid: Int?)
 

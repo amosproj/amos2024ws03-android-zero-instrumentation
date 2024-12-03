@@ -11,7 +11,7 @@ data class EbpfProgramOptions(
 )
 
 sealed class WriteOption() {
-    data class VfsWriteOption(val enabled: Boolean, val pids: List<UInt>)
+    data class VfsWriteOption(val enabled: Boolean, val entries: Map<UInt, ULong>)
 
-    data class SendMessageOption(val enabled: Boolean, val pids: List<UInt>)
+    data class SendMessageOption(val enabled: Boolean, val entries: Map<UInt, ULong>)
 }
