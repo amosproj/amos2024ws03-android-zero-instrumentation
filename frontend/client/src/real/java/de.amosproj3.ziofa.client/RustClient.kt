@@ -42,7 +42,7 @@ private fun uniffi.shared.Event.into() =
                 tid = d.v1.tid,
                 beginTimeStamp = d.v1.beginTimeStamp,
                 fd = d.v1.fd,
-                durationMicroSec = d.v1.durationMicroSec,
+                durationNanoSecs = d.v1.durationNanoSec,
             )
         null -> null
     }

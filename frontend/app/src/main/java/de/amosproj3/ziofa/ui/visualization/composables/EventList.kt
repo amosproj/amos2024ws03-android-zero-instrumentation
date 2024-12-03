@@ -39,7 +39,7 @@ fun EventList(events: List<WriteEvent>) {
                 when (event) {
                     is WriteEvent.SendMessageEvent -> {
                         Text(
-                            text = (event.durationMicros / 1_000u).toString(),
+                            text = (event.durationNanos / 1_000_000u).toString(),
                             modifier = Modifier.weight(1f),
                         )
                     }

@@ -23,6 +23,6 @@ sealed class WriteEvent(
         val pid: UInt,
         val tid: UInt,
         val beginTimestamp: ULong,
-        val durationMicros: ULong,
-    ) : WriteEvent(fd, pid, beginTimestamp, durationMicros)
+        val durationNanos: ULong,
+    ) : WriteEvent(fd, pid, beginTimestamp, durationNanos)
 }
