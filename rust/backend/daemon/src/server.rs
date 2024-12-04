@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::collector::MultiCollector;
-use crate::symbols::{self, get_symbol_offset_for_function_of_process, SymbolHandler};
+use crate::symbols::SymbolHandler;
 use crate::{
     configuration, constants,
     counter::Counter,
@@ -17,7 +17,7 @@ use async_broadcast::{broadcast, Receiver, Sender};
 use aya::Ebpf;
 use aya_log::EbpfLogger;
 use shared::ziofa::{
-    Event, GetAddressOfSymbolRequest, GetAddressOfSymbolResponse, GetSymbolsOfProcessRequest,
+    Event, GetSymbolsRequest,
     PidMessage, StringResponse, Symbol,
 };
 use shared::{
@@ -28,6 +28,7 @@ use shared::{
         CheckServerResponse, ProcessList, SetConfigurationResponse,
     },
 };
+use std::path::PathBuf;
 use std::{ops::DerefMut, sync::Arc};
 use tokio::join;
 use tokio::sync::{mpsc, Mutex};
@@ -121,55 +122,83 @@ impl Ziofa for ZiofaImpl {
     }
 
     type GetOdexFilesStream = ReceiverStream<Result<StringResponse, Status>>;
+
+    // TODO: What is this function for?
     async fn get_odex_files(
         &self,
         request: Request<PidMessage>,
     ) -> Result<Response<Self::GetOdexFilesStream>, Status> {
         let pid = request.into_inner().pid;
-        let symbol_handler_guard = self.symbol_handler.lock().await;
-        let odex_paths = symbol_handler_guard.get_odex_paths(pid)?.clone();
 
         let (tx, rx) = mpsc::channel(4);
 
+        let symbol_handler_clone = self.symbol_handler.clone();
+
+        // let symbol_handler_guard = self.symbol_handler.lock().await;
+        // let odex_paths = symbol_handler_guard.get_odex_paths(pid)?;
+
         tokio::spawn(async move {
+            let mut symbol_handler_guard = symbol_handler_clone.lock().await;
+            // TODO Error Handling
+            let odex_paths = match symbol_handler_guard.get_odex_paths(pid) {
+                Ok(paths) => paths,
+                Err(e) => {
+                    tx.send(Err(Status::from(e)))
+                        .await
+                        .expect("Error sending Error to client ._.");
+                    return;
+                }
+            };
+
             for path in odex_paths {
                 tx.send(Ok(StringResponse {
                     name: path.to_str().unwrap().to_string(),
-                }));
+                }))
+                .await
+                .expect("Error sending odex file to client");
             }
         });
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
 
-    type GetSymbolsOfProcessStream = ReceiverStream<Result<Symbol, Status>>;
+    type GetSymbolsStream = ReceiverStream<Result<Symbol, Status>>;
 
-    async fn get_symbols_of_process(
+    async fn get_symbols(
         &self,
-        request: Request<GetSymbolsOfProcessRequest>,
-    ) -> Result<Response<Self::GetSymbolsOfProcessStream>, Status> {
-        let process = request.into_inner();
-        let pid = process.pid;
-        let package_name = process.package_name;
+        request: Request<GetSymbolsRequest>,
+    ) -> Result<Response<Self::GetSymbolsStream>, Status> {
+        let process_request = request.into_inner();
+        let pid = process_request.pid;
+        let odex_file_path_string = process_request.odex_file_path;
+        let odex_file_path = PathBuf::from(odex_file_path_string);
 
-        Ok(Response::new(SymbolList {
-            names: symbols::get_symbols_of_pid(pid, &package_name).await?,
-        }))
-    }
+        let symbol_handler_clone = self.symbol_handler.clone();
 
-    async fn get_address_of_symbol(
-        &self,
-        request: Request<GetAddressOfSymbolRequest>,
-    ) -> Result<Response<GetAddressOfSymbolResponse>, Status> {
-        let request_inner = request.into_inner();
-        let symbol_name = request_inner.name;
-        let pid = request_inner.pid;
-        let package_name = request_inner.package_name;
+        let (tx, rx) = mpsc::channel(4);
+        tokio::spawn(async move {
+            let mut symbol_handler_guard = symbol_handler_clone.lock().await;
 
-        let offset =
-            get_symbol_offset_for_function_of_process(pid, &package_name, &symbol_name).await?;
+            let symbol = match symbol_handler_guard.get_symbols(pid, &odex_file_path).await{
+                Ok(symbol) => symbol,
+                Err(e) => {
+                    tx.send(Err(Status::from(e)))
+                        .await
+                        .expect("Error sending Error to client ._.");
+                    return;
+                }
+            };
+            for (symbol, offset) in symbol.iter() {
+                tx.send(Ok(Symbol{
+                    method: symbol.to_string(),
+                    offset: *offset,
+                }))
+                    .await
+                    .expect("Error sending odex file to client");
+            }
+        });
 
-        Ok(Response::new(GetAddressOfSymbolResponse { offset }))
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 }
 
@@ -191,7 +220,7 @@ pub async fn serve_forever() {
     let mut state = State::new();
     state.init(&mut ebpf).expect("should work");
 
-    let mut symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
+    let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
 
     let ebpf = Arc::new(Mutex::new(ebpf));
     let state = Arc::new(Mutex::new(state));

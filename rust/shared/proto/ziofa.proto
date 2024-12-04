@@ -21,33 +21,21 @@ service Ziofa {
     rpc InitStream(google.protobuf.Empty) returns (stream Event) {}      // all Responses genereated by the ebpf-programms are send via this stream
 
     rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
-    rpc GetSymbolsOfProcess(GetSymbolsOfProcessRequest) returns (stream Symbol){}
-    rpc GetAddressOfSymbol(GetAddressOfSymbolRequest) returns (GetAddressOfSymbolResponse){}
-
+    rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
 }
 
 message StringResponse {
     string name = 1;
 }
 
-message GetSymbolsOfProcessRequest {
+message GetSymbolsRequest {
     int32 pid = 1;
-    string package_name = 2;
+    string odex_file_path = 2;
 }
 
 message Symbol {
     string method = 1;
     uint64 offset = 2;
-}
-
-message GetAddressOfSymbolRequest {
-    string name = 1;
-    int32 pid = 2;
-    string package_name = 3;
-}
-
-message GetAddressOfSymbolResponse {
-    uint64 offset = 1;
 }
 
 message PidMessage{

@@ -14,7 +14,6 @@ mod server;
 mod features;
 mod collector;
 mod symbols;
-mod symbols_helpers;
 
 #[tokio::main]
 async fn main() {

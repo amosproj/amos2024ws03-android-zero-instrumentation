@@ -5,15 +5,11 @@
 // SPDX-License-Identifier: MIT
 
 use clap::Parser;
-use shared::ziofa::{
-    GetAddressOfSymbolRequest, GetSymbolsOfProcessRequest,
-};
 use shared::{
     config::{Configuration, SysSendmsgConfig, VfsWriteConfig},
     ziofa::ziofa_client::ZiofaClient,
 };
 use tonic::transport::Channel;
-use tonic::Request;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -30,59 +26,49 @@ struct Args {
     pid: i32,
 }
 
-async fn test_get_symbols_of_process(
-    client: &mut ZiofaClient<Channel>,
-    pid: i32,
-    package_name: String,
-    verbose: bool,
+async fn test_get_symbols(
+    _client: &mut ZiofaClient<Channel>,
+    _pid: i32,
+    _package_name: String,
+    _verbose: bool,
 ) {
-    println!("TEST get_symbols_of_process");
-
-    match client
-        .get_symbols_of_process(Request::new(GetSymbolsOfProcessRequest {
-            pid,
-            package_name,
-        }))
-        .await
-    {
-        Ok(res) => {
-            let names = res.into_inner().names;
-            println!("SUCCESS");
-            if verbose {
-                for (i, s) in names.iter().enumerate() {
-                    println!("Symbol {}: {}", i, s);
-                }
-            }
-        }
-        Err(e) => println!("ERROR: {:?}", e),
-    };
-    println!();
+    todo!("implement");
+    // println!("TEST get_symbols_of_process");
+    //
+    // match () {
+    //     Ok(res) => {
+    //         let names = res.into_inner().names;
+    //         println!("SUCCESS");
+    //         if verbose {
+    //             for (i, s) in names.iter().enumerate() {
+    //                 println!("Symbol {}: {}", i, s);
+    //             }
+    //         }
+    //     }
+    //     Err(e) => println!("ERROR: {:?}", e),
+    // };
+    // println!();
 }
 
 async fn test_get_address_of_symbol(
-    client: &mut ZiofaClient<Channel>,
-    name: String,
-    pid: i32,
-    package_name: String,
+    _client: &mut ZiofaClient<Channel>,
+    _name: String,
+    _pid: i32,
+    _package_name: String,
 ) {
-    println!("TEST get_address_of_symbol");
-
-    match client
-        .get_address_of_symbol(Request::new(GetAddressOfSymbolRequest {
-            name,
-            pid,
-            package_name,
-        }))
-        .await
-    {
-        Ok(res) => {
-            let offset = res.into_inner().offset;
-            println!("SUCCESS: {}", offset);
-        }
-        Err(e) => println!("ERROR: {:?}", e),
-    };
-
-    println!();
+    todo!("implement");
+    // println!("TEST get_address_of_symbol");
+    //
+    // match Ok(())
+    // {
+    //     Ok(res) => {
+    //         let offset = res.into_inner().offset;
+    //         println!("SUCCESS: {}", offset);
+    //     }
+    //     Err(e) => println!("ERROR: {:?}", e),
+    // };
+    //
+    // println!();
 }
 
 async fn test_check_server(client: &mut ZiofaClient<Channel>) {
@@ -168,7 +154,7 @@ async fn main() {
     let config = test_get_configuration(&mut client, args.verbose).await;
     test_set_configuration(&mut client, config).await;
     test_list_processes(&mut client, args.verbose).await;
-    test_get_symbols_of_process(
+    test_get_symbols(
         &mut client,
         args.pid,
         "de.amosproj3.ziofa".to_string(),
