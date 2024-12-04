@@ -20,7 +20,7 @@ message UprobeConfig {
 message Configuration {
   VfsWriteConfig vfs_write = 1;
   SysSendmsgConfig sys_sendmsg = 2;
-  JNIReferencesConfig JNIReferences = 3;
+  JniReferencesConfig JniReferences = 3;
   repeated UprobeConfig uprobes = 4;
 }
 
@@ -32,6 +32,6 @@ message SysSendmsgConfig {
   map<uint32, uint64> entries = 1;
 }
 
-message JNIReferencesConfig {
+message JniReferencesConfig {
   repeated uint32 entries = 1;
 }
