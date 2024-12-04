@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::collector::MultiCollector;
-use crate::symbols_stuff::some_entry_method;
+use crate::symbols_stuff::{some_entry_method, SymbolError};
 use crate::{
     configuration, constants,
     counter::Counter,
@@ -133,7 +133,7 @@ impl Ziofa for ZiofaImpl {
         pid_message: Request<PidMessage>,
     ) -> Result<Response<SomeEntryMethodResponse>, Status> {
         let pid = pid_message.into_inner().pid;
-        let content_length = some_entry_method(pid).await.map_err(ProcErrorWrapper::from)?;
+        let content_length = some_entry_method(pid).await.map_err(SymbolError::from)?;
         Ok(Response::new(SomeEntryMethodResponse { content_length }))
     }
 }
