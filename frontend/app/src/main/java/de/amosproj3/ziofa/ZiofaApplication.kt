@@ -20,11 +20,13 @@ import de.amosproj3.ziofa.client.RustClientFactory
 import de.amosproj3.ziofa.ui.configuration.ConfigurationViewModel
 import de.amosproj3.ziofa.ui.processes.ProcessesViewModel
 import de.amosproj3.ziofa.ui.visualization.VisualizationViewModel
+import kotlinx.coroutines.CoroutineScope
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.parameter.parametersOf
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import timber.log.Timber
@@ -58,10 +60,9 @@ class ZiofaApplication : Application() {
         single<RunningComponentsAccess> {
             RunningComponentsProvider(clientFactory = get(), packageInformationProvider = get())
         }
-        single<DataStreamProvider> { DataStreamManager(get()) }
-
         single { ConfigurationManager(clientFactory = get()) } binds
             arrayOf(BackendConfigurationAccess::class, LocalConfigurationAccess::class)
+        factory<DataStreamProvider> { (scope: CoroutineScope) -> DataStreamManager(get(), scope) }
     }
 
     private fun Module.createViewModelFactories() {
@@ -76,7 +77,7 @@ class ZiofaApplication : Application() {
         viewModel {
             VisualizationViewModel(
                 backendConfigurationAccess = get(),
-                dataStreamProvider = get(),
+                dataStreamProviderFactory = { get { parametersOf(it) } },
                 runningComponentsAccess = get(),
             )
         }

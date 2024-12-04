@@ -27,8 +27,8 @@ fun SwitchModeFab(
         icon = { Icon(imageVector = Icons.AutoMirrored.Filled.List, contentDescription = "") },
         text = {
             when (activeDisplayMode) {
-                VisualizationDisplayMode.CHART -> "Switch to chart mode"
-                VisualizationDisplayMode.EVENTS -> "Switch to event mode"
+                VisualizationDisplayMode.CHART -> "Switch to event mode"
+                VisualizationDisplayMode.EVENTS -> "Switch to chart mode"
             }.let { Text(it) }
         },
     )

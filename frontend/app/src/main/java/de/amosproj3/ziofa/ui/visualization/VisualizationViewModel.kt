@@ -31,6 +31,7 @@ import de.amosproj3.ziofa.ui.visualization.utils.toAveragedDurationOverTimeframe
 import de.amosproj3.ziofa.ui.visualization.utils.toBucketedData
 import de.amosproj3.ziofa.ui.visualization.utils.toUIOptions
 import kotlin.time.toDuration
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,10 +47,12 @@ import kotlinx.coroutines.flow.update
 import timber.log.Timber
 
 class VisualizationViewModel(
-    private val backendConfigurationAccess: BackendConfigurationAccess,
-    private val dataStreamProvider: DataStreamProvider,
-    private val runningComponentsAccess: RunningComponentsAccess,
+    backendConfigurationAccess: BackendConfigurationAccess,
+    runningComponentsAccess: RunningComponentsAccess,
+    dataStreamProviderFactory: (CoroutineScope) -> DataStreamProvider,
 ) : ViewModel() {
+
+    private val dataStreamProvider = dataStreamProviderFactory(viewModelScope)
 
     // Mutable state
     private val selectedComponent = MutableStateFlow<DropdownOption>(DropdownOption.Global)

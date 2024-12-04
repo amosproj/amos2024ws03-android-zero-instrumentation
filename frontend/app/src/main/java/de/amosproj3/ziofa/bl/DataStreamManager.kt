@@ -10,7 +10,6 @@ import de.amosproj3.ziofa.api.DataStreamProvider
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Event
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.filter
@@ -20,11 +19,8 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.shareIn
 import timber.log.Timber
 
-// TODO: use a single sharedFlow and then different filters on top of that
-// otherwise we are sending all the data multiple times from server to client
-class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamProvider {
-
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope: CoroutineScope) :
+    DataStreamProvider {
 
     private val dataFlow =
         flow { clientFactory.connect().initStream().collect { emit(it) } }
