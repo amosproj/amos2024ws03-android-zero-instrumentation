@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -12,6 +13,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -30,9 +32,9 @@ fun MetricDropdown(
     title: String,
     modifier: Modifier = Modifier,
     optionSelected: (DropdownOption) -> Unit,
+    selectedOption: String,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf(options[0].displayName) }
 
     Box(modifier = modifier) {
         ExposedDropdownMenuBox(
@@ -41,12 +43,12 @@ fun MetricDropdown(
             modifier = modifier,
         ) {
             TextField(
-                value = selected,
+                value = selectedOption,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(title) },
                 trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
             )
             ExposedDropdownMenu(
                 modifier = modifier,
@@ -64,7 +66,6 @@ fun MetricDropdown(
                         },
                         onClick = {
                             optionSelected(option)
-                            selected = option.displayName
                             expanded = false
                         },
                     )

@@ -5,83 +5,143 @@
 
 package de.amosproj3.ziofa.bl
 
-import de.amosproj3.ziofa.api.ConfigurationAccess
+import de.amosproj3.ziofa.api.BackendConfigurationAccess
 import de.amosproj3.ziofa.api.ConfigurationUpdate
-import de.amosproj3.ziofa.api.ProcessListAccess
+import de.amosproj3.ziofa.api.LocalConfigurationAccess
 import de.amosproj3.ziofa.client.Client
 import de.amosproj3.ziofa.client.ClientFactory
+import de.amosproj3.ziofa.client.Configuration
+import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.UprobeConfig
+import de.amosproj3.ziofa.client.VfsWriteConfig
+import de.amosproj3.ziofa.ui.shared.updatePIDs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import uniffi.client.ClientException
-import uniffi.shared.Configuration
-import uniffi.shared.Process
 
 class ConfigurationManager(val clientFactory: ClientFactory) :
-    ProcessListAccess, ConfigurationAccess {
+    BackendConfigurationAccess, LocalConfigurationAccess {
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private var client: Client? = null
 
-    override val processesList = MutableStateFlow<List<Process>>(listOf())
-    override val configuration: MutableStateFlow<ConfigurationUpdate> =
+    override val backendConfiguration: MutableStateFlow<ConfigurationUpdate> =
         MutableStateFlow(ConfigurationUpdate.Unknown)
 
-    override fun submitConfiguration(configuration: Configuration) {
-        coroutineScope.launch {
-            client?.setConfiguration(configuration)
-            getAndUpdateConfiguration() // "emulates" callback of changed configuration until
-            // implemented
-        }
-    }
+    private val _localConfiguration = MutableStateFlow<ConfigurationUpdate?>(null)
+
+    override val localConfiguration =
+        _localConfiguration
+            .onEach { Timber.i("local configuration updated $it") }
+            .map { it ?: ConfigurationUpdate.Unknown }
 
     init {
         coroutineScope.launch {
             try {
                 client = clientFactory.connect()
-                initializeConfigurationState()
-                startProcessListUpdates()
-            } catch (e: ClientException) {
-                configuration.update { ConfigurationUpdate.Invalid(e) }
+                initializeConfigurations()
+            } catch (e: Exception) {
+                backendConfiguration.update { ConfigurationUpdate.Invalid(e) }
             }
         }
     }
 
-    private suspend fun initializeConfigurationState() {
+    override fun changeFeatureConfiguration(
+        enable: Boolean,
+        vfsWriteFeature: VfsWriteConfig?,
+        sendMessageFeature: SysSendmsgConfig?,
+        uprobesFeature: List<UprobeConfig>?,
+    ) {
+        _localConfiguration.update { prev ->
+            Timber.e("changeFeatureConfigurationForPIDs.prev $prev")
+            Timber.e("changeFeatureConfigurationForPIDs() $vfsWriteFeature, $sendMessageFeature")
+            // the configuration shall not be changed from the UI if there is none received from
+            // backend
+            if (prev != null && prev is ConfigurationUpdate.Valid) {
+                val previousConfiguration = prev.configuration
+                previousConfiguration
+                    .copy(
+                        vfsWrite =
+                            vfsWriteFeature?.let { requestedChanges ->
+                                previousConfiguration.vfsWrite.updatePIDs(
+                                    pidsToAdd =
+                                        if (enable) requestedChanges.entries.entries else setOf(),
+                                    pidsToRemove =
+                                        if (!enable) requestedChanges.entries.entries else setOf(),
+                                )
+                            } ?: previousConfiguration.vfsWrite,
+                        sysSendmsg =
+                            sendMessageFeature?.let { requestedChanges ->
+                                previousConfiguration.sysSendmsg.updatePIDs(
+                                    pidsToAdd =
+                                        if (enable) requestedChanges.entries.entries else setOf(),
+                                    pidsToRemove =
+                                        if (!enable) requestedChanges.entries.entries else setOf(),
+                                )
+                            } ?: previousConfiguration.sysSendmsg,
+                        uprobes = uprobesFeature ?: prev.configuration.uprobes, // TODO
+                    )
+                    .also { Timber.i("new local configuration = $it") }
+                    .let { ConfigurationUpdate.Valid(it) }
+            } else return@update prev
+        }
+    }
+
+    override fun submitConfiguration() {
+        coroutineScope.launch {
+            sendLocalToBackend()
+            updateBothConfigurations(
+                getFromBackend()
+            ) // "emulates" callback of changed configuration until
+        }
+    }
+
+    private suspend fun initializeConfigurations() {
         val initializedConfiguration =
             try {
-                client!!.getConfiguration()
-            } catch (e: ClientException) {
-                // TODO this should be handled on the backend
-                client!!.setConfiguration(
-                    Configuration(vfsWrite = null, sysSendmsg = null, uprobes = listOf())
-                )
-                client!!.getConfiguration()
-            }
-        configuration.update { ConfigurationUpdate.Valid(initializedConfiguration) }
-    }
-
-    private suspend fun startProcessListUpdates() {
-        while (true) {
-            delay(1000)
-            client?.let { client -> processesList.update { client.listProcesses() } }
-                ?: processesList.update { listOf() }.also { Timber.w("Client not ready!") }
-        }
-    }
-
-    private suspend fun getAndUpdateConfiguration() {
-        configuration.update {
-            try {
-                (client?.getConfiguration()?.let { ConfigurationUpdate.Valid(it) }
-                        ?: ConfigurationUpdate.Unknown)
-                    .also { Timber.i("Received config $it") }
+                ConfigurationUpdate.Valid(client!!.getConfiguration())
             } catch (e: Exception) {
-                ConfigurationUpdate.Invalid(e)
+                getOrCreateInitialConfiguration()
             }
+        updateBothConfigurations(initializedConfiguration)
+    }
+
+    // TODO this should be handled on the backend
+    private suspend fun getOrCreateInitialConfiguration(): ConfigurationUpdate {
+        return try {
+            // the config may not be initialized, we should try initializing it
+            client!!.setConfiguration(
+                Configuration(vfsWrite = null, sysSendmsg = null, uprobes = listOf())
+            )
+            ConfigurationUpdate.Valid(client!!.getConfiguration())
+        } catch (e: Exception) {
+            return ConfigurationUpdate.Invalid(e)
         }
+    }
+
+    private suspend fun sendLocalToBackend() {
+        _localConfiguration.value?.let {
+            if (it is ConfigurationUpdate.Valid) client?.setConfiguration(it.configuration)
+        } ?: Timber.e("unsubmittedConfiguration == null -> this should never happen")
+    }
+
+    private suspend fun getFromBackend(): ConfigurationUpdate {
+        return try {
+            (client?.getConfiguration()?.let { ConfigurationUpdate.Valid(it) }
+                    ?: ConfigurationUpdate.Unknown)
+                .also { Timber.i("Received config $it") }
+        } catch (e: Exception) {
+            ConfigurationUpdate.Invalid(e)
+        }
+    }
+
+    private fun updateBothConfigurations(configurationUpdate: ConfigurationUpdate) {
+        backendConfiguration.value = configurationUpdate
+        _localConfiguration.value = configurationUpdate
     }
 }

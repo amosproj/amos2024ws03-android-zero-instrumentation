@@ -21,12 +21,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import de.amosproj3.ziofa.api.RunningComponent
 import de.amosproj3.ziofa.ui.about.AboutScreen
 import de.amosproj3.ziofa.ui.configuration.ConfigurationScreen
 import de.amosproj3.ziofa.ui.navigation.ConfigurationMenu
 import de.amosproj3.ziofa.ui.navigation.HomeScreen
 import de.amosproj3.ziofa.ui.navigation.composables.ZiofaTopBar
-import de.amosproj3.ziofa.ui.processes.ProcessListEntry
 import de.amosproj3.ziofa.ui.processes.ProcessesScreen
 import de.amosproj3.ziofa.ui.shared.deserializePIDs
 import de.amosproj3.ziofa.ui.shared.getDisplayName
@@ -153,7 +153,7 @@ fun DynamicTopBar(navController: NavController) {
     }
 }
 
-fun ProcessListEntry.toConfigurationScreenRouteForProcess(): String {
+fun RunningComponent.toConfigurationScreenRouteForProcess(): String {
     val displayNameParam = Uri.encode(this.getDisplayName())
     val pidsParam = Uri.encode(this.serializePIDs())
     return "${Routes.IndividualConfiguration.name}?displayName=$displayNameParam?pids=$pidsParam"

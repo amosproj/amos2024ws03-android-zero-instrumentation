@@ -12,13 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.intl.Locale
-import de.amosproj3.ziofa.api.WriteEvent
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import de.amosproj3.ziofa.api.BackendEvent
 
 @Composable
-fun EventList(events: List<WriteEvent>) {
+fun EventList(events: List<BackendEvent>) {
     val locale = Locale.current.platformLocale
 
     events.getOrNull(0)?.let { Header(it) }
@@ -37,13 +34,13 @@ fun EventList(events: List<WriteEvent>) {
                     modifier = Modifier.weight(1f),
                 )
                 when (event) {
-                    is WriteEvent.SendMessageEvent -> {
+                    is BackendEvent.SendMessageEvent -> {
                         Text(
-                            text = (event.durationMicros / 1_000u).toString(),
+                            text = (event.durationNanos / 1_000_000u).toString(),
                             modifier = Modifier.weight(1f),
                         )
                     }
-                    is WriteEvent.VfsWriteEvent -> {
+                    is BackendEvent.VfsWriteEvent -> {
                         Text(text = event.size.toString(), modifier = Modifier.weight(1f))
                     }
                 }
@@ -53,25 +50,18 @@ fun EventList(events: List<WriteEvent>) {
 }
 
 @Composable
-fun Header(firstEvent: WriteEvent) {
+fun Header(firstEvent: BackendEvent) {
     Row {
         Text(text = "Process ID", modifier = Modifier.weight(1f))
         Text(text = "File Descriptor", modifier = Modifier.weight(1f))
         Text(text = "Event time since Boot in s", modifier = Modifier.weight(1f))
         when (firstEvent) {
-            is WriteEvent.SendMessageEvent -> {
+            is BackendEvent.SendMessageEvent -> {
                 Text(text = "Duration in ms", modifier = Modifier.weight(1f))
             }
-            is WriteEvent.VfsWriteEvent -> {
+            is BackendEvent.VfsWriteEvent -> {
                 Text(text = "Size in byte", modifier = Modifier.weight(1f))
             }
         }
     }
-}
-
-fun ULong.toFormattedTime(): String? {
-    return Instant.ofEpochMilli((this / 1_000_000u).toLong())
-        .atZone(ZoneId.systemDefault())
-        .toLocalDateTime()
-        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 }

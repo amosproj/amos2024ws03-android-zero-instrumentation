@@ -4,7 +4,7 @@
 
 package de.amosproj3.ziofa.api
 
-sealed class WriteEvent(
+sealed class BackendEvent(
     val fileDescriptor: ULong,
     val processId: UInt,
     val startTimestamp: ULong,
@@ -16,13 +16,13 @@ sealed class WriteEvent(
         val pid: UInt,
         val size: ULong,
         val timestampMillis: ULong, // unix time
-    ) : WriteEvent(fd, pid, timestampMillis, size)
+    ) : BackendEvent(fd, pid, timestampMillis, size)
 
     data class SendMessageEvent(
         val fd: ULong,
         val pid: UInt,
         val tid: UInt,
         val beginTimestamp: ULong,
-        val durationMicros: ULong,
-    ) : WriteEvent(fd, pid, beginTimestamp, durationMicros)
+        val durationNanos: ULong,
+    ) : BackendEvent(fd, pid, beginTimestamp, durationNanos)
 }

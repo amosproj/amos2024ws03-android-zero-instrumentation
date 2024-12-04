@@ -48,8 +48,8 @@ async fn test_get_configuration(client: &mut ZiofaClient<Channel>, verbose: bool
             println!("ERROR: {:?}", e);
             Configuration {
                 uprobes: vec![],
-                vfs_write: Some(VfsWriteConfig { pids: vec![] }),
-                sys_sendmsg: Some(SysSendmsgConfig { pids: vec![] }),
+                vfs_write: Some(VfsWriteConfig { entries: std::collections::HashMap::new() }),
+                sys_sendmsg: Some(SysSendmsgConfig { entries: std::collections::HashMap::new() }),
             }
         }
     };

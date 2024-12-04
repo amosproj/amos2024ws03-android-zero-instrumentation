@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+[package]
+name = "uniffi-bindgen"
+version = "0.1.0"
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+uniffi = { workspace = true, features = ["cli"] }

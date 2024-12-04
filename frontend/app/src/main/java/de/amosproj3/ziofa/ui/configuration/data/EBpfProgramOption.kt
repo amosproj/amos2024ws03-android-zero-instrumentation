@@ -5,13 +5,10 @@
 
 package de.amosproj3.ziofa.ui.configuration.data
 
-data class EbpfProgramOptions(
-    val vfsWriteOption: WriteOption.VfsWriteOption,
-    val sendMessageOption: WriteOption.SendMessageOption,
-)
+sealed class BackendFeatureOptions(val featureName: String, val active: Boolean) {
+    data class VfsWriteOption(val enabled: Boolean, val pids: Set<UInt>) :
+        BackendFeatureOptions("VFS Write Analysis", enabled)
 
-sealed class WriteOption() {
-    data class VfsWriteOption(val enabled: Boolean, val pids: List<UInt>)
-
-    data class SendMessageOption(val enabled: Boolean, val pids: List<UInt>)
+    data class SendMessageOption(val enabled: Boolean, val pids: Set<UInt>) :
+        BackendFeatureOptions("Unix Domain Socket Analysis", enabled)
 }

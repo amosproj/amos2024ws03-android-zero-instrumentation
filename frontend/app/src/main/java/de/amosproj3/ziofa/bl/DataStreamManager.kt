@@ -1,19 +1,30 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 package de.amosproj3.ziofa.bl
 
+import de.amosproj3.ziofa.api.BackendEvent
 import de.amosproj3.ziofa.api.DataStreamProvider
-import de.amosproj3.ziofa.api.WriteEvent
 import de.amosproj3.ziofa.client.ClientFactory
+import de.amosproj3.ziofa.client.Event
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.shareIn
 import timber.log.Timber
-import uniffi.shared.EventData
 
-class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamProvider {
+class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope: CoroutineScope) :
+    DataStreamProvider {
+
+    private val dataFlow =
+        flow { clientFactory.connect().initStream().collect { emit(it) } }
+            .shareIn(coroutineScope, SharingStarted.Lazily)
 
     override suspend fun counter(ebpfProgramName: String): Flow<UInt> {
         return clientFactory
@@ -31,38 +42,33 @@ class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamPr
             .serverCount()
     }
 
-    override suspend fun vfsWriteEvents(pids: List<UInt>): Flow<WriteEvent.VfsWriteEvent> =
-        clientFactory
-            .connect()
-            .initStream()
-            .map { it.eventData }
-            .filter { it is EventData.VfsWrite }
+    override suspend fun vfsWriteEvents(pids: List<UInt>?): Flow<BackendEvent.VfsWriteEvent> =
+        dataFlow
+            .mapNotNull { it as? Event.VfsWrite }
+            .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
             .map {
-                if (it is EventData.VfsWrite) {
-                    WriteEvent.VfsWriteEvent(
-                        it.v1.fp,
-                        it.v1.pid,
-                        it.v1.bytesWritten,
-                        it.v1.beginTimeStamp,
-                    )
-                } else throw Exception("only for the compiler")
+                BackendEvent.VfsWriteEvent(
+                    fd = it.fp,
+                    pid = it.pid,
+                    size = it.bytesWritten,
+                    timestampMillis = it.beginTimeStamp,
+                )
             }
 
-    override suspend fun sendMessageEvents(pids: List<UInt>): Flow<WriteEvent.SendMessageEvent> =
-        clientFactory
-            .connect()
-            .initStream()
-            .map { it.eventData }
-            .filter { it is EventData.SysSendmsg }
+    override suspend fun sendMessageEvents(pids: List<UInt>?): Flow<BackendEvent.SendMessageEvent> =
+        dataFlow
+            .mapNotNull { it as? Event.SysSendmsg }
+            .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
             .map {
-                if (it is EventData.SysSendmsg) {
-                    WriteEvent.SendMessageEvent(
-                        it.v1.fd.toULong(),
-                        it.v1.pid,
-                        it.v1.tid,
-                        it.v1.beginTimeStamp,
-                        it.v1.durationMicroSec,
-                    )
-                } else throw Exception("only for the compiler")
+                BackendEvent.SendMessageEvent(
+                    fd = it.fd,
+                    pid = it.pid,
+                    tid = it.tid,
+                    beginTimestamp = it.beginTimeStamp,
+                    durationNanos = it.durationNanoSecs,
+                )
             }
+
+    private fun UInt.isGlobalRequestedOrPidConfigured(pids: List<UInt>?) =
+        pids?.contains(this) ?: true
 }
