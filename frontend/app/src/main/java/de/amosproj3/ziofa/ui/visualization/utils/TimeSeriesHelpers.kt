@@ -4,7 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.utils
 
-import de.amosproj3.ziofa.api.WriteEvent
+import de.amosproj3.ziofa.api.BackendEvent
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import kotlin.time.toDuration
 import kotlinx.coroutines.FlowPreview
@@ -34,7 +34,7 @@ fun Flow<UInt>.toTimestampedSeries(seriesSize: Int, secondsPerDatapoint: Float) 
         prev.plus(idx to next.toFloat()).takeLast(seriesSize)
     }
 
-fun Flow<WriteEvent>.toAveragedDurationOverTimeframe(
+fun Flow<BackendEvent>.toAveragedDurationOverTimeframe(
     seriesSize: Int,
     millisTimeframeDuration: Long,
 ) =
@@ -44,7 +44,7 @@ fun Flow<WriteEvent>.toAveragedDurationOverTimeframe(
         prev.plus(idx to next.toFloat()).takeLast(seriesSize)
     }
 
-fun Flow<WriteEvent>.windowed(windowMillis: Long): Flow<Double> = flow {
+fun Flow<BackendEvent>.windowed(windowMillis: Long): Flow<Double> = flow {
     val buffer = mutableListOf<ULong>()
     var windowStart = System.currentTimeMillis()
 
@@ -67,8 +67,8 @@ fun Flow<WriteEvent>.windowed(windowMillis: Long): Flow<Double> = flow {
     }
 }
 
-fun Flow<WriteEvent>.toBucketedData(millisTimeframeDuration: ULong) = flow {
-    val collectedEvents = mutableMapOf<ULong, MutableList<WriteEvent>>()
+fun Flow<BackendEvent>.toBucketedData(millisTimeframeDuration: ULong) = flow {
+    val collectedEvents = mutableMapOf<ULong, MutableList<BackendEvent>>()
     this@toBucketedData.collect {
 
         // Remove old
@@ -104,6 +104,9 @@ fun Flow<List<Pair<ULong, ULong>>>.sortAndClip(limit: Int) =
 fun DropdownOption.TimeframeOption.toSeconds(): Float {
     return this.amount.toDuration(this.unit).inWholeMilliseconds / 1000.0f
 }
+
+fun Flow<BackendEvent>.accumulateEvents() =
+    this.scan(initial = listOf<BackendEvent>()) { prev, next -> prev.plus(next) }
 
 fun List<Pair<Float, Float>>.isDefaultSeries(): Boolean {
     return this == DEFAULT_TIMESERIES_DATA

@@ -4,6 +4,7 @@
 
 use clap::Parser;
 use client::{Client, ClientError};
+use std::collections::HashMap;
 use shared::config::{Configuration, SysSendmsgConfig};
 use tokio::{join, select, signal::ctrl_c, sync::oneshot};
 use tokio_stream::StreamExt;
@@ -71,7 +72,7 @@ pub async fn main() -> anyhow::Result<()> {
         .set_configuration(Configuration {
             uprobes: vec![],
             vfs_write: None,
-            sys_sendmsg: Some(SysSendmsgConfig { pids: vec![pid] })
+            sys_sendmsg: Some(SysSendmsgConfig { entries: HashMap::from([(pid, 0)]) })
         })
         .await?;
 

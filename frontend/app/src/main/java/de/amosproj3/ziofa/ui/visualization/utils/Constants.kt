@@ -4,19 +4,18 @@
 
 package de.amosproj3.ziofa.ui.visualization.utils
 
+import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
 import kotlin.time.DurationUnit
+import timber.log.Timber
 
-enum class DisplayModes {
+enum class VisualizationDisplayMode {
     CHART,
     EVENTS,
 }
-
-/** The maximum number of datapoints to show on screen */
-const val TIME_SERIES_SIZE = 20
 
 val DEFAULT_TIMEFRAME_OPTIONS =
     listOf(
@@ -34,16 +33,28 @@ val DEFAULT_GRAPHED_DATA = GraphedData.EMPTY // TODO replace with reasonable def
 
 val DEFAULT_SELECTION_DATA =
     SelectionData(
-        filterOptions = listOf(DropdownOption.Global),
+        componentOptions = listOf(DropdownOption.Global),
         metricOptions = null,
         timeframeOptions = null,
-        selectedFilter = DropdownOption.Global,
+        selectedComponent = DropdownOption.Global,
         selectedMetric = null,
         selectedTimeframe = null,
     )
 
 val DEFAULT_CHART_METADATA = // TODO replace with reasonable defaults
-    VisualizationMetaData(visualizationTitle = "", xLabel = "x", yLabel = "y")
+    VisualizationMetaData(xLabel = "x", yLabel = "y")
 
-val OPTION_VFS_WRITE = DropdownOption.MetricOption("VFS Write")
-val OPTION_SEND_MESSAGE_EVENTS = DropdownOption.MetricOption("Send Message Events Write")
+fun DropdownOption.MetricOption.getChartMetadata(): VisualizationMetaData {
+    return when (this.backendFeature) {
+        is BackendFeatureOptions.VfsWriteOption ->
+            VisualizationMetaData("Top file descriptors", "File Descriptor Name")
+
+        is BackendFeatureOptions.SendMessageOption ->
+            VisualizationMetaData("Average duration of messages", "Seconds since start")
+
+        else -> {
+            Timber.e("needs metadata!")
+            DEFAULT_CHART_METADATA
+        }
+    }
+}
