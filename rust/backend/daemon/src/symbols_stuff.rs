@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -52,7 +53,12 @@ pub async fn some_entry_method(pid: i32) -> Result<u64, SymbolError> {
             text: format!("Could not find oat file for process with pid: {}", pid),
         });
     }
-    Ok(parse_oat_files(&oat_file_paths, "java.lang.String uniffi.shared.UprobeConfig.component1()").await?)
+    Ok(parse_oat_files_for_function(
+        &oat_file_paths,
+        "java.lang.String uniffi.shared.UprobeConfig.component1()",
+        "ziofa",
+    )
+    .await?)
 }
 
 pub fn get_oat_files(pid: i32) -> Result<Vec<PathBuf>, ProcError> {
@@ -72,13 +78,14 @@ pub fn get_oat_files(pid: i32) -> Result<Vec<PathBuf>, ProcError> {
     Ok(all_files)
 }
 
-async fn parse_oat_files(
+async fn parse_oat_files_for_function(
     oat_file_paths: &Vec<PathBuf>,
     symbol_name: &str,
+    function_name: &str,
 ) -> Result<u64, SymbolError> {
     for path in oat_file_paths {
         // for testing the code only
-        if !path.to_str().unwrap().contains("ziofa") {
+        if !path.to_str().unwrap().contains(function_name) {
             continue;
         }
 
@@ -96,8 +103,8 @@ async fn parse_oat_file(path: &PathBuf, symbol_name: &str) -> Result<u64, Symbol
         move || get_symbol_address_from_oat(&path, "oatdata")
     })
     .await??;
-
-    let oatdump_status = Command::new("oatdump")
+    
+    let _oatdump_status = Command::new("oatdump")
         .args(vec![
             "--output=/data/local/tmp/dump.json",
             "--dump-method-and-offset-as-json",
@@ -108,8 +115,9 @@ async fn parse_oat_file(path: &PathBuf, symbol_name: &str) -> Result<u64, Symbol
         .wait()
         .await
         .expect("oatdump failed to run");
-    // TODO: Check for status
-
+    // TODO: Check for status [robin]
+    //       do we even need the status? -> if yes for what? [beni]
+    
     let json_file = File::open("/data/local/tmp/dump.json").unwrap();
     let json_reader = BufReader::new(json_file);
     let json = serde_json::Deserializer::from_reader(json_reader).into_iter::<Symbol>();
@@ -117,7 +125,7 @@ async fn parse_oat_file(path: &PathBuf, symbol_name: &str) -> Result<u64, Symbol
     for res in json {
         if let Ok(symbol) = res {
             if symbol.method == symbol_name {
-                let symbol_address= u64::from_str_radix(symbol.offset.strip_prefix("0x").unwrap(), 16).unwrap();
+                let symbol_address = u64::from_str_radix(symbol.offset.strip_prefix("0x").unwrap(), 16).unwrap();
                 if symbol_address == 0 {
                     return Err(SymbolError::SymbolIsNotCompiled {
                         symbol: symbol_name.to_string(),
@@ -135,10 +143,7 @@ async fn parse_oat_file(path: &PathBuf, symbol_name: &str) -> Result<u64, Symbol
     })
 }
 
-fn get_symbol_address_from_oat(
-    path: &PathBuf,
-    symbol_name: &str,
-) -> Result<u64, std::io::Error> {
+fn get_symbol_address_from_oat(path: &PathBuf, symbol_name: &str) -> Result<u64, std::io::Error> {
     let file = File::open(path)?;
     let file_chache = ReadCache::new(file);
     let obj = object::File::parse(&file_chache).unwrap();
