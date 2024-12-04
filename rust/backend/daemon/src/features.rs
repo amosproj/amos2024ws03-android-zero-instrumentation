@@ -9,172 +9,107 @@
 use std::collections::BTreeSet;
 use aya::{
     maps::HashMap,
-    programs::{kprobe::KProbeLinkId, uprobe::UProbeLinkId, trace_point::TracePointLink, KProbe, TracePoint, UProbe},
+    programs::{kprobe::KProbeLinkId, uprobe::UProbeLink, trace_point::TracePointLink, KProbe, TracePoint, UProbe, ProgramError},
     Ebpf, EbpfError,
 };
 use shared::config::{SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig};
 
 
 pub struct JNIReferences {
-    trace_add_local: Option<UProbeLinkId>,
-    trace_del_local: Option<UProbeLinkId>,
-    trace_add_global: Option<UProbeLinkId>,
-    trace_del_global: Option<UProbeLinkId>,
+    trace_add_local_link: Option<UProbeLink>,
+    trace_del_local_link: Option<UProbeLink>,
+    trace_add_global_link: Option<UProbeLink>,
+    trace_del_global_link: Option<UProbeLink>,
 }
 
 impl JNIReferences {
     pub fn new() -> JNIReferences {
         JNIReferences {
-            trace_add_local: None,
-            trace_del_local: None,
-            trace_add_global: None,
-            trace_del_global: None,
+            trace_add_local_link: None,
+            trace_del_local_link: None,
+            trace_add_global_link: None,
+            trace_del_global_link: None,
         }
     }
 
+    fn jni_load_program_by_name(ebpf: &mut Ebpf, name: &str) -> Result<(), EbpfError> {
+        let jni_probe: &mut UProbe = ebpf
+            .program_mut(name)
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: name.to_string(),
+                },
+            ))?
+            .try_into()?;
+        jni_probe.load()?;
+        Ok(())
+    }
+
+    fn jni_get_offset_by_name(name: &str) -> u64 {
+        todo!("get offset of symbol by name");
+    }
+
+    fn jni_get_target_by_name(name: &str) -> &str {
+        todo!("get absolute path to library/ binary");
+    }
+
+    fn jni_attach_program_by_name(&mut self, ebpf: &mut Ebpf, probe_name: &str, jni_method_name: &str) -> Result<(), EbpfError> {
+        let jni_program: &mut UProbe = ebpf
+            .program_mut(probe_name)
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: probe_name.to_string(),
+                },
+            ))?
+            .try_into()?;
+
+        let offset = Self::jni_get_offset_by_name(jni_method_name);
+        let target = Self::jni_get_target_by_name(jni_method_name);
+        let link_id = jni_program.attach(
+            Some(jni_method_name),
+            offset,
+            target,
+            None
+        ).map_err(|err| {EbpfError::ProgramError(err)})?;
+        self.trace_add_local_link = Some(jni_program.take_link(link_id).map_err(|err| {EbpfError::ProgramError(err)})?);
+        Ok(())
+    }
+
     pub fn create(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
-        // load the 4 programs to hook onto the 4 JNI Reference methods
-        let jni_add_local: &mut UProbe = ebpf
-            .program_mut("trace_add_local")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "trace_add_local".to_string(),
-                },
-            ))?
-            .try_into()?;
-        jni_add_local.load()?;
-
-        let jni_del_local: &mut UProbe = ebpf
-            .program_mut("trace_del_local")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "trace_del_local".to_string(),
-                },
-            ))?
-            .try_into()?;
-        jni_del_local.load()?;
-
-        let jni_add_global: &mut UProbe = ebpf
-            .program_mut("trace_add_global")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "trace_add_global".to_string(),
-                },
-            ))?
-            .try_into()?;
-        jni_add_global.load()?;
-
-        let jni_del_global: &mut UProbe = ebpf
-            .program_mut("trace_del_global")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "trace_del_global".to_string(),
-                },
-            ))?
-            .try_into()?;
-        jni_del_global.load()?;
+        Self::jni_load_program_by_name(ebpf, "trace_add_local");
+        Self::jni_load_program_by_name(ebpf, "trace_del_local");
+        Self::jni_load_program_by_name(ebpf, "trace_add_global");
+        Self::jni_load_program_by_name(ebpf, "trace_del_global");
 
         Ok(())
     }
 
     #[allow(unreachable_code)]
     pub fn attach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
-        if self.trace_add_local.is_none() {
-            let jni_add_local: &mut UProbe = ebpf
-                .program_mut("trace_add_local")
-                .ok_or(EbpfError::ProgramError(
-                    aya::programs::ProgramError::InvalidName {
-                        name: "trace_add_local".to_string(),
-                    },
-                ))?
-                .try_into()?;
-            let offset = todo!("get offset of symbol");
-            let target = todo!("get absolute path to library/ binary");
-            /*let link_id = jni_add_local.attach(
-                Some("AddLocalRef"),
-                offset,
-                target,
-                None
-            )?;
-            self.trace_add_local = Some(jni_add_local.take_link(link_id)?);*/
-
-
+        if self.trace_add_local_link.is_none() {
+            Self::jni_attach_program_by_name(self, ebpf, "trace_add_local", "AddLocalRef")?
         }
 
-        if self.trace_del_local.is_none() {
-            let jni_del_local: &mut UProbe = ebpf
-                .program_mut("trace_del_local")
-                .ok_or(EbpfError::ProgramError(
-                    aya::programs::ProgramError::InvalidName {
-                        name: "trace_del_local".to_string(),
-                    },
-                ))?
-                .try_into()?;
-
-            let offset = todo!("get offset of symbol");
-            let target = todo!("get absolute path to library/ binary");
-
-            /*let link_id = jni_add_global.attach(
-                Some("AddGlobalRef"),
-                offset,
-                target,
-                None
-            )?;
-            self.trace_add_global = Some(jni_add_global.take_link(link_id)?);*/
+        if self.trace_del_local_link.is_none() {
+            Self::jni_attach_program_by_name(self, ebpf, "trace_del_local", "DeleteLocalRef")?
         }
 
-        if self.trace_add_global.is_none() {
-            let jni_add_global: &mut UProbe = ebpf
-                .program_mut("trace_add_global")
-                .ok_or(EbpfError::ProgramError(
-                    aya::programs::ProgramError::InvalidName {
-                        name: "trace_add_global".to_string(),
-                    },
-                ))?
-                .try_into()?;
-
-            let offset = todo!("get offset of symbol");
-            let target = todo!("get absolute path to library/ binary");
-
-            /*let link_id = jni_add_global.attach(
-                Some("AddGlobalRef"),
-                offset,
-                target,
-                None
-            )?;
-            self.trace_add_global = Some(jni_add_global.take_link(link_id)?);*/
+        if self.trace_add_global_link.is_none() {
+            Self::jni_attach_program_by_name(self, ebpf, "trace_add_global", "AddGlobalRef")?
         }
 
-        if self.trace_del_global.is_none() {
-            let jni_del_global: &mut UProbe = ebpf
-                .program_mut("trace_del_global")
-                .ok_or(EbpfError::ProgramError(
-                    aya::programs::ProgramError::InvalidName {
-                        name: "trace_del_global".to_string(),
-                    },
-                ))?
-                .try_into()?;
-
-            let offset = todo!("get offset of symbol");
-            let target = todo!("get absolute path to library/ binary");
-
-            /*let link_id = jni_del_global.attach(
-                Some("DeleteGlobalRef"),
-                offset,
-                target,
-                None
-            )?;
-            self.trace_del_global = Some(jni_del_global.take_link(link_id)?);*/
+        if self.trace_del_global_link.is_none() {
+            Self::jni_attach_program_by_name(self, ebpf, "trace_del_global", "DeleteGlobalRef")?
         }
 
         Ok(())
     }
 
     pub fn detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
-        let _ = self.trace_add_local.take();
-        let _ = self.trace_del_local.take();
-        let _ = self.trace_add_global.take();
-        let _ = self.trace_del_global.take();
+        let _ = self.trace_add_local_link.take();
+        let _ = self.trace_del_local_link.take();
+        let _ = self.trace_add_global_link.take();
+        let _ = self.trace_del_global_link.take();
 
         Ok(())
     }
