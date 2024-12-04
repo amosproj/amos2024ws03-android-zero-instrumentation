@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::collector::MultiCollector;
-use crate::symbols::{self, get_symbol_offset_for_function_of_process};
+use crate::symbols::{self, get_symbol_offset_for_function_of_process, SymbolHandler};
 use crate::{
     configuration, constants,
     counter::Counter,
@@ -18,7 +18,7 @@ use aya::Ebpf;
 use aya_log::EbpfLogger;
 use shared::ziofa::{
     Event, GetAddressOfSymbolRequest, GetAddressOfSymbolResponse, GetSymbolsOfProcessRequest,
-    SymbolList,
+    PidMessage, StringResponse, Symbol,
 };
 use shared::{
     config::Configuration,
@@ -30,7 +30,8 @@ use shared::{
 };
 use std::{ops::DerefMut, sync::Arc};
 use tokio::join;
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 pub struct ZiofaImpl {
@@ -38,6 +39,7 @@ pub struct ZiofaImpl {
     ebpf: Arc<Mutex<Ebpf>>,
     state: Arc<Mutex<State>>,
     channel: Arc<Channel>,
+    symbol_handler: Arc<Mutex<SymbolHandler>>,
 }
 
 impl ZiofaImpl {
@@ -45,11 +47,13 @@ impl ZiofaImpl {
         ebpf: Arc<Mutex<Ebpf>>,
         state: Arc<Mutex<State>>,
         channel: Arc<Channel>,
+        symbol_handler: Arc<Mutex<SymbolHandler>>,
     ) -> ZiofaImpl {
         ZiofaImpl {
             ebpf,
             state,
             channel,
+            symbol_handler,
         }
     }
 }
@@ -116,10 +120,34 @@ impl Ziofa for ZiofaImpl {
         Ok(Response::new(self.channel.rx.clone()))
     }
 
+    type GetOdexFilesStream = ReceiverStream<Result<StringResponse, Status>>;
+    async fn get_odex_files(
+        &self,
+        request: Request<PidMessage>,
+    ) -> Result<Response<Self::GetOdexFilesStream>, Status> {
+        let pid = request.into_inner().pid;
+        let symbol_handler_guard = self.symbol_handler.lock().await;
+        let odex_paths = symbol_handler_guard.get_odex_paths(pid)?.clone();
+
+        let (tx, rx) = mpsc::channel(4);
+
+        tokio::spawn(async move {
+            for path in odex_paths {
+                tx.send(Ok(StringResponse {
+                    name: path.to_str().unwrap().to_string(),
+                }));
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
+    type GetSymbolsOfProcessStream = ReceiverStream<Result<Symbol, Status>>;
+
     async fn get_symbols_of_process(
         &self,
         request: Request<GetSymbolsOfProcessRequest>,
-    ) -> Result<Response<SymbolList>, Status> {
+    ) -> Result<Response<Self::GetSymbolsOfProcessStream>, Status> {
         let process = request.into_inner();
         let pid = process.pid;
         let package_name = process.package_name;
@@ -163,9 +191,12 @@ pub async fn serve_forever() {
     let mut state = State::new();
     state.init(&mut ebpf).expect("should work");
 
+    let mut symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
+
     let ebpf = Arc::new(Mutex::new(ebpf));
     let state = Arc::new(Mutex::new(state));
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), state, channel));
+    let ziofa_server =
+        ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), state, channel, symbol_handler));
     let counter_server = CounterServer::new(Counter::new(ebpf).await);
 
     let serve = async move {
