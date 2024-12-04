@@ -3,17 +3,18 @@
 //
 // SPDX-License-Identifier: MIT
 
-use object::{Object, ObjectSymbol, ReadCache};
+use crate::constants::OATDUMP_PATH;
+use crate::symbols_stuff_helpers;
 use procfs::process::{MMapPath, Process};
 use procfs::ProcError;
 use serde::{Deserialize, Serialize};
+use serde_json::de::IoRead;
+use serde_json::StreamDeserializer;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use symbols_stuff_helpers::{generate_json_oatdump, get_section_address};
 use thiserror::Error;
-use tokio::process::Command;
-
-// TODO: custom error type for file
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Symbol {
@@ -43,30 +44,21 @@ impl From<SymbolError> for tonic::Status {
     }
 }
 
-pub async fn some_entry_method(pid: i32) -> Result<u64, SymbolError> {
-    let oat_file_paths = get_oat_files(pid)?;
-    if oat_file_paths.len() == 0 {
-        // TODO: generate oat-file and wait till it is available
-
-        // till implemented:
-        return Err(SymbolError::Other {
-            text: format!("Could not find oat file for process with pid: {}", pid),
-        });
-    }
-    Ok(parse_oat_files_for_function(
-        &oat_file_paths,
-        "java.lang.String uniffi.shared.UprobeConfig.component1()",
-        "ziofa",
-    )
-    .await?)
+pub async fn get_symbol_offset_for_function_of_process(
+    pid: i32,
+    process_name: &str,
+    symbol_name: &str,
+) -> Result<u64, SymbolError> {
+    let odex_file_paths = get_odex_files_for_pid(pid)?;
+    parse_odex_files_for_process(&odex_file_paths, symbol_name, process_name).await
 }
 
-pub fn get_oat_files(pid: i32) -> Result<Vec<PathBuf>, ProcError> {
+pub fn get_odex_files_for_pid(pid: i32) -> Result<Vec<PathBuf>, SymbolError> {
     // get from : /proc/pid/maps -> oat directory (directory with all the odex files)
 
     let process = Process::new(pid)?;
     let maps = process.maps()?;
-    let all_files = maps
+    let all_files: Vec<PathBuf> = maps
         .iter()
         .filter_map(|mm_map| match mm_map.clone().pathname {
             MMapPath::Path(path) => Some(path),
@@ -74,84 +66,68 @@ pub fn get_oat_files(pid: i32) -> Result<Vec<PathBuf>, ProcError> {
         })
         .filter(|path: &PathBuf| path.to_str().unwrap().contains(".odex"))
         .collect();
-
-    Ok(all_files)
+    match all_files.len() != 0 {
+        true => Ok(all_files),
+        false => Err(SymbolError::Other {
+            text: format!("Could not find oat file for process with pid: {}", pid),
+        }),
+    }
 }
 
-async fn parse_oat_files_for_function(
-    oat_file_paths: &Vec<PathBuf>,
+async fn parse_odex_files_for_process(
+    odex_file_paths: &Vec<PathBuf>,
     symbol_name: &str,
-    function_name: &str,
+    process_name: &str,
 ) -> Result<u64, SymbolError> {
-    for path in oat_file_paths {
-        // for testing the code only
-        if !path.to_str().unwrap().contains(function_name) {
+    for odex_file_path in odex_file_paths {
+        // TODO: is this really the way... i doubt it
+        if !odex_file_path.to_str().unwrap().contains(process_name) {
             continue;
         }
 
-        let file_length = parse_oat_file(path, symbol_name).await?;
-        return Ok(file_length);
+        return Ok(parse_odex_file(odex_file_path, symbol_name).await?);
     }
     Err(SymbolError::Other {
-        text: "no ziofa oat file".to_string(),
+        text: format!("no oat file found for function-name: {}", process_name),
     })
 }
 
-async fn parse_oat_file(path: &PathBuf, symbol_name: &str) -> Result<u64, SymbolError> {
-    let section_address = tokio::task::spawn_blocking({
-        let path = path.clone();
-        move || get_symbol_address_from_oat(&path, "oatdata")
-    })
-    .await??;
-    
-    let _oatdump_status = Command::new("oatdump")
-        .args(vec![
-            "--output=/data/local/tmp/dump.json",
-            "--dump-method-and-offset-as-json",
-            format!("--oat-file={}", path.to_str().unwrap().to_string()).as_str(),
-        ])
-        .spawn()
-        .expect("oatdump failed to spawn")
-        .wait()
-        .await
-        .expect("oatdump failed to run");
-    // TODO: Check for status [robin]
-    //       do we even need the status? -> if yes for what? [beni]
-    
-    let json_file = File::open("/data/local/tmp/dump.json").unwrap();
-    let json_reader = BufReader::new(json_file);
-    let json = serde_json::Deserializer::from_reader(json_reader).into_iter::<Symbol>();
+async fn parse_odex_file(odex_file_path: &PathBuf, symbol_name: &str) -> Result<u64, SymbolError> {
+    let section_address = get_section_address(odex_file_path).await?;
+    generate_json_oatdump(odex_file_path).await?;
+    get_symbol_address_from_json(symbol_name, section_address)
+}
 
-    for res in json {
+fn get_symbol_address_from_json(
+    symbol_name: &str,
+    section_address: u64,
+) -> Result<u64, SymbolError> {
+    for res in get_oatdump_contents()? {
         if let Ok(symbol) = res {
             if symbol.method == symbol_name {
-                let symbol_address = u64::from_str_radix(symbol.offset.strip_prefix("0x").unwrap(), 16).unwrap();
-                if symbol_address == 0 {
-                    return Err(SymbolError::SymbolIsNotCompiled {
-                        symbol: symbol_name.to_string(),
-                    });
-                }
-                return Ok(symbol_address + section_address);
+                return get_symbol_address(section_address, symbol);
             }
         }
     }
-    // Problem: sync code in async fn
-    // TODO: Error handling
-
     Err(SymbolError::SymbolDoesNotExist {
         symbol: symbol_name.to_string(),
     })
 }
 
-fn get_symbol_address_from_oat(path: &PathBuf, symbol_name: &str) -> Result<u64, std::io::Error> {
-    let file = File::open(path)?;
-    let file_chache = ReadCache::new(file);
-    let obj = object::File::parse(&file_chache).unwrap();
+fn get_oatdump_contents(
+) -> Result<StreamDeserializer<'static, IoRead<BufReader<File>>, Symbol>, SymbolError> {
+    let json_file = File::open(OATDUMP_PATH)?;
+    let json_reader = BufReader::new(json_file);
+    Ok(serde_json::Deserializer::from_reader(json_reader).into_iter::<Symbol>())
+}
 
-    let section = obj
-        .dynamic_symbols()
-        .find(|s| s.name() == Ok(symbol_name))
-        .unwrap();
-
-    Ok(section.address())
+fn get_symbol_address(section_address: u64, symbol: Symbol) -> Result<u64, SymbolError> {
+    let symbol_address =  u64::from_str_radix(symbol.offset.strip_prefix("0x").unwrap(), 16).unwrap() ;
+    if symbol_address == 0{
+        return Err(SymbolError::SymbolIsNotCompiled {
+            symbol: symbol.method.to_string(),
+        });
+    }
+    
+    Ok(symbol_address + section_address)
 }

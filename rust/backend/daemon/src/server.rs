@@ -6,13 +6,13 @@
 // SPDX-License-Identifier: MIT
 
 use crate::collector::MultiCollector;
-use crate::symbols_stuff::{some_entry_method, SymbolError};
+use crate::symbols_stuff::{get_symbol_offset_for_function_of_process, SymbolError};
 use crate::{
     configuration, constants,
     counter::Counter,
     ebpf_utils::{EbpfErrorWrapper, State},
     procfs_utils::{list_processes, ProcErrorWrapper},
-    symbols_stuff::get_oat_files,
+    symbols_stuff::get_odex_files_for_pid,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use aya::Ebpf;
@@ -120,8 +120,7 @@ impl Ziofa for ZiofaImpl {
         pid_message: Request<PidMessage>,
     ) -> Result<Response<OatFileExistsResponse>, Status> {
         let pid = pid_message.into_inner().pid;
-        let paths: Vec<String> = get_oat_files(pid)
-            .map_err(ProcErrorWrapper::from)?
+        let paths: Vec<String> = get_odex_files_for_pid(pid).expect("couldn't get odex files")
             .into_iter()
             .map(|path_thing: PathBuf| path_thing.to_str().unwrap().to_string())
             .collect();
@@ -133,7 +132,7 @@ impl Ziofa for ZiofaImpl {
         pid_message: Request<PidMessage>,
     ) -> Result<Response<SomeEntryMethodResponse>, Status> {
         let pid = pid_message.into_inner().pid;
-        let content_length = some_entry_method(pid).await.map_err(SymbolError::from)?;
+        let content_length = get_symbol_offset_for_function_of_process(pid, "ziofa", "java.lang.String uniffi.shared.UprobeConfig.component1()").await.map_err(SymbolError::from)?;
         Ok(Response::new(SomeEntryMethodResponse { content_length }))
     }
 }

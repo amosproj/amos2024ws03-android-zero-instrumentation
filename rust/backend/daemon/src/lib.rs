@@ -16,6 +16,8 @@ mod features;
 mod symbols_stuff;
 
 mod collector;
+mod symbols_stuff_helpers;
+
 pub async fn run_server() {
     helpers::bump_rlimit();
 
