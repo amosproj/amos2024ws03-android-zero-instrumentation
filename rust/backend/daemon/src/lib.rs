@@ -13,10 +13,10 @@ mod procfs_utils;
 mod server;
 mod features;
 
-mod symbols_stuff;
+mod symbols;
 
 mod collector;
-mod symbols_stuff_helpers;
+mod symbols_helpers;
 
 pub async fn run_server() {
     helpers::bump_rlimit();

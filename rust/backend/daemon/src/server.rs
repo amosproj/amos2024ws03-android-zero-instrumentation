@@ -6,18 +6,20 @@
 // SPDX-License-Identifier: MIT
 
 use crate::collector::MultiCollector;
-use crate::symbols_stuff::{get_symbol_offset_for_function_of_process, SymbolError};
+use crate::symbols::{self, get_symbol_offset_for_function_of_process};
 use crate::{
     configuration, constants,
     counter::Counter,
     ebpf_utils::{EbpfErrorWrapper, State},
     procfs_utils::{list_processes, ProcErrorWrapper},
-    symbols_stuff::get_odex_files_for_pid,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use aya::Ebpf;
 use aya_log::EbpfLogger;
-use shared::ziofa::{Event, OatFileExistsResponse, PidMessage, SomeEntryMethodResponse};
+use shared::ziofa::{
+    Event, GetAddressOfSymbolRequest, GetAddressOfSymbolResponse, GetSymbolsOfProcessRequest,
+    SymbolList,
+};
 use shared::{
     config::Configuration,
     counter::counter_server::CounterServer,
@@ -26,7 +28,6 @@ use shared::{
         CheckServerResponse, ProcessList, SetConfigurationResponse,
     },
 };
-use std::path::PathBuf;
 use std::{ops::DerefMut, sync::Arc};
 use tokio::join;
 use tokio::sync::Mutex;
@@ -115,25 +116,32 @@ impl Ziofa for ZiofaImpl {
         Ok(Response::new(self.channel.rx.clone()))
     }
 
-    async fn test_oat_file_exists(
+    async fn get_symbols_of_process(
         &self,
-        pid_message: Request<PidMessage>,
-    ) -> Result<Response<OatFileExistsResponse>, Status> {
-        let pid = pid_message.into_inner().pid;
-        let paths: Vec<String> = get_odex_files_for_pid(pid).expect("couldn't get odex files")
-            .into_iter()
-            .map(|path_thing: PathBuf| path_thing.to_str().unwrap().to_string())
-            .collect();
-        Ok(Response::new(OatFileExistsResponse { paths }))
+        request: Request<GetSymbolsOfProcessRequest>,
+    ) -> Result<Response<SymbolList>, Status> {
+        let process = request.into_inner();
+        let pid = process.pid;
+        let package_name = process.package_name;
+
+        Ok(Response::new(SymbolList {
+            names: symbols::get_symbols_of_pid(pid, &package_name).await?,
+        }))
     }
 
-    async fn test_some_entry_method(
+    async fn get_address_of_symbol(
         &self,
-        pid_message: Request<PidMessage>,
-    ) -> Result<Response<SomeEntryMethodResponse>, Status> {
-        let pid = pid_message.into_inner().pid;
-        let content_length = get_symbol_offset_for_function_of_process(pid, "ziofa", "java.lang.String uniffi.shared.UprobeConfig.component1()").await.map_err(SymbolError::from)?;
-        Ok(Response::new(SomeEntryMethodResponse { content_length }))
+        request: Request<GetAddressOfSymbolRequest>,
+    ) -> Result<Response<GetAddressOfSymbolResponse>, Status> {
+        let request_inner = request.into_inner();
+        let symbol_name = request_inner.name;
+        let pid = request_inner.pid;
+        let package_name = request_inner.package_name;
+
+        let offset =
+            get_symbol_offset_for_function_of_process(pid, &package_name, &symbol_name).await?;
+
+        Ok(Response::new(GetAddressOfSymbolResponse { offset }))
     }
 }
 

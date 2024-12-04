@@ -5,12 +5,15 @@
 // SPDX-License-Identifier: MIT
 
 use clap::Parser;
-use shared::ziofa::PidMessage;
+use shared::ziofa::{
+    GetAddressOfSymbolRequest, GetSymbolsOfProcessRequest,
+};
 use shared::{
     config::{Configuration, SysSendmsgConfig, VfsWriteConfig},
     ziofa::ziofa_client::ZiofaClient,
 };
 use tonic::transport::Channel;
+use tonic::Request;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -27,13 +30,28 @@ struct Args {
     pid: i32,
 }
 
-async fn test_oat_file_exist(client: &mut ZiofaClient<Channel>, pid: i32) {
-    println!("TEST checking oat_file_exists");
-    match client.test_oat_file_exists(PidMessage { pid }).await {
-        Ok(list_of_oatfiles) => {
+async fn test_get_symbols_of_process(
+    client: &mut ZiofaClient<Channel>,
+    pid: i32,
+    package_name: String,
+    verbose: bool,
+) {
+    println!("TEST get_symbols_of_process");
+
+    match client
+        .get_symbols_of_process(Request::new(GetSymbolsOfProcessRequest {
+            pid,
+            package_name,
+        }))
+        .await
+    {
+        Ok(res) => {
+            let names = res.into_inner().names;
             println!("SUCCESS");
-            for file in list_of_oatfiles.into_inner().paths {
-                println!("{:?}", file);
+            if verbose {
+                for (i, s) in names.iter().enumerate() {
+                    println!("Symbol {}: {}", i, s);
+                }
             }
         }
         Err(e) => println!("ERROR: {:?}", e),
@@ -41,18 +59,29 @@ async fn test_oat_file_exist(client: &mut ZiofaClient<Channel>, pid: i32) {
     println!();
 }
 
-async fn test_some_entry_method(client: &mut ZiofaClient<Channel>, pid: i32) {
-    println!("TEST checking some_entry_method");
-    match client.test_some_entry_method(PidMessage { pid }).await {
-        Ok(byte_size_of_odex_file) => {
-            println!("SUCCESS");
-            println!(
-                "Size of odex file in bytes: {}",
-                byte_size_of_odex_file.into_inner().content_length
-            )
+async fn test_get_address_of_symbol(
+    client: &mut ZiofaClient<Channel>,
+    name: String,
+    pid: i32,
+    package_name: String,
+) {
+    println!("TEST get_address_of_symbol");
+
+    match client
+        .get_address_of_symbol(Request::new(GetAddressOfSymbolRequest {
+            name,
+            pid,
+            package_name,
+        }))
+        .await
+    {
+        Ok(res) => {
+            let offset = res.into_inner().offset;
+            println!("SUCCESS: {}", offset);
         }
         Err(e) => println!("ERROR: {:?}", e),
     };
+
     println!();
 }
 
@@ -82,8 +111,12 @@ async fn test_get_configuration(client: &mut ZiofaClient<Channel>, verbose: bool
             println!("ERROR: {:?}", e);
             Configuration {
                 uprobes: vec![],
-                vfs_write: Some(VfsWriteConfig { entries: std::collections::HashMap::new() }),
-                sys_sendmsg: Some(SysSendmsgConfig { entries: std::collections::HashMap::new() }),
+                vfs_write: Some(VfsWriteConfig {
+                    entries: std::collections::HashMap::new(),
+                }),
+                sys_sendmsg: Some(SysSendmsgConfig {
+                    entries: std::collections::HashMap::new(),
+                }),
             }
         }
     };
@@ -135,8 +168,20 @@ async fn main() {
     let config = test_get_configuration(&mut client, args.verbose).await;
     test_set_configuration(&mut client, config).await;
     test_list_processes(&mut client, args.verbose).await;
-    test_oat_file_exist(&mut client, args.pid).await;
-    test_some_entry_method(&mut client, args.pid).await;
+    test_get_symbols_of_process(
+        &mut client,
+        args.pid,
+        "de.amosproj3.ziofa".to_string(),
+        args.verbose,
+    )
+    .await;
+    test_get_address_of_symbol(
+        &mut client,
+        "java.lang.String uniffi.shared.UprobeConfig.component1()".to_string(),
+        args.pid,
+        "de.amosproj3.ziofa".to_string(),
+    )
+    .await;
 
     if !args.verbose {
         println!("Note: To view verbose output, pass the \"-v\" flag.");

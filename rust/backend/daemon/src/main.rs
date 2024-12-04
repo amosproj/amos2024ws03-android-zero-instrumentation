@@ -13,7 +13,8 @@ mod procfs_utils;
 mod server;
 mod features;
 mod collector;
-mod symbols_stuff;
+mod symbols;
+mod symbols_helpers;
 
 #[tokio::main]
 async fn main() {
