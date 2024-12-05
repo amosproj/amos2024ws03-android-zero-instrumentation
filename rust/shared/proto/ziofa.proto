@@ -29,7 +29,6 @@ message StringResponse {
 }
 
 message GetSymbolsRequest {
-    uint32 pid = 1;
     string odex_file_path = 2;
 }
 

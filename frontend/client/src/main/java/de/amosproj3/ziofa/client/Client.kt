@@ -74,7 +74,7 @@ interface Client {
 
     suspend fun getOdexFiles(pid: UInt): Flow<StringResponse>
 
-    suspend fun getSymbols(pid: UInt, odexFilePath: String): Flow<Symbol>
+    suspend fun getSymbols(odexFilePath: String): Flow<Symbol>
 
     suspend fun initStream(): Flow<Event>
 }

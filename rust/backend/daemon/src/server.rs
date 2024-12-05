@@ -132,13 +132,10 @@ impl Ziofa for ZiofaImpl {
 
         let (tx, rx) = mpsc::channel(4);
 
-        let symbol_handler_clone = self.symbol_handler.clone();
-
-        // let symbol_handler_guard = self.symbol_handler.lock().await;
-        // let odex_paths = symbol_handler_guard.get_odex_paths(pid)?;
+        let symbol_handler = self.symbol_handler.clone();
 
         tokio::spawn(async move {
-            let mut symbol_handler_guard = symbol_handler_clone.lock().await;
+            let mut symbol_handler_guard = symbol_handler.lock().await;
             // TODO Error Handling
             let odex_paths = match symbol_handler_guard.get_odex_paths(pid) {
                 Ok(paths) => paths,
@@ -169,17 +166,17 @@ impl Ziofa for ZiofaImpl {
         request: Request<GetSymbolsRequest>,
     ) -> Result<Response<Self::GetSymbolsStream>, Status> {
         let process_request = request.into_inner();
-        let pid = process_request.pid;
         let odex_file_path_string = process_request.odex_file_path;
         let odex_file_path = PathBuf::from(odex_file_path_string);
 
-        let symbol_handler_clone = self.symbol_handler.clone();
-
         let (tx, rx) = mpsc::channel(4);
-        tokio::spawn(async move {
-            let mut symbol_handler_guard = symbol_handler_clone.lock().await;
+        
+        let symbol_handler = self.symbol_handler.clone();
 
-            let symbol = match symbol_handler_guard.get_symbols(pid, &odex_file_path).await{
+        tokio::spawn(async move {
+            let mut symbol_handler_guard = symbol_handler.lock().await;
+
+            let symbol = match symbol_handler_guard.get_symbols(&odex_file_path).await{
                 Ok(symbol) => symbol,
                 Err(e) => {
                     tx.send(Err(Status::from(e)))

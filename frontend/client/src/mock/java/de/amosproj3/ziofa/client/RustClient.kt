@@ -136,7 +136,7 @@ object RustClient : Client {
         )
     }
 
-    override suspend fun getSymbols(pid: UInt, odexFilePath: String): Flow<Symbol> = flow {
+    override suspend fun getSymbols(odexFilePath: String): Flow<Symbol> = flow {
         emit(
             Symbol(
                 method =

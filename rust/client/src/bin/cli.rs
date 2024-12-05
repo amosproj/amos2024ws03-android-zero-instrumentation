@@ -61,10 +61,6 @@ enum Commands {
 
     /// Get all symbols with their offsets
     Symbols {
-        /// Pid for which to get the symbols
-        #[arg(short, long)]
-        pid: u32,
-
         /// Path to the .odex file which should be crawled
         #[arg(short, long)]
         odex_file: String,
@@ -147,8 +143,8 @@ async fn get_odex_files(client: &mut Client, pid: u32, silent: bool) -> Result<(
     Ok(())
 }
 
-async fn get_symbols(client: &mut Client, pid: u32, odex_file: String, silent: bool) -> Result<()> {
-    let mut stream = client.get_symbols(pid, odex_file).await?;
+async fn get_symbols(client: &mut Client, odex_file: String, silent: bool) -> Result<()> {
+    let mut stream = client.get_symbols(odex_file).await?;
     let mut count: u32 = 0;
 
     while let Some(Ok(next)) = stream.next().await {
@@ -192,8 +188,8 @@ pub async fn main() -> anyhow::Result<()> {
         Commands::Odex { pid, silent } => {
             get_odex_files(&mut client, pid, silent).await?;
         },
-        Commands::Symbols { pid, odex_file, silent } => {
-            get_symbols(&mut client, pid, odex_file, silent).await?;
+        Commands::Symbols { odex_file, silent } => {
+            get_symbols(&mut client, odex_file, silent).await?;
         }
     }
 

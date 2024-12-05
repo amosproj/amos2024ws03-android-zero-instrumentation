@@ -161,10 +161,10 @@ impl Client {
         Ok(OdexFileStream(Mutex::new(Box::pin(stream))))
     }
 
-    pub async fn get_symbols(&self, pid: u32, odex_file: String) -> Result<SymbolStream> {
+    pub async fn get_symbols(&self, odex_file: String) -> Result<SymbolStream> {
         let mut guard = self.0.lock().await;
         let stream = guard
-            .get_symbols(pid, odex_file)
+            .get_symbols(odex_file)
             .await?
             .map(|x| x.map_err(ClientError::from));
 
