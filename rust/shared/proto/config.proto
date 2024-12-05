@@ -17,15 +17,15 @@ message UprobeConfig {
 }
 
 message Configuration {
-  VfsWriteConfig vfs_write = 1;
-  SysSendmsgConfig sys_sendmsg = 2;
+  optional VfsWriteConfig vfs_write = 1;
+  optional SysSendmsgConfig sys_sendmsg = 2;
   repeated UprobeConfig uprobes = 3;
 }
 
 message VfsWriteConfig {
-  repeated uint32 pids = 1;
+  map<uint32, uint64> entries = 1;
 }
 
 message SysSendmsgConfig {
-  repeated uint32 pids = 1;
+  map<uint32, uint64> entries = 1;
 }
