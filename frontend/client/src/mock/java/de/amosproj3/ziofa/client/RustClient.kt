@@ -19,6 +19,7 @@ object RustClient : Client {
             vfsWrite = VfsWriteConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
             sysSendmsg = SysSendmsgConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
             uprobes = listOf(),
+            jniReferences = JniReferencesConfig(pids = listOf()),
         )
 
     override suspend fun serverCount(): Flow<UInt> = flow {

@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 package de.amosproj3.ziofa.api
 
+import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
@@ -32,6 +34,7 @@ interface LocalConfigurationAccess {
         vfsWriteFeature: VfsWriteConfig? = null,
         sendMessageFeature: SysSendmsgConfig? = null,
         uprobesFeature: List<UprobeConfig>? = listOf(),
+        jniReferencesFeature: JniReferencesConfig? = null,
     )
 
     /** Submit the local configuration to the backend. */

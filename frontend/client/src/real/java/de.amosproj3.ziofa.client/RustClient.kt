@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -60,6 +61,7 @@ private fun uniffi.shared.Configuration.into() =
                     pid = it.pid,
                 )
             },
+        jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
     )
 
 private fun Configuration.into() =
@@ -75,6 +77,7 @@ private fun Configuration.into() =
                     pid = it.pid,
                 )
             },
+        jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
     )
 
 class RustClient(private val inner: uniffi.client.Client) : Client {

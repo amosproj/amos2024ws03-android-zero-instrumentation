@@ -72,7 +72,8 @@ pub async fn main() -> anyhow::Result<()> {
         .set_configuration(Configuration {
             uprobes: vec![],
             vfs_write: None,
-            sys_sendmsg: Some(SysSendmsgConfig { entries: HashMap::from([(pid, 0)]) })
+            sys_sendmsg: Some(SysSendmsgConfig { entries: HashMap::from([(pid, 0)]) }),
+            jni_references: None,
         })
         .await?;
 

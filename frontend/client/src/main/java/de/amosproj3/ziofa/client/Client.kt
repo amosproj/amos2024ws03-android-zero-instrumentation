@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -10,6 +11,7 @@ data class Configuration(
     val vfsWrite: VfsWriteConfig?,
     val sysSendmsg: SysSendmsgConfig?,
     val uprobes: List<UprobeConfig>,
+    val jniReferences: JniReferencesConfig?,
 )
 
 data class VfsWriteConfig(val entries: Map<UInt, ULong>)
@@ -17,6 +19,8 @@ data class VfsWriteConfig(val entries: Map<UInt, ULong>)
 data class SysSendmsgConfig(val entries: Map<UInt, ULong>)
 
 data class UprobeConfig(val fnName: String, val offset: ULong, var target: String, val pid: Int?)
+
+data class JniReferencesConfig(val pids: List<UInt>)
 
 sealed class Event {
     data class VfsWrite(
