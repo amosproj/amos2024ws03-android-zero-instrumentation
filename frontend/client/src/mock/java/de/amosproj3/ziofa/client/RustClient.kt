@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -76,8 +77,10 @@ object RustClient : Client {
         return configuration
     }
 
-    override suspend fun setConfiguration(configuration: Configuration) {
+    override suspend fun setConfiguration(configuration: Configuration): UInt {
         this.configuration = configuration
+
+        return 0u
     }
 
     override suspend fun initStream(): Flow<Event> = flow {
@@ -108,6 +111,66 @@ object RustClient : Client {
                 )
             }
         }
+    }
+
+    override suspend fun getOdexFiles(pid: Int): Flow<StringResponse> = flow {
+        emit(StringResponse(name = "/system/framework/oat/x86_64/android.test.base.odex"))
+        emit(StringResponse(name = "/system/framework/oat/x86_64/android.hidl.base-V1.0-java.odex"))
+        emit(StringResponse(name = "/system/framework/oat/x86_64/org.apache.http.legacy.odex"))
+        emit(
+            StringResponse(
+                name = "/system/framework/oat/x86_64/android.hidl.manager-V1.0-java.odex"
+            )
+        )
+        emit(StringResponse(name = "/system_ext/framework/oat/x86_64/androidx.window.sidecar.odex"))
+        emit(
+            StringResponse(
+                name =
+                    "/data/app/~~0cD8TtY5ggbzXOrlKANgwQ==/de.amosproj3.ziofa-Sm8ZemAtgxCr5VAK1Cwi8Q==/oat/x86_64/base.odex"
+            )
+        )
+        emit(
+            StringResponse(
+                name = "/system_ext/framework/oat/x86_64/androidx.window.extensions.odex"
+            )
+        )
+    }
+
+    override suspend fun getSymbols(pid: Int, odexFilePath: String): Flow<Symbol> = flow {
+        emit(
+            Symbol(
+                method =
+                    "void androidx.compose.material3.SearchBarDefaults\$InputField\$1\$1.<init>(kotlin.jvm.functions.Function1)",
+                offset = 6012800u,
+            )
+        )
+        emit(
+            Symbol(
+                method =
+                    "void kotlin.collections.ArraysKt___ArraysKt\$asSequence\$\$inlined\$Sequence\$2.<init>(byte[])",
+                offset = 5915712u,
+            )
+        )
+        emit(
+            Symbol(
+                method =
+                    "boolean androidx.compose.ui.platform.ViewLayer\$Companion.getHasRetrievedMethod()",
+                offset = 24010112u,
+            )
+        )
+        emit(
+            Symbol(
+                method =
+                    "androidx.core.app.NotificationCompat\$BubbleMetadata androidx.core.app.NotificationCompat\$BubbleMetadata\$Api29Impl.fromPlatform(android.app.Notification\$BubbleMetadata)",
+                offset = 25453376u,
+            )
+        )
+        emit(
+            Symbol(
+                method = "byte androidx.emoji2.text.flatbuffer.FlexBuffers\$Blob.get(int)",
+                offset = 26906336u,
+            )
+        )
     }
 }
 

@@ -109,7 +109,6 @@ async fn set_config(client: &mut Client) -> Result<()> {
                 }),
             })
             .await?
-            .response_type
     );
 
     Ok(())

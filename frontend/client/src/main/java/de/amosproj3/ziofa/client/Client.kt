@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -38,6 +39,10 @@ sealed class Event {
 
 data class Process(val pid: Int, val ppid: Int, val state: String, val cmd: Command?)
 
+data class StringResponse(val name: String)
+
+data class Symbol(val method: String, val offset: ULong)
+
 sealed class Command {
     data class Cmdline(val components: List<String>) : Command()
 
@@ -65,7 +70,11 @@ interface Client {
 
     suspend fun getConfiguration(): Configuration
 
-    suspend fun setConfiguration(configuration: Configuration)
+    suspend fun setConfiguration(configuration: Configuration): UInt
+
+    suspend fun getOdexFiles(pid: Int): Flow<StringResponse>
+
+    suspend fun getSymbols(pid: Int, odexFilePath: String): Flow<Symbol>
 
     suspend fun initStream(): Flow<Event>
 }

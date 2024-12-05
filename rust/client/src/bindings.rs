@@ -8,7 +8,7 @@ use std::{pin::Pin, sync::Arc};
 use shared::{config::Configuration, ziofa::Process};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
-use shared::ziofa::{Event, StringResponse, Symbol, SetConfigurationResponse};
+use shared::ziofa::{Event, StringResponse, Symbol};
 
 type Result<T> = core::result::Result<T, ClientError>;
 
@@ -137,7 +137,7 @@ impl Client {
         Ok(self.0.lock().await.get_configuration().await?)
     }
 
-    pub async fn set_configuration(&self, configuration: Configuration) -> Result<SetConfigurationResponse> {
+    pub async fn set_configuration(&self, configuration: Configuration) -> Result<u32> {
         Ok(self.0.lock().await.set_configuration(configuration).await?)
     }
 

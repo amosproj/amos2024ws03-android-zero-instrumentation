@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -77,6 +78,10 @@ private fun Configuration.into() =
             },
     )
 
+private fun uniffi.shared.StringResponse.into() = StringResponse(name)
+
+private fun uniffi.shared.Symbol.into() = Symbol(method, offset)
+
 class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun serverCount(): Flow<UInt> = inner.serverCountFlow()
@@ -99,8 +104,14 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
 
-    override suspend fun setConfiguration(configuration: Configuration) =
+    override suspend fun setConfiguration(configuration: Configuration): UInt =
         inner.setConfiguration(configuration.into())
+
+    override suspend fun getOdexFiles(pid: Int): Flow<StringResponse> =
+        inner.getOdexFilesFlow(pid).mapNotNull { it.into() }
+
+    override suspend fun getSymbols(pid: Int, odexFilePath: String): Flow<Symbol> =
+        inner.getSymbolFlow(pid, odexFilePath).mapNotNull { it.into() }
 
     override suspend fun initStream(): Flow<Event> = inner.initStreamFlow().mapNotNull { it.into() }
 }
@@ -138,6 +149,22 @@ fun uniffi.client.Client.initStreamFlow() = flow {
     initStream().use { stream ->
         while (true) {
             stream.next()?.also { event -> emit(event) } ?: break
+        }
+    }
+}
+
+fun uniffi.client.Client.getOdexFilesFlow(pid: Int) = flow {
+    getOdexFiles(pid).use { stream ->
+        while (true) {
+            stream.next()?.also { file -> emit(file) } ?: break
+        }
+    }
+}
+
+fun uniffi.client.Client.getSymbolFlow(pid: Int, odexFilePath: String) = flow {
+    getSymbols(pid, odexFilePath).use { stream ->
+        while (true) {
+            stream.next()?.also { symbol -> emit(symbol) } ?: break
         }
     }
 }

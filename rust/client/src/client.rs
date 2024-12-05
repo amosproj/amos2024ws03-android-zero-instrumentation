@@ -6,7 +6,7 @@
 use shared::{
     config::Configuration,
     counter::{counter_client::CounterClient, IfaceMessage},
-    ziofa::{ziofa_client::ZiofaClient, GetSymbolsRequest, PidMessage, Process, SetConfigurationResponse, StringResponse, Symbol},
+    ziofa::{ziofa_client::ZiofaClient, GetSymbolsRequest, PidMessage, Process, StringResponse, Symbol},
 };
 use tokio_stream::{Stream, StreamExt};
 use tonic::{
@@ -99,8 +99,8 @@ impl Client {
         Ok(self.ziofa.get_configuration(()).await?.into_inner())
     }
 
-    pub async fn set_configuration(&mut self, configuration: Configuration) -> Result<SetConfigurationResponse> {
-        Ok(self.ziofa.set_configuration(configuration).await?.into_inner())
+    pub async fn set_configuration(&mut self, configuration: Configuration) -> Result<u32> {
+        Ok(self.ziofa.set_configuration(configuration).await?.into_inner().response_type)
     }
 
     pub async fn init_stream(&mut self) -> Result<impl Stream<Item = Result<Event>>> {
