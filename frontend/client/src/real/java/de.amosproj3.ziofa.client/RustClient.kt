@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -51,7 +52,6 @@ private fun uniffi.shared.Configuration.into() =
     Configuration(
         vfsWrite = vfsWrite?.let { VfsWriteConfig(entries = it.entries) },
         sysSendmsg = sysSendmsg?.let { SysSendmsgConfig(entries = it.entries) },
-        jniReferences = jniReferences?.let { JniReferencesConfig(entries = it.entries) },
         uprobes =
             uprobes.map {
                 UprobeConfig(
@@ -61,13 +61,13 @@ private fun uniffi.shared.Configuration.into() =
                     pid = it.pid,
                 )
             },
+        jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
     )
 
 private fun Configuration.into() =
     uniffi.shared.Configuration(
         vfsWrite = vfsWrite?.let { uniffi.shared.VfsWriteConfig(it.entries) },
         sysSendmsg = sysSendmsg?.let { uniffi.shared.SysSendmsgConfig(it.entries) },
-        jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.entries) },
         uprobes =
             uprobes.map {
                 uniffi.shared.UprobeConfig(
@@ -77,6 +77,7 @@ private fun Configuration.into() =
                     pid = it.pid,
                 )
             },
+        jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
     )
 
 class RustClient(private val inner: uniffi.client.Client) : Client {

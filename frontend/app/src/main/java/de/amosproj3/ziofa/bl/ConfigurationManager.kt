@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -11,6 +12,7 @@ import de.amosproj3.ziofa.api.LocalConfigurationAccess
 import de.amosproj3.ziofa.client.Client
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Configuration
+import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
@@ -56,6 +58,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
         vfsWriteFeature: VfsWriteConfig?,
         sendMessageFeature: SysSendmsgConfig?,
         uprobesFeature: List<UprobeConfig>?,
+        jniReferencesFeature: JniReferencesConfig?,
     ) {
         _localConfiguration.update { prev ->
             Timber.e("changeFeatureConfigurationForPIDs.prev $prev")
@@ -85,6 +88,8 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                                 )
                             } ?: previousConfiguration.sysSendmsg,
                         uprobes = uprobesFeature ?: prev.configuration.uprobes, // TODO
+                        jniReferences =
+                            jniReferencesFeature ?: prev.configuration.jniReferences, // TODO
                     )
                     .also { Timber.i("new local configuration = $it") }
                     .let { ConfigurationUpdate.Valid(it) }
@@ -116,7 +121,12 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
         return try {
             // the config may not be initialized, we should try initializing it
             client!!.setConfiguration(
-                Configuration(vfsWrite = null, sysSendmsg = null, uprobes = listOf())
+                Configuration(
+                    vfsWrite = null,
+                    sysSendmsg = null,
+                    uprobes = listOf(),
+                    jniReferences = JniReferencesConfig(pids = listOf()),
+                )
             )
             ConfigurationUpdate.Valid(client!!.getConfiguration())
         } catch (e: Exception) {
