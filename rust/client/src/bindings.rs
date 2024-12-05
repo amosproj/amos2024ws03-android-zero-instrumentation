@@ -8,7 +8,7 @@ use std::{pin::Pin, sync::Arc};
 use shared::{config::Configuration, ziofa::Process};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
-use shared::ziofa::Event;
+use shared::ziofa::{Event, StringResponse, Symbol, SetConfigurationResponse};
 
 type Result<T> = core::result::Result<T, ClientError>;
 
@@ -137,7 +137,7 @@ impl Client {
         Ok(self.0.lock().await.get_configuration().await?)
     }
 
-    pub async fn set_configuration(&self, configuration: Configuration) -> Result<()> {
+    pub async fn set_configuration(&self, configuration: Configuration) -> Result<SetConfigurationResponse> {
         Ok(self.0.lock().await.set_configuration(configuration).await?)
     }
 
@@ -154,7 +154,7 @@ impl Client {
     pub async fn get_odex_files(&self, pid: i32) -> Result<OdexFileStream> {
         let mut guard = self.0.lock().await;
         let stream = guard
-            .init_stream()
+            .get_odex_files(pid)
             .await?
             .map(|x| x.map_err(ClientError::from));
 
@@ -164,7 +164,7 @@ impl Client {
     pub async fn get_symbols(&self, pid: i32, odex_file: String) -> Result<SymbolStream> {
         let mut guard = self.0.lock().await;
         let stream = guard
-            .init_stream()
+            .get_symbols(pid, odex_file)
             .await?
             .map(|x| x.map_err(ClientError::from));
 
