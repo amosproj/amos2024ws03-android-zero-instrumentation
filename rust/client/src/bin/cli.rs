@@ -71,7 +71,9 @@ pub async fn main() -> anyhow::Result<()> {
         .set_configuration(Configuration {
             uprobes: vec![],
             vfs_write: None,
-            sys_sendmsg: Some(SysSendmsgConfig { pids: vec![pid] })
+            sys_sendmsg: Some(SysSendmsgConfig { pids: vec![pid] }),
+            jni_references: None,
+
         })
         .await?;
 

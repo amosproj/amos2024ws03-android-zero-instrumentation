@@ -51,6 +51,7 @@ private fun uniffi.shared.Configuration.into() =
     Configuration(
         vfsWrite = vfsWrite?.let { VfsWriteConfig(entries = it.entries) },
         sysSendmsg = sysSendmsg?.let { SysSendmsgConfig(entries = it.entries) },
+        jniReferences = jniReferences?.let { JniReferencesConfig(entries = it.entries) },
         uprobes =
             uprobes.map {
                 UprobeConfig(
@@ -66,6 +67,7 @@ private fun Configuration.into() =
     uniffi.shared.Configuration(
         vfsWrite = vfsWrite?.let { uniffi.shared.VfsWriteConfig(it.entries) },
         sysSendmsg = sysSendmsg?.let { uniffi.shared.SysSendmsgConfig(it.entries) },
+        jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.entries) },
         uprobes =
             uprobes.map {
                 uniffi.shared.UprobeConfig(
