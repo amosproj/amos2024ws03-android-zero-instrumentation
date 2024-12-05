@@ -7,9 +7,9 @@ package de.amosproj3.ziofa.ui.configuration
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.api.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.ConfigurationUpdate
-import de.amosproj3.ziofa.api.LocalConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
+import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions

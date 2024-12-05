@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
-import de.amosproj3.ziofa.api.RunningComponent
+import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.ui.shared.toReadableString
 
 @Composable

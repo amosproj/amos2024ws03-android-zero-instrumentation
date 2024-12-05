@@ -4,11 +4,11 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl
+package de.amosproj3.ziofa.bl.configuration
 
-import de.amosproj3.ziofa.api.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.ConfigurationUpdate
-import de.amosproj3.ziofa.api.LocalConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
+import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.client.Client
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Configuration

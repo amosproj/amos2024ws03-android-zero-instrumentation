@@ -4,7 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.data
 
-import de.amosproj3.ziofa.api.BackendEvent
+import de.amosproj3.ziofa.api.events.BackendEvent
 
 sealed class GraphedData {
     data class TimeSeriesData(
