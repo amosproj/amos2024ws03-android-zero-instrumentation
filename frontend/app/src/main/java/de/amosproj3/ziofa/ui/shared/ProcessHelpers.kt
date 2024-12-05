@@ -5,7 +5,7 @@
 
 package de.amosproj3.ziofa.ui.shared
 
-import de.amosproj3.ziofa.api.RunningComponent
+import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.client.Command
 
 fun Command?.toReadableString(): String {

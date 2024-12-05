@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.api
+package de.amosproj3.ziofa.api.configuration
 
 import kotlinx.coroutines.flow.StateFlow
 

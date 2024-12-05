@@ -3,10 +3,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl
+package de.amosproj3.ziofa.bl.events
 
-import de.amosproj3.ziofa.api.BackendEvent
-import de.amosproj3.ziofa.api.DataStreamProvider
+import de.amosproj3.ziofa.api.events.BackendEvent
+import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Event
 import kotlinx.coroutines.CoroutineScope

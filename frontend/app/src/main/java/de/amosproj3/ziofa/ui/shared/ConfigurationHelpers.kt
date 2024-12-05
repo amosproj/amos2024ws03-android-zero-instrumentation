@@ -4,7 +4,7 @@
 
 package de.amosproj3.ziofa.ui.shared
 
-import de.amosproj3.ziofa.api.ConfigurationUpdate
+import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions

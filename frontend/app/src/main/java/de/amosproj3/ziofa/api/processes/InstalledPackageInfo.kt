@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.api
+package de.amosproj3.ziofa.api.processes
 
 import android.graphics.drawable.Drawable
 

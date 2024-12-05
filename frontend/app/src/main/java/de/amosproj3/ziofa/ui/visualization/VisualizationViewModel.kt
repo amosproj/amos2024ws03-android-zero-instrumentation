@@ -6,10 +6,10 @@ package de.amosproj3.ziofa.ui.visualization
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.api.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.ConfigurationUpdate
-import de.amosproj3.ziofa.api.DataStreamProvider
-import de.amosproj3.ziofa.api.RunningComponentsAccess
+import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
+import de.amosproj3.ziofa.api.events.DataStreamProvider
+import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.shared.HISTOGRAM_BUCKETS
 import de.amosproj3.ziofa.ui.shared.TIME_SERIES_SIZE

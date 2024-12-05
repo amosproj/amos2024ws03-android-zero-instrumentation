@@ -21,7 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import de.amosproj3.ziofa.api.RunningComponent
+import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.ui.about.AboutScreen
 import de.amosproj3.ziofa.ui.configuration.ConfigurationScreen
 import de.amosproj3.ziofa.ui.navigation.ConfigurationMenu

@@ -6,8 +6,8 @@ package de.amosproj3.ziofa.ui.processes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.api.RunningComponent
-import de.amosproj3.ziofa.api.RunningComponentsAccess
+import de.amosproj3.ziofa.api.processes.RunningComponent
+import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map

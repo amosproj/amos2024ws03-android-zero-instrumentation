@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl
+package de.amosproj3.ziofa.bl.processes
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
-import de.amosproj3.ziofa.api.InstalledPackageInfo
+import de.amosproj3.ziofa.api.processes.InstalledPackageInfo
 
 class PackageInformationProvider(private val packageManager: PackageManager) {
 
