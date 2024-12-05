@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -32,6 +33,36 @@ struct EventStream(Mutex<Pin<Box<dyn Stream<Item = Result<Event>> + Send>>>);
 #[uniffi::export(async_runtime = "tokio")]
 impl EventStream {
     pub async fn next(&self) -> Result<Option<Event>> {
+        let mut guard = self.0.lock().await;
+        match guard.next().await {
+            Some(Ok(x)) => Ok(Some(x)),
+            Some(Err(e)) => Err(e),
+            None => Ok(None),
+        }
+    }
+}
+
+#[derive(uniffi::Object)]
+struct OdexFileStream(Mutex<Pin<Box<dyn Stream<Item = Result<StringResponse>> + Send>>>);
+
+#[uniffi::export(async_runtime = "tokio")]
+impl OdexFileStream {
+    pub async fn next(&self) -> Result<Option<StringResponse>> {
+        let mut guard = self.0.lock().await;
+        match guard.next().await {
+            Some(Ok(x)) => Ok(Some(x)),
+            Some(Err(e)) => Err(e),
+            None => Ok(None),
+        }
+    }
+}
+
+#[derive(uniffi::Object)]
+struct SymbolStream(Mutex<Pin<Box<dyn Stream<Item = Result<Symbol>> + Send>>>);
+
+#[uniffi::export(async_runtime = "tokio")]
+impl SymbolStream {
+    pub async fn next(&self) -> Result<Option<Symbol>> {
         let mut guard = self.0.lock().await;
         match guard.next().await {
             Some(Ok(x)) => Ok(Some(x)),
@@ -118,5 +149,25 @@ impl Client {
             .map(|x| x.map_err(ClientError::from));
 
         Ok(EventStream(Mutex::new(Box::pin(stream))))
+    }
+
+    pub async fn get_odex_files(&self, pid: i32) -> Result<OdexFileStream> {
+        let mut guard = self.0.lock().await;
+        let stream = guard
+            .init_stream()
+            .await?
+            .map(|x| x.map_err(ClientError::from));
+
+        Ok(OdexFileStream(Mutex::new(Box::pin(stream))))
+    }
+
+    pub async fn get_symbols(&self, pid: i32, odex_file: String) -> Result<SymbolStream> {
+        let mut guard = self.0.lock().await;
+        let stream = guard
+            .init_stream()
+            .await?
+            .map(|x| x.map_err(ClientError::from));
+
+        Ok(SymbolStream(Mutex::new(Box::pin(stream))))
     }
 }

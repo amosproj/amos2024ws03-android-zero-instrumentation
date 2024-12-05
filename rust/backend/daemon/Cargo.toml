@@ -34,10 +34,6 @@ serde = { workspace = true }
 cargo_metadata = { workspace = true }
 xtask = { workspace = true }
 
-[[bin]]
-name = "backend-daemon-cli"
-path = "./src/bin/cli.rs"
-
 [[test]]
 name = "base"
 path = "./tests/base.rs"
