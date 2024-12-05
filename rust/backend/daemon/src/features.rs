@@ -15,16 +15,16 @@ use aya::{
 use shared::config::{SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig};
 
 
-pub struct JNIReferences {
+pub struct JNIReferencesFeature {
     trace_add_local_link: Option<UProbeLink>,
     trace_del_local_link: Option<UProbeLink>,
     trace_add_global_link: Option<UProbeLink>,
     trace_del_global_link: Option<UProbeLink>,
 }
 
-impl JNIReferences {
-    pub fn new() -> JNIReferences {
-        JNIReferences {
+impl JNIReferencesFeature {
+    pub fn new() -> JNIReferencesFeature {
+        JNIReferencesFeature {
             trace_add_local_link: None,
             trace_del_local_link: None,
             trace_add_global_link: None,
@@ -148,7 +148,7 @@ impl JNIReferences {
         match config {
             Some(config) => {
                 self.attach(ebpf)?;
-                self.update_pids(ebpf, &config.entries)?;
+                self.update_pids(ebpf, &config.pids)?;
             }
             None => {
                 self.detach(ebpf)?;

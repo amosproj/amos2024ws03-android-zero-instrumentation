@@ -33,5 +33,5 @@ message SysSendmsgConfig {
 }
 
 message JniReferencesConfig {
-  repeated uint32 entries = 1;
+  repeated uint32 pids = 1;
 }

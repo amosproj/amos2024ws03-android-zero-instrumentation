@@ -50,7 +50,7 @@ async fn test_get_configuration(client: &mut ZiofaClient<Channel>, verbose: bool
                 uprobes: vec![],
                 vfs_write: Some(VfsWriteConfig { entries: std::collections::HashMap::new() }),
                 sys_sendmsg: Some(SysSendmsgConfig { entries: std::collections::HashMap::new() }),
-                jni_references: Some(JniReferencesConfig { entries: std::collections::HashMap::new() }),
+                jni_references: Some(JniReferencesConfig { pids: vec![]  }),
             }
         }
     };
