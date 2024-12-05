@@ -5,8 +5,8 @@
 
 package de.amosproj3.ziofa.ui.shared
 
+import de.amosproj3.ziofa.api.RunningComponent
 import de.amosproj3.ziofa.client.Command
-import de.amosproj3.ziofa.ui.processes.ProcessListEntry
 
 fun Command?.toReadableString(): String {
     this?.let {
@@ -17,17 +17,17 @@ fun Command?.toReadableString(): String {
     } ?: return "null"
 }
 
-fun ProcessListEntry.getDisplayName(): String {
+fun RunningComponent.getDisplayName(): String {
     return when (this) {
-        is ProcessListEntry.ApplicationEntry -> this.packageInfo.displayName
-        is ProcessListEntry.ProcessEntry -> this.process.cmd.toReadableString()
+        is RunningComponent.Application -> this.packageInfo.displayName
+        is RunningComponent.StandaloneProcess -> this.process.cmd.toReadableString()
     }
 }
 
-fun ProcessListEntry.serializePIDs(): String {
+fun RunningComponent.serializePIDs(): String {
     return when (this) {
-        is ProcessListEntry.ApplicationEntry -> this.processList.map { it.pid }
-        is ProcessListEntry.ProcessEntry -> listOf(this.process.pid)
+        is RunningComponent.Application -> this.processList.map { it.pid }
+        is RunningComponent.StandaloneProcess -> listOf(this.process.pid)
     }.joinToString(",")
 }
 
@@ -41,3 +41,6 @@ fun IntArray.validPIDsOrNull(): IntArray? {
     }
     return this
 }
+
+fun Iterable<UInt>.anyPidsEnabled(pids: List<UInt>?): Boolean =
+    pids?.let { this.intersect(it.toSet()).isNotEmpty() } ?: true

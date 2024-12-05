@@ -5,26 +5,31 @@
 package de.amosproj3.ziofa.ui.visualization.data
 
 import android.graphics.drawable.Drawable
+import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import kotlin.time.DurationUnit
 
 /** These all need to be of the same type or else we need seperate dropdown composables */
 sealed class DropdownOption(val displayName: String) {
 
     /** Filter options */
-    data class Process(val processName: String) : DropdownOption(processName)
+    data class Process(val processName: String, val pid: UInt) : DropdownOption(processName)
 
-    data class AppOption(val appName: String, val packageName: String, val icon: Drawable) :
-        DropdownOption(appName)
+    data class AppOption(
+        val appName: String,
+        val packageName: String,
+        val icon: Drawable,
+        val pids: List<UInt>,
+    ) : DropdownOption(appName)
 
     data object Global : DropdownOption("Global")
 
     /**
      * Metric options
      *
-     * @param metricName the displayed name
-     * @param ebpfName the "ID"
+     * @param backendFeature the associated backend feature of the metric option
      */
-    data class MetricOption(val metricName: String) : DropdownOption(metricName)
+    data class MetricOption(val backendFeature: BackendFeatureOptions) :
+        DropdownOption(backendFeature.featureName)
 
     /** Timeframe options */
     data class TimeframeOption(val amount: Int, val unit: DurationUnit) :
@@ -32,10 +37,10 @@ sealed class DropdownOption(val displayName: String) {
 }
 
 data class SelectionData(
-    val filterOptions: List<DropdownOption>,
+    val componentOptions: List<DropdownOption>,
     val metricOptions: List<DropdownOption>?,
     val timeframeOptions: List<DropdownOption>?,
-    val selectedFilter: DropdownOption,
+    val selectedComponent: DropdownOption,
     val selectedMetric: DropdownOption?,
     val selectedTimeframe: DropdownOption?,
 )

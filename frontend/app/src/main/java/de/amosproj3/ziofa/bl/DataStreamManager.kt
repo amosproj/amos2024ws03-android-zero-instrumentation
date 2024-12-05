@@ -5,18 +5,26 @@
 
 package de.amosproj3.ziofa.bl
 
+import de.amosproj3.ziofa.api.BackendEvent
 import de.amosproj3.ziofa.api.DataStreamProvider
-import de.amosproj3.ziofa.api.WriteEvent
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Event
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.shareIn
 import timber.log.Timber
 
-// TODO: use a single sharedFlow and then different filters on top of that
-// otherwise we are sending all the data multiple times from server to client
-class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamProvider {
+class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope: CoroutineScope) :
+    DataStreamProvider {
+
+    private val dataFlow =
+        flow { clientFactory.connect().initStream().collect { emit(it) } }
+            .shareIn(coroutineScope, SharingStarted.Lazily)
 
     override suspend fun counter(ebpfProgramName: String): Flow<UInt> {
         return clientFactory
@@ -34,13 +42,12 @@ class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamPr
             .serverCount()
     }
 
-    override suspend fun vfsWriteEvents(pids: List<UInt>): Flow<WriteEvent.VfsWriteEvent> =
-        clientFactory
-            .connect()
-            .initStream()
+    override suspend fun vfsWriteEvents(pids: List<UInt>?): Flow<BackendEvent.VfsWriteEvent> =
+        dataFlow
             .mapNotNull { it as? Event.VfsWrite }
+            .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
             .map {
-                WriteEvent.VfsWriteEvent(
+                BackendEvent.VfsWriteEvent(
                     fd = it.fp,
                     pid = it.pid,
                     size = it.bytesWritten,
@@ -48,13 +55,12 @@ class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamPr
                 )
             }
 
-    override suspend fun sendMessageEvents(pids: List<UInt>): Flow<WriteEvent.SendMessageEvent> =
-        clientFactory
-            .connect()
-            .initStream()
+    override suspend fun sendMessageEvents(pids: List<UInt>?): Flow<BackendEvent.SendMessageEvent> =
+        dataFlow
             .mapNotNull { it as? Event.SysSendmsg }
+            .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
             .map {
-                WriteEvent.SendMessageEvent(
+                BackendEvent.SendMessageEvent(
                     fd = it.fd,
                     pid = it.pid,
                     tid = it.tid,
@@ -62,4 +68,7 @@ class DataStreamManager(private val clientFactory: ClientFactory) : DataStreamPr
                     durationNanos = it.durationNanoSecs,
                 )
             }
+
+    private fun UInt.isGlobalRequestedOrPidConfigured(pids: List<UInt>?) =
+        pids?.contains(this) ?: true
 }

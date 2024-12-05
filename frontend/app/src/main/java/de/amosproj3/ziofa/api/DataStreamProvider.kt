@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 interface DataStreamProvider {
     suspend fun counter(ebpfProgramName: String): Flow<UInt>
 
-    suspend fun vfsWriteEvents(pids: List<UInt>): Flow<WriteEvent.VfsWriteEvent>
+    suspend fun vfsWriteEvents(pids: List<UInt>?): Flow<BackendEvent.VfsWriteEvent>
 
-    suspend fun sendMessageEvents(pids: List<UInt>): Flow<WriteEvent.SendMessageEvent>
+    suspend fun sendMessageEvents(pids: List<UInt>?): Flow<BackendEvent.SendMessageEvent>
 }

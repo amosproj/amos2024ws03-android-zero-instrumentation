@@ -32,9 +32,9 @@ fun MetricDropdown(
     title: String,
     modifier: Modifier = Modifier,
     optionSelected: (DropdownOption) -> Unit,
+    selectedOption: String,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf(options[0].displayName) }
 
     Box(modifier = modifier) {
         ExposedDropdownMenuBox(
@@ -43,7 +43,7 @@ fun MetricDropdown(
             modifier = modifier,
         ) {
             TextField(
-                value = selected,
+                value = selectedOption,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(title) },
@@ -66,7 +66,6 @@ fun MetricDropdown(
                         },
                         onClick = {
                             optionSelected(option)
-                            selected = option.displayName
                             expanded = false
                         },
                     )

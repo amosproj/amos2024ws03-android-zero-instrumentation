@@ -21,16 +21,23 @@ import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
 import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /** Screen for configuring eBPF programs */
 @Preview(device = Devices.AUTOMOTIVE_1024p)
 @Composable
 fun ConfigurationScreen(
     modifier: Modifier = Modifier,
-    viewModel: ConfigurationViewModel = koinViewModel(),
     onBack: () -> Unit = {},
     pids: IntArray? = null,
 ) {
+
+    val viewModel: ConfigurationViewModel =
+        koinViewModel(
+            parameters = {
+                parametersOf(pids?.let { it.map { int -> int.toUInt() } } ?: listOf<UInt>())
+            }
+        )
 
     Box(modifier = modifier.fillMaxSize()) {
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
@@ -41,9 +48,8 @@ fun ConfigurationScreen(
                 // Render list of options
                 EbpfOptions(
                     options = state.options,
-                    onVfsWriteChanged = { newValue -> viewModel.vfsWriteChanged(pids, newValue) },
-                    onSendMessageChanged = { newValue ->
-                        viewModel.sendMessageChanged(pids, newValue)
+                    onOptionChanged = { option, newState ->
+                        viewModel.optionChanged(option, newState)
                     },
                 )
 
@@ -51,7 +57,7 @@ fun ConfigurationScreen(
                 if (configurationChangedByUser) {
                     SubmitFab(
                         modifier = Modifier.align(Alignment.BottomEnd),
-                        onClick = { viewModel.configurationSubmitted(pids) },
+                        onClick = { viewModel.configurationSubmitted() },
                     )
                 }
             }
