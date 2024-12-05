@@ -26,20 +26,21 @@ use crate::collector::MultiCollector;
 use crate::{
     configuration, constants,
     counter::Counter,
-    ebpf_utils::{EbpfErrorWrapper, State},
+    ebpf_utils::EbpfErrorWrapper,
     procfs_utils::{list_processes, ProcErrorWrapper},
+    features::Features,
 };
 
 pub struct ZiofaImpl {
     // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
     ebpf: Arc<Mutex<Ebpf>>,
-    state: Arc<Mutex<State>>,
+    features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
 }
 
 impl ZiofaImpl {
-    pub fn new(ebpf: Arc<Mutex<Ebpf>>, state: Arc<Mutex<State>>, channel: Arc<Channel>) -> ZiofaImpl {
-        ZiofaImpl { ebpf, state, channel }
+    pub fn new(ebpf: Arc<Mutex<Ebpf>>, features: Arc<Mutex<Features>>, channel: Arc<Channel>) -> ZiofaImpl {
+        ZiofaImpl { ebpf, features, channel }
     }
 }
 
@@ -86,10 +87,10 @@ impl Ziofa for ZiofaImpl {
         configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
 
         let mut ebpf_guard = self.ebpf.lock().await;
-        let mut state_guard = self.state.lock().await;
+        let mut features_guard = self.features.lock().await;
 
         // TODO: set config path
-        state_guard
+        features_guard
             .update_from_config(ebpf_guard.deref_mut(), &config)
             .map_err(EbpfErrorWrapper::from)?;
 
@@ -121,12 +122,11 @@ pub async fn serve_forever() {
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
     let event_tx = channel.tx.clone();
 
-    let mut state = State::new();
-    state.init(&mut ebpf).expect("should work");
+    let mut features = Features::init_all_features(&mut ebpf);
 
     let ebpf = Arc::new(Mutex::new(ebpf));
-    let state = Arc::new(Mutex::new(state));
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), state, channel));
+    let features = Arc::new(Mutex::new(features));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), features, channel));
     let counter_server = CounterServer::new(Counter::new(ebpf).await);
 
     let serve = async move {
