@@ -72,9 +72,9 @@ interface Client {
 
     suspend fun setConfiguration(configuration: Configuration): UInt
 
-    suspend fun getOdexFiles(pid: Int): Flow<StringResponse>
+    suspend fun getOdexFiles(pid: UInt): Flow<StringResponse>
 
-    suspend fun getSymbols(pid: Int, odexFilePath: String): Flow<Symbol>
+    suspend fun getSymbols(pid: UInt, odexFilePath: String): Flow<Symbol>
 
     suspend fun initStream(): Flow<Event>
 }

@@ -52,7 +52,7 @@ enum Commands {
     Odex {
         /// Pid for which to get the .odex files
         #[arg(short, long)]
-        pid: i32,
+        pid: u32,
 
         /// Only output number of odex files
         #[arg(short, long)]
@@ -63,7 +63,7 @@ enum Commands {
     Symbols {
         /// Pid for which to get the symbols
         #[arg(short, long)]
-        pid: i32,
+        pid: u32,
 
         /// Path to the .odex file which should be crawled
         #[arg(short, long)]
@@ -128,7 +128,7 @@ async fn list_processes(client: &mut Client, silent: bool) -> Result<()> {
     Ok(())
 }
 
-async fn get_odex_files(client: &mut Client, pid: i32, silent: bool) -> Result<()> {
+async fn get_odex_files(client: &mut Client, pid: u32, silent: bool) -> Result<()> {
     let mut stream = client.get_odex_files(pid).await?;
     let mut count: u32 = 0;
 
@@ -147,7 +147,7 @@ async fn get_odex_files(client: &mut Client, pid: i32, silent: bool) -> Result<(
     Ok(())
 }
 
-async fn get_symbols(client: &mut Client, pid: i32, odex_file: String, silent: bool) -> Result<()> {
+async fn get_symbols(client: &mut Client, pid: u32, odex_file: String, silent: bool) -> Result<()> {
     let mut stream = client.get_symbols(pid, odex_file).await?;
     let mut count: u32 = 0;
 

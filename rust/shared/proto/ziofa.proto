@@ -29,7 +29,7 @@ message StringResponse {
 }
 
 message GetSymbolsRequest {
-    int32 pid = 1;
+    uint32 pid = 1;
     string odex_file_path = 2;
 }
 
@@ -39,7 +39,7 @@ message Symbol {
 }
 
 message PidMessage{
-    int32 pid = 1;
+    uint32 pid = 1;
 }
 
 message CheckServerResponse {

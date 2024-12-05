@@ -113,7 +113,7 @@ object RustClient : Client {
         }
     }
 
-    override suspend fun getOdexFiles(pid: Int): Flow<StringResponse> = flow {
+    override suspend fun getOdexFiles(pid: UInt): Flow<StringResponse> = flow {
         emit(StringResponse(name = "/system/framework/oat/x86_64/android.test.base.odex"))
         emit(StringResponse(name = "/system/framework/oat/x86_64/android.hidl.base-V1.0-java.odex"))
         emit(StringResponse(name = "/system/framework/oat/x86_64/org.apache.http.legacy.odex"))
@@ -136,7 +136,7 @@ object RustClient : Client {
         )
     }
 
-    override suspend fun getSymbols(pid: Int, odexFilePath: String): Flow<Symbol> = flow {
+    override suspend fun getSymbols(pid: UInt, odexFilePath: String): Flow<Symbol> = flow {
         emit(
             Symbol(
                 method =

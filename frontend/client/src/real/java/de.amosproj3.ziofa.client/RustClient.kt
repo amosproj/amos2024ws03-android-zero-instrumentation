@@ -107,10 +107,10 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
     override suspend fun setConfiguration(configuration: Configuration): UInt =
         inner.setConfiguration(configuration.into())
 
-    override suspend fun getOdexFiles(pid: Int): Flow<StringResponse> =
+    override suspend fun getOdexFiles(pid: UInt): Flow<StringResponse> =
         inner.getOdexFilesFlow(pid).mapNotNull { it.into() }
 
-    override suspend fun getSymbols(pid: Int, odexFilePath: String): Flow<Symbol> =
+    override suspend fun getSymbols(pid: UInt, odexFilePath: String): Flow<Symbol> =
         inner.getSymbolFlow(pid, odexFilePath).mapNotNull { it.into() }
 
     override suspend fun initStream(): Flow<Event> = inner.initStreamFlow().mapNotNull { it.into() }
@@ -153,7 +153,7 @@ fun uniffi.client.Client.initStreamFlow() = flow {
     }
 }
 
-fun uniffi.client.Client.getOdexFilesFlow(pid: Int) = flow {
+fun uniffi.client.Client.getOdexFilesFlow(pid: UInt) = flow {
     getOdexFiles(pid).use { stream ->
         while (true) {
             stream.next()?.also { file -> emit(file) } ?: break
@@ -161,7 +161,7 @@ fun uniffi.client.Client.getOdexFilesFlow(pid: Int) = flow {
     }
 }
 
-fun uniffi.client.Client.getSymbolFlow(pid: Int, odexFilePath: String) = flow {
+fun uniffi.client.Client.getSymbolFlow(pid: UInt, odexFilePath: String) = flow {
     getSymbols(pid, odexFilePath).use { stream ->
         while (true) {
             stream.next()?.also { symbol -> emit(symbol) } ?: break

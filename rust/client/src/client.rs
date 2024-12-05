@@ -107,11 +107,11 @@ impl Client {
         Ok(self.ziofa.init_stream(()).await?.into_inner().map(|s| Ok(s?)))
     }
 
-    pub async fn get_odex_files(&mut self, pid: i32) -> Result<impl Stream<Item = Result<StringResponse>>> {
+    pub async fn get_odex_files(&mut self, pid: u32) -> Result<impl Stream<Item = Result<StringResponse>>> {
         Ok(self.ziofa.get_odex_files(PidMessage {pid}).await?.into_inner().map(|s| Ok(s?)))
     }
 
-    pub async fn get_symbols(&mut self, pid: i32, odex_file_path: String) -> Result<impl Stream<Item = Result<Symbol>>> {
+    pub async fn get_symbols(&mut self, pid: u32, odex_file_path: String) -> Result<impl Stream<Item = Result<Symbol>>> {
         Ok(self.ziofa.get_symbols(GetSymbolsRequest {pid, odex_file_path}).await?.into_inner().map(|s| Ok(s?)))
     }
 }

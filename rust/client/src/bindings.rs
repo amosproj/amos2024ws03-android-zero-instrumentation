@@ -151,7 +151,7 @@ impl Client {
         Ok(EventStream(Mutex::new(Box::pin(stream))))
     }
 
-    pub async fn get_odex_files(&self, pid: i32) -> Result<OdexFileStream> {
+    pub async fn get_odex_files(&self, pid: u32) -> Result<OdexFileStream> {
         let mut guard = self.0.lock().await;
         let stream = guard
             .get_odex_files(pid)
@@ -161,7 +161,7 @@ impl Client {
         Ok(OdexFileStream(Mutex::new(Box::pin(stream))))
     }
 
-    pub async fn get_symbols(&self, pid: i32, odex_file: String) -> Result<SymbolStream> {
+    pub async fn get_symbols(&self, pid: u32, odex_file: String) -> Result<SymbolStream> {
         let mut guard = self.0.lock().await;
         let stream = guard
             .get_symbols(pid, odex_file)

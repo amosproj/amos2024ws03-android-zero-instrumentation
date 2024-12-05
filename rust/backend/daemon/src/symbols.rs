@@ -26,13 +26,13 @@ pub enum SymbolError {
     #[error(transparent)]
     ProcError(#[from] ProcError),
     #[error("Odex paths are not loaded for specified pid")]
-    OdexPathsNotLoaded { pid: i32 },
+    OdexPathsNotLoaded { pid: u32 },
     #[error("Symbols are not loaded for specified pid and odex path")]
-    SymbolsNotLoaded { pid: i32, odex_path: PathBuf },
+    SymbolsNotLoaded { pid: u32, odex_path: PathBuf },
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
     #[error("The desired odex file isn't available")]
-    OdexFileNotAvailable { pid: i32, odex_path: PathBuf },
+    OdexFileNotAvailable { pid: u32, odex_path: PathBuf },
 }
 
 impl From<SymbolError> for tonic::Status {
@@ -49,7 +49,7 @@ struct JsonSymbol {
 
 pub struct SymbolHandler {
     /// maps pid, odex file path and symbol name to offset
-    symbols: HashMap<i32, HashMap<PathBuf, HashMap<String, u64>>>,
+    symbols: HashMap<u32, HashMap<PathBuf, HashMap<String, u64>>>,
 }
 
 impl SymbolHandler {
@@ -61,7 +61,7 @@ impl SymbolHandler {
 
     /// load the paths to all odex files
     // TODO: blocking?
-    fn load_odex_paths(&mut self, pid: i32) -> Result<(), ProcError> {
+    fn load_odex_paths(&mut self, pid: u32) -> Result<(), ProcError> {
         // if pid was already crawled, nothing it to do
         // TODO: Check for old/potentially outdated entries and reload them
         if let Entry::Vacant(e) = self.symbols.entry(pid) {
@@ -70,7 +70,7 @@ impl SymbolHandler {
             return Ok(());
         }
 
-        let process = Process::new(pid)?;
+        let process = Process::new(i32::try_from(pid).unwrap())?;
         let maps = process.maps()?;
 
         // for each .odex file: insert a new hashmap into this pids entry of self.symbols
@@ -92,7 +92,7 @@ impl SymbolHandler {
         // TODO: Remove old/long unused paths from cache
     }
 
-    pub fn get_odex_paths(&mut self, pid: i32) -> Result<HashSet<&PathBuf>, SymbolError> {
+    pub fn get_odex_paths(&mut self, pid: u32) -> Result<HashSet<&PathBuf>, SymbolError> {
         self.load_odex_paths(pid)?;
 
         Ok(self
@@ -103,7 +103,7 @@ impl SymbolHandler {
             .collect())
     }
 
-    async fn load_symbols(&mut self, pid: i32, odex_path: &PathBuf) -> Result<(), SymbolError> {
+    async fn load_symbols(&mut self, pid: u32, odex_path: &PathBuf) -> Result<(), SymbolError> {
         // make sure the needed data structures are there
         self.load_odex_paths(pid)?;
 
@@ -162,7 +162,7 @@ impl SymbolHandler {
 
     pub async fn get_symbols(
         &mut self,
-        pid: i32,
+        pid: u32,
         odex_path: &PathBuf,
     ) -> Result<&HashMap<String, u64>, SymbolError> {
         self.load_symbols(pid, odex_path).await?;
