@@ -26,24 +26,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+    kotlinOptions { jvmTarget = "11" }
 
     // Flavors and build types need to at least contain the ones of the app
     flavorDimensions.add("version")
     productFlavors {
-        create("real") {
-            dimension = "version"
-        }
-        create("mock") {
-            dimension = "version"
-        }
+        create("real") { dimension = "version" }
+        create("mock") { dimension = "version" }
     }
 }
 
 dependencies {
-
     val realImplementation by configurations.getting
     val testRealImplementation by configurations.getting
     val testRealDebugImplementation by configurations.creating

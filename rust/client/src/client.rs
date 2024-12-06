@@ -1,18 +1,21 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
+use shared::ziofa::Event;
 use shared::{
     config::Configuration,
     counter::{counter_client::CounterClient, IfaceMessage},
-    ziofa::{ziofa_client::ZiofaClient, Process},
+    ziofa::{
+        ziofa_client::ZiofaClient, GetSymbolsRequest, PidMessage, Process, StringResponse, Symbol,
+    },
 };
 use tokio_stream::{Stream, StreamExt};
 use tonic::{
     transport::{Channel, Endpoint},
     Request,
 };
-use shared::ziofa::Event;
 
 #[derive(Clone, Debug)]
 pub struct Client {
@@ -104,6 +107,35 @@ impl Client {
     }
 
     pub async fn init_stream(&mut self) -> Result<impl Stream<Item = Result<Event>>> {
-        Ok(self.ziofa.init_stream(()).await?.into_inner().map(|s| Ok(s?)))
+        Ok(self
+            .ziofa
+            .init_stream(())
+            .await?
+            .into_inner()
+            .map(|s| Ok(s?)))
+    }
+
+    pub async fn get_odex_files(
+        &mut self,
+        pid: u32,
+    ) -> Result<impl Stream<Item = Result<StringResponse>>> {
+        Ok(self
+            .ziofa
+            .get_odex_files(PidMessage { pid })
+            .await?
+            .into_inner()
+            .map(|s| Ok(s?)))
+    }
+
+    pub async fn get_symbols(
+        &mut self,
+        odex_file_path: String,
+    ) -> Result<impl Stream<Item = Result<Symbol>>> {
+        Ok(self
+            .ziofa
+            .get_symbols(GetSymbolsRequest { odex_file_path })
+            .await?
+            .into_inner()
+            .map(|s| Ok(s?)))
     }
 }

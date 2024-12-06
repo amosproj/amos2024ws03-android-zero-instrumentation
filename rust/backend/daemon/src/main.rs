@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: MIT
 
 use tracing_subscriber::EnvFilter;
-
 mod configuration;
 mod constants;
 pub mod counter;
@@ -14,6 +13,7 @@ mod procfs_utils;
 mod server;
 mod features;
 mod collector;
+mod symbols;
 
 #[tokio::main]
 async fn main() {
