@@ -107,8 +107,8 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
     override suspend fun setConfiguration(configuration: Configuration): UInt =
         inner.setConfiguration(configuration.into())
 
-    override suspend fun getOdexFiles(pid: UInt): Flow<StringResponse> =
-        inner.getOdexFilesFlow(pid).mapNotNull { it.into() }
+    override suspend fun getOdexFiles(pid: UInt): Flow<String> =
+        inner.getOdexFilesFlow(pid).mapNotNull { it.into().name }
 
     override suspend fun getSymbols(odexFilePath: String): Flow<Symbol> =
         inner.getSymbolFlow(odexFilePath).mapNotNull { it.into() }

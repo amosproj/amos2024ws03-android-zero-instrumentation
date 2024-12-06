@@ -113,27 +113,17 @@ object RustClient : Client {
         }
     }
 
-    override suspend fun getOdexFiles(pid: UInt): Flow<StringResponse> = flow {
-        emit(StringResponse(name = "/system/framework/oat/x86_64/android.test.base.odex"))
-        emit(StringResponse(name = "/system/framework/oat/x86_64/android.hidl.base-V1.0-java.odex"))
-        emit(StringResponse(name = "/system/framework/oat/x86_64/org.apache.http.legacy.odex"))
+    override suspend fun getOdexFiles(pid: UInt): Flow<String> = flow {
+        emit("/system/framework/oat/x86_64/android.test.base.odex")
+        emit("/system/framework/oat/x86_64/android.hidl.base-V1.0-java.odex")
+        emit("/system/framework/oat/x86_64/org.apache.http.legacy.odex")
+        emit("/system/framework/oat/x86_64/android.hidl.manager-V1.0-java.odex")
+        emit("/system_ext/framework/oat/x86_64/androidx.window.sidecar.odex")
         emit(
-            StringResponse(
-                name = "/system/framework/oat/x86_64/android.hidl.manager-V1.0-java.odex"
-            )
+            "/data/app/~~0cD8TtY5ggbzXOrlKANgwQ==/de.amosproj3.ziofa-Sm8ZemAtgxCr5VAK1Cwi8Q==/oat/x86_64/base.odex"
         )
-        emit(StringResponse(name = "/system_ext/framework/oat/x86_64/androidx.window.sidecar.odex"))
-        emit(
-            StringResponse(
-                name =
-                    "/data/app/~~0cD8TtY5ggbzXOrlKANgwQ==/de.amosproj3.ziofa-Sm8ZemAtgxCr5VAK1Cwi8Q==/oat/x86_64/base.odex"
-            )
-        )
-        emit(
-            StringResponse(
-                name = "/system_ext/framework/oat/x86_64/androidx.window.extensions.odex"
-            )
-        )
+
+        emit("/system_ext/framework/oat/x86_64/androidx.window.extensions.odex")
     }
 
     override suspend fun getSymbols(odexFilePath: String): Flow<Symbol> = flow {
