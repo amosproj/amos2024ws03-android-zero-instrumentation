@@ -20,16 +20,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import de.amosproj3.ziofa.ui.configuration.SectionTitleRow
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 
 @Composable
-fun EbpfOptions(
+fun EbpfIOFeatureOptions(
     options: List<BackendFeatureOptions>,
     onOptionChanged: (BackendFeatureOptions, Boolean) -> Unit,
 ) {
-    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
-        item { Spacer(Modifier.height(15.dp)) }
-
+    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp, vertical = 15.dp).fillMaxWidth()) {
         items(options) { option ->
             Row(
                 modifier = Modifier.fillMaxWidth(),

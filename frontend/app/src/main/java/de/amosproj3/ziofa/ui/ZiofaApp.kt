@@ -5,6 +5,7 @@
 package de.amosproj3.ziofa.ui
 
 import android.net.Uri
+import android.os.Bundle
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -32,6 +33,7 @@ import de.amosproj3.ziofa.ui.shared.deserializePIDs
 import de.amosproj3.ziofa.ui.shared.getDisplayName
 import de.amosproj3.ziofa.ui.shared.serializePIDs
 import de.amosproj3.ziofa.ui.shared.validPIDsOrNull
+import de.amosproj3.ziofa.ui.symbols.SymbolsScreen
 import de.amosproj3.ziofa.ui.visualization.VisualizationScreen
 
 val GLOBAL_CONFIGURATION_ROUTE =
@@ -42,8 +44,9 @@ val GLOBAL_CONFIGURATION_ROUTE =
 fun ZIOFAApp() {
     val navController = rememberNavController()
 
-    Scaffold(modifier = Modifier.fillMaxSize(), topBar = { DynamicTopBar(navController) }) {
-        innerPadding ->
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = { DynamicTopBar(navController) }) { innerPadding ->
         NavHost(
             navController,
             modifier = Modifier.fillMaxSize(),
@@ -53,7 +56,7 @@ fun ZIOFAApp() {
                 HomeScreen(
                     toVisualize = { navController.navigate(Routes.Visualize.name) },
                     toConfiguration = { navController.navigate(Routes.Configuration.name) },
-                    toAbout = { navController.navigate(Routes.About.name) },
+                    toAbout = { navController.navigate(Routes.Symbols.name) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -73,16 +76,16 @@ fun ZIOFAApp() {
             composable(
                 "${Routes.IndividualConfiguration.name}?displayName={displayName}?pids={pids}",
                 arguments =
-                    listOf(
-                        navArgument("displayName") {
-                            type = NavType.StringType
-                            nullable = true
-                        },
-                        navArgument("pids") {
-                            type = NavType.StringType
-                            nullable = true
-                        },
-                    ),
+                listOf(
+                    navArgument("displayName") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                    navArgument("pids") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                ),
                 enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
                 exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
             ) {
@@ -90,6 +93,7 @@ fun ZIOFAApp() {
                     Modifier.padding(innerPadding),
                     onBack = { navController.popBackStack() },
                     pids = it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull(),
+                    onAddUprobeSelected = { navController.navigate(it.arguments.copyToSymbolsRoute()) }
                 )
             }
             composable(
@@ -120,6 +124,31 @@ fun ZIOFAApp() {
                     },
                 )
             }
+            composable(
+                "${Routes.Symbols.name}?displayName={displayName}?pids={pids}",
+                arguments =
+                listOf(
+                    navArgument("displayName") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                    navArgument("pids") {
+                        type = NavType.StringType
+                        nullable = true
+                    },
+                ),
+            ) {
+                SymbolsScreen(
+                    Modifier.padding(innerPadding),
+                    onSymbolsSubmitted = { navController.popBackStack() },
+                    pids = it.arguments
+                        ?.getString("pids")
+                        ?.deserializePIDs()
+                        ?.validPIDsOrNull()
+                        ?.map { it.toUInt() }
+                        ?: listOf(), //TODO pass uint list as args everywhere
+                )
+            }
         }
     }
 }
@@ -141,7 +170,14 @@ fun DynamicTopBar(navController: NavController) {
 
             Routes.IndividualConfiguration.name -> {
                 ZiofaTopBar(
-                    screenName = "Configuration for $displayName",
+                    screenName = "Configuration for ${Uri.decode(displayName)}",
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            Routes.Symbols.name -> {
+                ZiofaTopBar(
+                    screenName = "Add uprobes for ${Uri.decode(displayName)}",
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -158,3 +194,11 @@ fun RunningComponent.toConfigurationScreenRouteForProcess(): String {
     val pidsParam = Uri.encode(this.serializePIDs())
     return "${Routes.IndividualConfiguration.name}?displayName=$displayNameParam?pids=$pidsParam"
 }
+
+/** Pass the parameters of the opened configuration to the symbols screen. */
+fun Bundle?.copyToSymbolsRoute(): String {
+    val displayName = this?.getString("displayName")
+    val pids = this?.getString("pids")
+    return "${Routes.Symbols.name}?displayName=$displayName?pids=$pids"
+}
+

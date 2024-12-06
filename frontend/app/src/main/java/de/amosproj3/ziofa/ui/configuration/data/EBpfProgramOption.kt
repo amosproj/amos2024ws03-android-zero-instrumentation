@@ -11,4 +11,12 @@ sealed class BackendFeatureOptions(val featureName: String, val active: Boolean)
 
     data class SendMessageOption(val enabled: Boolean, val pids: Set<UInt>) :
         BackendFeatureOptions("Unix Domain Socket Analysis", enabled)
+
+    data class UprobeOption(
+        val displayName: String,
+        val id: String,
+        val enabled: Boolean,
+        val pids: Set<UInt>
+    ) :
+        BackendFeatureOptions(id, enabled)
 }
