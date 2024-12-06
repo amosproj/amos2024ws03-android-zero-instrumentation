@@ -25,7 +25,7 @@ use shared::{
     counter::counter_server::CounterServer,
     ziofa::{
         ziofa_server::{Ziofa, ZiofaServer},
-        CheckServerResponse, ProcessList, SetConfigurationResponse,
+        CheckServerResponse, ProcessList,
     },
 };
 use std::path::PathBuf;
@@ -93,7 +93,7 @@ impl Ziofa for ZiofaImpl {
     async fn set_configuration(
         &self,
         request: Request<Configuration>,
-    ) -> Result<Response<SetConfigurationResponse>, Status> {
+    ) -> Result<Response<()>, Status> {
         let config = request.into_inner();
 
         // TODO: Implement function 'validate'
@@ -109,7 +109,7 @@ impl Ziofa for ZiofaImpl {
             .update_from_config(ebpf_guard.deref_mut(), &config)
             .map_err(EbpfErrorWrapper::from)?;
 
-        Ok(Response::new(SetConfigurationResponse { response_type: 0 }))
+        Ok(Response::new(()))
     }
 
     type InitStreamStream = Receiver<Result<Event, Status>>;

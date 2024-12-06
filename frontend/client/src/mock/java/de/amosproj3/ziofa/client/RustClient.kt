@@ -77,10 +77,8 @@ object RustClient : Client {
         return configuration
     }
 
-    override suspend fun setConfiguration(configuration: Configuration): UInt {
+    override suspend fun setConfiguration(configuration: Configuration) {
         this.configuration = configuration
-
-        return 0u
     }
 
     override suspend fun initStream(): Flow<Event> = flow {

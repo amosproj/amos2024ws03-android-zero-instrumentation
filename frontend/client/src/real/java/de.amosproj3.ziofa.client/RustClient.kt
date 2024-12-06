@@ -104,7 +104,7 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
 
-    override suspend fun setConfiguration(configuration: Configuration): UInt =
+    override suspend fun setConfiguration(configuration: Configuration) =
         inner.setConfiguration(configuration.into())
 
     override suspend fun getOdexFiles(pid: UInt): Flow<String> =

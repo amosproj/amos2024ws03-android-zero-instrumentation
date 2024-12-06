@@ -70,7 +70,7 @@ interface Client {
 
     suspend fun getConfiguration(): Configuration
 
-    suspend fun setConfiguration(configuration: Configuration): UInt
+    suspend fun setConfiguration(configuration: Configuration)
 
     suspend fun getOdexFiles(pid: UInt): Flow<String>
 

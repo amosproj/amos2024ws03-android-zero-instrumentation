@@ -137,7 +137,7 @@ impl Client {
         Ok(self.0.lock().await.get_configuration().await?)
     }
 
-    pub async fn set_configuration(&self, configuration: Configuration) -> Result<u32> {
+    pub async fn set_configuration(&self, configuration: Configuration) -> Result<()> {
         Ok(self.0.lock().await.set_configuration(configuration).await?)
     }
 

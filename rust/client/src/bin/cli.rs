@@ -92,21 +92,18 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
 }
 
 async fn set_config(client: &mut Client) -> Result<()> {
-    println!(
-        "response_type: {}",
-        client
-            .set_configuration(Configuration {
-                uprobes: vec![],
-                vfs_write: Some(VfsWriteConfig {
-                    entries: std::collections::HashMap::new(),
-                }),
-                sys_sendmsg: Some(SysSendmsgConfig {
-                    entries: std::collections::HashMap::new(),
-                }),
-            })
-            .await?
-    );
-
+    client
+        .set_configuration(Configuration {
+            uprobes: vec![],
+            vfs_write: Some(VfsWriteConfig {
+                entries: std::collections::HashMap::new(),
+            }),
+            sys_sendmsg: Some(SysSendmsgConfig {
+                entries: std::collections::HashMap::new(),
+            }),
+        })
+        .await?;
+    println!("Success");
     Ok(())
 }
 
@@ -187,7 +184,7 @@ pub async fn main() -> anyhow::Result<()> {
         }
         Commands::Odex { pid, silent } => {
             get_odex_files(&mut client, pid, silent).await?;
-        },
+        }
         Commands::Symbols { odex_file, silent } => {
             get_symbols(&mut client, odex_file, silent).await?;
         }

@@ -101,13 +101,9 @@ impl Client {
         Ok(self.ziofa.get_configuration(()).await?.into_inner())
     }
 
-    pub async fn set_configuration(&mut self, configuration: Configuration) -> Result<u32> {
-        Ok(self
-            .ziofa
-            .set_configuration(configuration)
-            .await?
-            .into_inner()
-            .response_type)
+    pub async fn set_configuration(&mut self, configuration: Configuration) -> Result<()> {
+        self.ziofa.set_configuration(configuration).await?;
+        Ok(())
     }
 
     pub async fn init_stream(&mut self) -> Result<impl Stream<Item = Result<Event>>> {
