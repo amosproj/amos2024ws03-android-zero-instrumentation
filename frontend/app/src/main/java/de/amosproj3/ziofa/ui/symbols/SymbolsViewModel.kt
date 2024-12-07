@@ -1,9 +1,7 @@
 package de.amosproj3.ziofa.ui.symbols
 
-import android.provider.Contacts.Intents.UI
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import de.amosproj3.ziofa.api.configuration.GetSymbolsRequestState
 import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.SymbolsAccess
@@ -11,7 +9,6 @@ import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsEntry
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsScreenState
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
@@ -31,15 +28,11 @@ class SymbolsViewModel(
     fun submit() {
         val currentState = screenState.value
         if (currentState is SymbolsScreenState.SearchResultReady) {
-            val selectedSymbols = currentState
-                .symbols
-                .entries
-                .filter { it.value }
-                .map { it.key }
+            val selectedSymbols = currentState.symbols.entries.filter { it.value }.map { it.key }
             pids.forEach { pid ->
                 localConfigurationAccess.changeFeatureConfiguration(
                     uprobesFeature = selectedSymbols.map { it.toUprobeConfigForPid(pid) },
-                    enable = true
+                    enable = true,
                 )
             }
         }
@@ -49,10 +42,8 @@ class SymbolsViewModel(
         screenState.update { prev ->
             if (prev is SymbolsScreenState.SearchResultReady) {
                 prev.copy(
-                    symbols = prev.symbols.updateEntry(
-                        symbolsEntry = symbolsEntry,
-                        newState = newState
-                    )
+                    symbols =
+                        prev.symbols.updateEntry(symbolsEntry = symbolsEntry, newState = newState)
                 )
             } else {
                 prev
@@ -65,9 +56,8 @@ class SymbolsViewModel(
             fnName = this.name,
             offset = this.offset,
             target = this.odexFile,
-            pid = pid.toInt() // TODO why is this not an uint
+            pid = pid.toInt(), // TODO why is this not an uint
         )
-
 
     fun startSearch(searchQuery: String) {
         val searchQuery = searchQuery
@@ -78,21 +68,22 @@ class SymbolsViewModel(
                 .onEach { Timber.i("Search State: $it") }
                 .onCompletion { Timber.i("search completed") }
                 .collect {
-                    screenState.value = when (it) {
-                        is GetSymbolsRequestState.Loading -> SymbolsScreenState.SymbolsLoading
-                        is GetSymbolsRequestState.Error -> SymbolsScreenState.Error(it.errorMessage)
-                        is GetSymbolsRequestState.Response -> SymbolsScreenState.SearchResultReady(
-                            symbols = it.symbols.associateWith { false }
-                        )
-                    }
+                    screenState.value =
+                        when (it) {
+                            is GetSymbolsRequestState.Loading -> SymbolsScreenState.SymbolsLoading
+                            is GetSymbolsRequestState.Error ->
+                                SymbolsScreenState.Error(it.errorMessage)
+                            is GetSymbolsRequestState.Response ->
+                                SymbolsScreenState.SearchResultReady(
+                                    symbols = it.symbols.associateWith { false }
+                                )
+                        }
                 }
         }
     }
 
-
     private fun Map<SymbolsEntry, Boolean>.updateEntry(
         symbolsEntry: SymbolsEntry,
-        newState: Boolean
+        newState: Boolean,
     ) = this.minus(symbolsEntry).plus(symbolsEntry to newState)
-
 }

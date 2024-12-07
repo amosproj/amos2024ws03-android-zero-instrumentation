@@ -11,5 +11,5 @@ enum class Emoji(val unicode: String) {
     Info("ℹ\uFE0F"),
     Globe("\uD83C\uDF10"),
     Bookmarks("\uD83D\uDCD1"),
-    Reset("\uD83E\uDDF9")
+    Reset("\uD83E\uDDF9"),
 }

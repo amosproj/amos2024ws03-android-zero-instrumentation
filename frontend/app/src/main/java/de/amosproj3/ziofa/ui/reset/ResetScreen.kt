@@ -5,20 +5,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
 
-const val RESET_WARNING = """
+const val RESET_WARNING =
+    """
     Do you really want to reset the configuration?
     
     
@@ -29,7 +27,7 @@ const val RESET_WARNING = """
 fun ResetScreen(
     modifier: Modifier,
     viewModel: ResetViewModel = koinViewModel(),
-    afterResetConfirmed: () -> Unit
+    afterResetConfirmed: () -> Unit,
 ) {
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -40,16 +38,13 @@ fun ResetScreen(
             fontWeight = FontWeight.Bold,
         )
         Button(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(20.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(20.dp).fillMaxWidth(),
             onClick = {
                 viewModel.reset()
                 afterResetConfirmed()
-            }
+            },
         ) {
-            Text("Reset configuration", fontSize = TextUnit(40f, TextUnitType.Sp),)
+            Text("Reset configuration", fontSize = TextUnit(40f, TextUnitType.Sp))
         }
     }
 }

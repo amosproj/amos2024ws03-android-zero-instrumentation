@@ -24,8 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
 import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
@@ -38,7 +36,7 @@ import org.koin.core.parameter.parametersOf
 fun SymbolsScreen(
     modifier: Modifier = Modifier,
     onSymbolsSubmitted: () -> Unit,
-    pids: List<UInt> = listOf(123u)
+    pids: List<UInt> = listOf(123u),
 ) { // TODO pass pid to screen
     val viewModel: SymbolsViewModel = koinViewModel(parameters = { parametersOf(pids) })
 
@@ -50,28 +48,21 @@ fun SymbolsScreen(
             SearchBar(
                 value = searchQuery,
                 onValueChanged = { searchQuery = it },
-                onStartSearch = { viewModel.startSearch(it) }
+                onStartSearch = { viewModel.startSearch(it) },
             )
-
 
             Box(Modifier.fillMaxSize()) {
                 when (val state = screenState.value) {
-                    is SymbolsScreenState.SymbolsLoading -> CircularProgressIndicator(
-                        Modifier.align(
-                            Alignment.Center
+                    is SymbolsScreenState.SymbolsLoading ->
+                        CircularProgressIndicator(Modifier.align(Alignment.Center))
+
+                    is SymbolsScreenState.SearchResultReady ->
+                        SearchResultList(
+                            state.symbols,
+                            onOptionChanged = { symbol, active ->
+                                viewModel.symbolEntryChanged(symbol, active)
+                            },
                         )
-                    )
-
-                    is SymbolsScreenState.SearchResultReady -> SearchResultList(
-                        state.symbols,
-                        onOptionChanged = { symbol, active ->
-                            viewModel.symbolEntryChanged(
-                                symbol,
-                                active
-                            )
-                        }
-                    )
-
 
                     is SymbolsScreenState.WaitingForSearch -> Spacer(Modifier.fillMaxSize())
                     is SymbolsScreenState.Error -> ErrorScreen(error = state.errorMessage)
@@ -79,13 +70,13 @@ fun SymbolsScreen(
             }
         }
         SubmitFab(
-            modifier = Modifier.align(Alignment.BottomEnd), onClick = {
+            modifier = Modifier.align(Alignment.BottomEnd),
+            onClick = {
                 viewModel.submit()
                 onSymbolsSubmitted()
-            })
+            },
+        )
     }
-
-
 }
 
 @Composable
@@ -94,33 +85,24 @@ fun SearchBar(value: String, onValueChanged: (String) -> Unit, onStartSearch: (S
         OutlinedTextField(
             modifier = Modifier.weight(2f),
             value = value,
-            onValueChange = {
-                onValueChanged(it)
-            }, placeholder = {
-                Text("Enter symbol name")
-            }
+            onValueChange = { onValueChanged(it) },
+            placeholder = { Text("Enter symbol name") },
         )
-        Button(modifier = Modifier.weight(1f),
-            onClick = {
-                onStartSearch(value)
-            },
-            content = {
-                Text("Search")
-            })
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick = { onStartSearch(value) },
+            content = { Text("Search") },
+        )
     }
 }
 
 @Composable
 fun SearchResultList(
     symbols: Map<SymbolsEntry, Boolean>,
-    onOptionChanged: (SymbolsEntry, Boolean) -> Unit
+    onOptionChanged: (SymbolsEntry, Boolean) -> Unit,
 ) {
 
-    LazyColumn(
-        modifier = Modifier
-            .padding(horizontal = 20.dp)
-            .fillMaxSize()
-    ) {
+    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
         item { Spacer(Modifier.height(15.dp)) }
 
         items(symbols.entries.toList().sortedBy { it.key.name }) { option ->
@@ -132,7 +114,8 @@ fun SearchResultList(
                 Text(option.key.name)
                 Checkbox(
                     checked = option.value,
-                    onCheckedChange = { onOptionChanged(option.key, it) })
+                    onCheckedChange = { onOptionChanged(option.key, it) },
+                )
             }
         }
     }

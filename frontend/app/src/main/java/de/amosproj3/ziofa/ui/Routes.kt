@@ -13,5 +13,5 @@ enum class Routes {
     Processes,
     Configuration,
     Symbols,
-    Reset
+    Reset,
 }

@@ -104,10 +104,8 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
 
     override fun reset() {
         runBlocking {
-            client?.setConfiguration(Configuration(null,null, listOf()))
-            updateBothConfigurations(
-                getFromBackend()
-            )
+            client?.setConfiguration(Configuration(null, null, listOf()))
+            updateBothConfigurations(getFromBackend())
         }
     }
 

@@ -51,9 +51,7 @@ fun ConfigurationScreen(
             }
         )
 
-    Box(modifier = modifier
-        .padding(horizontal = 20.dp, vertical = 20.dp)
-        .fillMaxSize()) {
+    Box(modifier = modifier.padding(horizontal = 20.dp, vertical = 20.dp).fillMaxSize()) {
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
         val configurationChangedByUser by remember { viewModel.changed }.collectAsState()
         when (val state = screenState) { // needed for immutability
@@ -63,7 +61,8 @@ fun ConfigurationScreen(
                     // Render list of options
                     SectionTitleRow("IO Observability Features")
                     EbpfIOFeatureOptions(
-                        options = state.options.filter { it !is BackendFeatureOptions.UprobeOption },
+                        options =
+                            state.options.filter { it !is BackendFeatureOptions.UprobeOption },
                         onOptionChanged = { option, newState ->
                             viewModel.optionChanged(option, newState)
                         },
@@ -71,14 +70,14 @@ fun ConfigurationScreen(
 
                     SectionTitleRow("Uprobes")
                     EbpfUprobeFeatureOptions(
-                        options = state.options.mapNotNull { if (it is BackendFeatureOptions.UprobeOption) it else null },
+                        options =
+                            state.options.mapNotNull {
+                                if (it is BackendFeatureOptions.UprobeOption) it else null
+                            },
                         onOptionDeleted = { option ->
-                            viewModel.optionChanged(
-                                option,
-                                active = false
-                            )
+                            viewModel.optionChanged(option, active = false)
                         },
-                        onAddUprobeSelected = onAddUprobeSelected
+                        onAddUprobeSelected = onAddUprobeSelected,
                     )
                 }
 
@@ -105,9 +104,8 @@ fun ConfigurationScreen(
 
 @Composable
 fun SectionTitleRow(title: String) {
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier.padding(bottom = 10.dp)
-    ) { Text(title, fontWeight = FontWeight.Bold) }
+    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.padding(bottom = 10.dp)) {
+        Text(title, fontWeight = FontWeight.Bold)
+    }
     HorizontalDivider(thickness = 5.dp)
 }
