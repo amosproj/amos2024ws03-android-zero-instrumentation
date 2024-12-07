@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 class ConfigurationManager(val clientFactory: ClientFactory) :
@@ -103,6 +104,15 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
             updateBothConfigurations(
                 getFromBackend()
             ) // "emulates" callback of changed configuration until
+        }
+    }
+
+    override fun reset() {
+        runBlocking {
+            client?.setConfiguration(Configuration(null,null, listOf()))
+            updateBothConfigurations(
+                getFromBackend()
+            )
         }
     }
 

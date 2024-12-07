@@ -10,4 +10,7 @@ interface BackendConfigurationAccess {
 
     /** Only emits updates from the backend that are actually confirmed to be active */
     val backendConfiguration: StateFlow<ConfigurationUpdate>
+
+    /** Clear the backend configuration. */
+    fun reset()
 }
