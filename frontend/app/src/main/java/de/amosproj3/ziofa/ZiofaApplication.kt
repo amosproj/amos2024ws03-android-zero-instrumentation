@@ -21,6 +21,7 @@ import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.RustClientFactory
 import de.amosproj3.ziofa.ui.configuration.ConfigurationViewModel
 import de.amosproj3.ziofa.ui.processes.ProcessesViewModel
+import de.amosproj3.ziofa.ui.reset.ResetViewModel
 import de.amosproj3.ziofa.ui.symbols.SymbolsViewModel
 import de.amosproj3.ziofa.ui.visualization.VisualizationViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -77,6 +78,7 @@ class ZiofaApplication : Application() {
                 pids = pids,
             )
         }
+        viewModel { ResetViewModel(get()) }
         viewModel { ProcessesViewModel(runningComponentsProvider = get()) }
         viewModel {
             VisualizationViewModel(

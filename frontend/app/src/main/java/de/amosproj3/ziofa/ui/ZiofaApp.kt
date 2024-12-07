@@ -29,6 +29,7 @@ import de.amosproj3.ziofa.ui.navigation.ConfigurationMenu
 import de.amosproj3.ziofa.ui.navigation.HomeScreen
 import de.amosproj3.ziofa.ui.navigation.composables.ZiofaTopBar
 import de.amosproj3.ziofa.ui.processes.ProcessesScreen
+import de.amosproj3.ziofa.ui.reset.ResetScreen
 import de.amosproj3.ziofa.ui.shared.deserializePIDs
 import de.amosproj3.ziofa.ui.shared.getDisplayName
 import de.amosproj3.ziofa.ui.shared.serializePIDs
@@ -56,7 +57,7 @@ fun ZIOFAApp() {
                 HomeScreen(
                     toVisualize = { navController.navigate(Routes.Visualize.name) },
                     toConfiguration = { navController.navigate(Routes.Configuration.name) },
-                    toAbout = { navController.navigate(Routes.Symbols.name) },
+                    toAbout = { navController.navigate(Routes.About.name) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -68,9 +69,9 @@ fun ZIOFAApp() {
             ) {
                 ConfigurationMenu(
                     Modifier.padding(innerPadding),
-                    toPresets = { /*TODO*/ },
                     toProcesses = { navController.navigate(Routes.Processes.name) },
                     toGlobalConfiguration = { navController.navigate(GLOBAL_CONFIGURATION_ROUTE) },
+                    toReset = { navController.navigate(Routes.Reset.name) },
                 )
             }
             composable(
@@ -147,6 +148,19 @@ fun ZIOFAApp() {
                         ?.validPIDsOrNull()
                         ?.map { it.toUInt() }
                         ?: listOf(), //TODO pass uint list as args everywhere
+                )
+            }
+            composable(
+                Routes.Reset.name,
+                popEnterTransition = { fadeIn() },
+                enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
+            ) {
+                ResetScreen(
+                    Modifier.padding(innerPadding),
+                    afterResetConfirmed = {
+                        navController.popBackStack()
+                    },
                 )
             }
         }
