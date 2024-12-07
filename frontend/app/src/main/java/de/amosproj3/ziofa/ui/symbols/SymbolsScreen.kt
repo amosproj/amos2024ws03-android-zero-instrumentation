@@ -2,6 +2,7 @@ package de.amosproj3.ziofa.ui.symbols
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,85 +28,111 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
-import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
+import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsEntry
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsScreenState
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-@Preview(device = Devices.AUTOMOTIVE_1024p)
-fun SymbolsScreen(modifier: Modifier = Modifier, pid: UInt = 123u) { // TODO pass pid to screen
-    val viewModel: SymbolsViewModel = koinViewModel(parameters = { parametersOf(pid) })
-    // TODO render two lists, if both have selected an item, show confirm button
-    // TODO upon clicking, add to local configuration to show on configuration screen
-    // TODO from there, we can submit it :)
-
-    //TODO possibly searchable symbols if time
-
-    // TODO configurationscreen should render uprobes as odex - method name or smth
+fun SymbolsScreen(
+    modifier: Modifier = Modifier,
+    onSymbolsSubmitted: () -> Unit,
+    pids: List<UInt> = listOf(123u)
+) { // TODO pass pid to screen
+    val viewModel: SymbolsViewModel = koinViewModel(parameters = { parametersOf(pids) })
 
     var searchQuery by remember { mutableStateOf("") }
+    val screenState = viewModel.screenState.collectAsState(SymbolsScreenState.WaitingForSearch)
 
     Box(modifier = modifier) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                modifier = Modifier.weight(2f),
+        Column(modifier = Modifier.fillMaxWidth()) {
+            SearchBar(
                 value = searchQuery,
-                onValueChange = {
-                    searchQuery = it
-                }, placeholder = {
-                    Text("Enter symbol name")
+                onValueChanged = { searchQuery = it },
+                onStartSearch = { viewModel.startSearch(it) }
+            )
+
+
+            Box(Modifier.fillMaxSize()) {
+                when (val state = screenState.value) {
+                    is SymbolsScreenState.SymbolsLoading -> CircularProgressIndicator(
+                        Modifier.align(
+                            Alignment.Center
+                        )
+                    )
+
+                    is SymbolsScreenState.SearchResultReady -> SearchResultList(
+                        state.symbols,
+                        onOptionChanged = { symbol, active ->
+                            viewModel.symbolEntryChanged(
+                                symbol,
+                                active
+                            )
+                        }
+                    )
+
+
+                    is SymbolsScreenState.WaitingForSearch -> Spacer(Modifier.fillMaxSize())
+                    is SymbolsScreenState.Error -> ErrorScreen(error = state.errorMessage)
                 }
-            )
-            Button(modifier = Modifier.weight(1f),
-                onClick = {
-                    //TODO
-                },
-                content = {
-                    Text("Search")
-                })
+            }
         }
-    }
-
-    val searchResultsState =
-        viewModel.searchResult.collectAsState(SymbolsScreenState.WaitingForSearch)
-
-    Box(Modifier.fillMaxSize()) {
-        when (val searchResults = searchResultsState.value) {
-            is SymbolsScreenState.SymbolsLoading -> CircularProgressIndicator()
-            is SymbolsScreenState.SearchResultReady -> SearchResultList(
-                searchResults.symbols,
-                onOptionChanged = { symbol, active -> viewModel.symbolEntryChanged(symbol, active) }
-            )
-
-            is SymbolsScreenState.WaitingForSearch -> Spacer(Modifier.fillMaxSize())
-            is SymbolsScreenState.Error -> ErrorScreen(error = searchResults.errorMessage)
-        }
+        SubmitFab(
+            modifier = Modifier.align(Alignment.BottomEnd), onClick = {
+                viewModel.submit()
+                onSymbolsSubmitted()
+            })
     }
 
 
 }
 
 @Composable
+fun SearchBar(value: String, onValueChanged: (String) -> Unit, onStartSearch: (String) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            modifier = Modifier.weight(2f),
+            value = value,
+            onValueChange = {
+                onValueChanged(it)
+            }, placeholder = {
+                Text("Enter symbol name")
+            }
+        )
+        Button(modifier = Modifier.weight(1f),
+            onClick = {
+                onStartSearch(value)
+            },
+            content = {
+                Text("Search")
+            })
+    }
+}
+
+@Composable
 fun SearchResultList(
-    symbols: List<SymbolsEntry>,
+    symbols: Map<SymbolsEntry, Boolean>,
     onOptionChanged: (SymbolsEntry, Boolean) -> Unit
 ) {
 
-    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
+            .fillMaxSize()
+    ) {
         item { Spacer(Modifier.height(15.dp)) }
 
-        items(symbols) { option ->
+        items(symbols.entries.toList().sortedBy { it.key.name }) { option ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(option.name)
+                Text(option.key.name)
                 Checkbox(
-                    checked = option.active,
-                    onCheckedChange = { onOptionChanged(option, it) })
+                    checked = option.value,
+                    onCheckedChange = { onOptionChanged(option.key, it) })
             }
         }
     }

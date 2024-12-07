@@ -1,91 +1,98 @@
 package de.amosproj3.ziofa.ui.symbols
 
+import android.provider.Contacts.Intents.UI
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.api.configuration.GetOdexFilesRequestState
+import androidx.lifecycle.viewmodel.compose.viewModel
 import de.amosproj3.ziofa.api.configuration.GetSymbolsRequestState
 import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.SymbolsAccess
+import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsEntry
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsScreenState
-import de.amosproj3.ziofa.ui.symbols.data.SymbolsSelectionState
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class SymbolsViewModel(
-    val symbolsAccess: SymbolsAccess,
-    val localConfigurationAccess: LocalConfigurationAccess,
-    val pid: UInt,
+    private val symbolsAccess: SymbolsAccess,
+    private val localConfigurationAccess: LocalConfigurationAccess,
+    val pids: List<UInt>,
 ) : ViewModel() {
 
-    private val PLEASE_SELECT_ODEX = SymbolsSelectionState.IncompleteSelectionPrompt(
-        message = "Please select a odex file!"
-    )
+    val screenState = MutableStateFlow<SymbolsScreenState>(SymbolsScreenState.WaitingForSearch)
 
-    private val selectedOdexFile = MutableStateFlow<String?>(null)
-
-    //TODO we need the offset and method name here -> data class
-    private val selectedSymbol = MutableStateFlow<String?>(null)
-
-    val odexSelectionState =
-        symbolsAccess.getOdexFilesForPid(pid)
-            .combine(selectedOdexFile) { odexFileRequest, selectedOdexFile ->
-                when (odexFileRequest) {
-                    is GetOdexFilesRequestState.Loading -> SymbolsSelectionState.Loading
-                    is GetOdexFilesRequestState.Error -> SymbolsSelectionState.Error(odexFileRequest.errorMessage)
-                    is GetOdexFilesRequestState.Response -> SymbolsSelectionState.Ready(
-                        odexFileRequest.odexFiles,
-                        selectedOdexFile
-                    )
-                }
-            }.stateIn(
-                viewModelScope,
-                SharingStarted.Lazily,
-                initialValue = SymbolsSelectionState.Loading
-            )
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val symbolSelectionState =
-        selectedOdexFile.flatMapLatest { selectedOdexFile ->
-            if (selectedOdexFile == null) {
-                return@flatMapLatest flowOf()
-            }
-            symbolsAccess.getSymbolsForFile(selectedOdexFile)
-        }.combine(selectedSymbol) { symbolFileRequest, selectedSymbol ->
-            when (symbolFileRequest) {
-                is GetSymbolsRequestState.Loading -> SymbolsSelectionState.Loading
-                is GetSymbolsRequestState.Error -> SymbolsSelectionState.Error(symbolFileRequest.errorMessage)
-                is GetSymbolsRequestState.Response -> SymbolsSelectionState.Ready(
-                    symbolFileRequest.symbols,
-                    selectedSymbol
+    fun submit() {
+        val currentState = screenState.value
+        if (currentState is SymbolsScreenState.SearchResultReady) {
+            val selectedSymbols = currentState
+                .symbols
+                .entries
+                .filter { it.value }
+                .map { it.key }
+            pids.forEach { pid ->
+                localConfigurationAccess.changeFeatureConfiguration(
+                    uprobesFeature = selectedSymbols.map { it.toUprobeConfigForPid(pid) },
+                    enable = true
                 )
             }
-        }.stateIn(viewModelScope, SharingStarted.Lazily, PLEASE_SELECT_ODEX)
-
-
-    fun odexSelected(odexFile: String) {
-        selectedOdexFile.value = odexFile
+        }
     }
 
-    fun symbolSelected(symbol: String) {
-        selectedSymbol.value = symbol
+    fun symbolEntryChanged(symbolsEntry: SymbolsEntry, newState: Boolean) {
+        screenState.update { prev ->
+            if (prev is SymbolsScreenState.SearchResultReady) {
+                prev.copy(
+                    symbols = prev.symbols.updateEntry(
+                        symbolsEntry = symbolsEntry,
+                        newState = newState
+                    )
+                )
+            } else {
+                prev
+            }
+        }
     }
 
-    fun submit(odexFile: String, symbol: String) {
-        //TODO submit along with pid, offset, odex, symbol to local configuration
+    private fun SymbolsEntry.toUprobeConfigForPid(pid: UInt) =
+        UprobeConfig(
+            fnName = this.name,
+            offset = this.offset,
+            target = this.odexFile,
+            pid = pid.toInt() // TODO why is this not an uint
+        )
+
+
+    fun startSearch(searchQuery: String) {
+        val searchQuery = searchQuery
+        val symbolsResult = symbolsAccess.searchSymbols(pids, searchQuery)
+        viewModelScope.launch {
+            symbolsResult
+                .onStart { Timber.i("starting search") }
+                .onEach { Timber.i("Search State: $it") }
+                .onCompletion { Timber.i("search completed") }
+                .collect {
+                    screenState.value = when (it) {
+                        is GetSymbolsRequestState.Loading -> SymbolsScreenState.SymbolsLoading
+                        is GetSymbolsRequestState.Error -> SymbolsScreenState.Error(it.errorMessage)
+                        is GetSymbolsRequestState.Response -> SymbolsScreenState.SearchResultReady(
+                            symbols = it.symbols.associateWith { false }
+                        )
+                    }
+                }
+        }
     }
 
-    val searchQuery = MutableStateFlow<String?>(null)
-    val searchResult = flowOf<SymbolsScreenState>()
 
-    fun symbolEntryChanged(symbolsEntry: SymbolsEntry, newState:Boolean){
-        //TODo
-    }
+    private fun Map<SymbolsEntry, Boolean>.updateEntry(
+        symbolsEntry: SymbolsEntry,
+        newState: Boolean
+    ) = this.minus(symbolsEntry).plus(symbolsEntry to newState)
 
 }

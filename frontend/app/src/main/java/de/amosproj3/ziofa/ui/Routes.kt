@@ -12,4 +12,5 @@ enum class Routes {
     Home,
     Processes,
     Configuration,
+    Symbols
 }
