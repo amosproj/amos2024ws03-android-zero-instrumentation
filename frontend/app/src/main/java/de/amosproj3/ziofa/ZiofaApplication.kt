@@ -8,9 +8,9 @@ import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
 import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.SymbolsAccess
+import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
 import de.amosproj3.ziofa.bl.configuration.ConfigurationManager
 import de.amosproj3.ziofa.bl.configuration.UProbeManager
@@ -88,6 +88,6 @@ class ZiofaApplication : Application() {
             )
         }
 
-        viewModel {(pids: List<UInt>) -> SymbolsViewModel(get(), get(), pids ) }
+        viewModel { (pids: List<UInt>) -> SymbolsViewModel(get(), get(), pids) }
     }
 }

@@ -16,7 +16,6 @@ sealed class BackendFeatureOptions(val featureName: String, val active: Boolean)
         val displayName: String,
         val id: String,
         val enabled: Boolean,
-        val pids: Set<UInt>
-    ) :
-        BackendFeatureOptions(id, enabled)
+        val pids: Set<UInt>,
+    ) : BackendFeatureOptions(id, enabled)
 }

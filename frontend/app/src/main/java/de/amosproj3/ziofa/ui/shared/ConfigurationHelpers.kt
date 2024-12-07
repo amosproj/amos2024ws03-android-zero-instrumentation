@@ -16,9 +16,9 @@ fun VfsWriteConfig?.updatePIDs(
     val config = this ?: VfsWriteConfig(mapOf())
     return config.copy(
         entries =
-        config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-            it.key to it.value
-        }
+            config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
+                it.key to it.value
+            }
     )
 }
 
@@ -29,9 +29,9 @@ fun SysSendmsgConfig?.updatePIDs(
     val config = this ?: SysSendmsgConfig(mapOf())
     return config.copy(
         entries =
-        config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-            it.key to it.value
-        }
+            config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
+                it.key to it.value
+            }
     )
 }
 
@@ -59,19 +59,18 @@ fun ConfigurationUpdate.Valid.toUIOptionsForPids(
             } ?: BackendFeatureOptions.SendMessageOption(enabled = false, pids = setOf())
         )
 
-        this.configuration.uprobes.filter {
-            it.pid == null || relevantPids.contains(it.pid!!.toUInt())
-        }.forEach {
-            options.add(
-                BackendFeatureOptions.UprobeOption(
-                    enabled = true, // uprobe options are either active or not visible
-                    displayName = "UProbe for Symbol ${it.fnName} in ${it.target}",
-                    id = it.fnName,
-                    pids = setOf(it.pid?.toUInt()!!) // TODO This should not be null asserted
+        this.configuration.uprobes
+            .filter { it.pid == null || relevantPids.contains(it.pid!!.toUInt()) }
+            .forEach {
+                options.add(
+                    BackendFeatureOptions.UprobeOption(
+                        enabled = true, // uprobe options are either active or not visible
+                        displayName = "UProbe for Symbol ${it.fnName} in ${it.target}",
+                        id = it.fnName,
+                        pids = setOf(it.pid?.toUInt()!!), // TODO This should not be null asserted
+                    )
                 )
-            )
-        }
-
+            }
     }
 
     return options.toList()

@@ -45,9 +45,8 @@ val GLOBAL_CONFIGURATION_ROUTE =
 fun ZIOFAApp() {
     val navController = rememberNavController()
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { DynamicTopBar(navController) }) { innerPadding ->
+    Scaffold(modifier = Modifier.fillMaxSize(), topBar = { DynamicTopBar(navController) }) {
+        innerPadding ->
         NavHost(
             navController,
             modifier = Modifier.fillMaxSize(),
@@ -77,16 +76,16 @@ fun ZIOFAApp() {
             composable(
                 "${Routes.IndividualConfiguration.name}?displayName={displayName}?pids={pids}",
                 arguments =
-                listOf(
-                    navArgument("displayName") {
-                        type = NavType.StringType
-                        nullable = true
-                    },
-                    navArgument("pids") {
-                        type = NavType.StringType
-                        nullable = true
-                    },
-                ),
+                    listOf(
+                        navArgument("displayName") {
+                            type = NavType.StringType
+                            nullable = true
+                        },
+                        navArgument("pids") {
+                            type = NavType.StringType
+                            nullable = true
+                        },
+                    ),
                 enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
                 exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
             ) {
@@ -94,7 +93,9 @@ fun ZIOFAApp() {
                     Modifier.padding(innerPadding),
                     onBack = { navController.popBackStack() },
                     pids = it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull(),
-                    onAddUprobeSelected = { navController.navigate(it.arguments.copyToSymbolsRoute()) }
+                    onAddUprobeSelected = {
+                        navController.navigate(it.arguments.copyToSymbolsRoute())
+                    },
                 )
             }
             composable(
@@ -128,26 +129,24 @@ fun ZIOFAApp() {
             composable(
                 "${Routes.Symbols.name}?displayName={displayName}?pids={pids}",
                 arguments =
-                listOf(
-                    navArgument("displayName") {
-                        type = NavType.StringType
-                        nullable = true
-                    },
-                    navArgument("pids") {
-                        type = NavType.StringType
-                        nullable = true
-                    },
-                ),
+                    listOf(
+                        navArgument("displayName") {
+                            type = NavType.StringType
+                            nullable = true
+                        },
+                        navArgument("pids") {
+                            type = NavType.StringType
+                            nullable = true
+                        },
+                    ),
             ) {
                 SymbolsScreen(
                     Modifier.padding(innerPadding),
                     onSymbolsSubmitted = { navController.popBackStack() },
-                    pids = it.arguments
-                        ?.getString("pids")
-                        ?.deserializePIDs()
-                        ?.validPIDsOrNull()
-                        ?.map { it.toUInt() }
-                        ?: listOf(), //TODO pass uint list as args everywhere
+                    pids =
+                        it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull()?.map {
+                            it.toUInt()
+                        } ?: listOf(), // TODO pass uint list as args everywhere
                 )
             }
             composable(
@@ -158,9 +157,7 @@ fun ZIOFAApp() {
             ) {
                 ResetScreen(
                     Modifier.padding(innerPadding),
-                    afterResetConfirmed = {
-                        navController.popBackStack()
-                    },
+                    afterResetConfirmed = { navController.popBackStack() },
                 )
             }
         }
@@ -215,4 +212,3 @@ fun Bundle?.copyToSymbolsRoute(): String {
     val pids = this?.getString("pids")
     return "${Routes.Symbols.name}?displayName=$displayName?pids=$pids"
 }
-
