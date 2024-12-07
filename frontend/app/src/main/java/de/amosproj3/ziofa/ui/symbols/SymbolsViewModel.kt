@@ -6,6 +6,8 @@ import de.amosproj3.ziofa.api.configuration.GetOdexFilesRequestState
 import de.amosproj3.ziofa.api.configuration.GetSymbolsRequestState
 import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.SymbolsAccess
+import de.amosproj3.ziofa.ui.symbols.data.SymbolsEntry
+import de.amosproj3.ziofa.ui.symbols.data.SymbolsScreenState
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsSelectionState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,6 +79,13 @@ class SymbolsViewModel(
 
     fun submit(odexFile: String, symbol: String) {
         //TODO submit along with pid, offset, odex, symbol to local configuration
+    }
+
+    val searchQuery = MutableStateFlow<String?>(null)
+    val searchResult = flowOf<SymbolsScreenState>()
+
+    fun symbolEntryChanged(symbolsEntry: SymbolsEntry, newState:Boolean){
+        //TODo
     }
 
 }
