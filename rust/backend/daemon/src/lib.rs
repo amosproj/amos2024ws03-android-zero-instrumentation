@@ -14,6 +14,7 @@ mod features;
 mod collector;
 mod vfs_write_feature;
 mod sys_sendmsg_feature;
+mod jni_reference_feature;
 
 pub async fn run_server() {
     helpers::bump_rlimit();

@@ -1,13 +1,15 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
-//
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
 // SPDX-License-Identifier: MIT
 
 use std::collections::BTreeSet;
 use aya::{
-    Ebpf, EbpfError
+    maps::HashMap,
+    programs::{kprobe::KProbeLinkId, uprobe::UProbeLink, trace_point::TracePointLink, KProbe, TracePoint, UProbe, ProgramError},
+    Ebpf, EbpfError,
 };
-use aya::maps::HashMap;
 use shared::config::Configuration;
 use crate::sys_sendmsg_feature::SysSendmsgFeature;
 use crate::vfs_write_feature::VfsWriteFeature;
