@@ -26,5 +26,7 @@ runs:
         bucket: actions-cache
         accessKey: ${{ inputs.accessKey }}
         secretKey: ${{ inputs.secretKey }}
-        endpoint: nbg1.your-objectstorage.com
+        endpoint: localhost
+        port: 9000
+        insecure: true
         use-fallback: false
