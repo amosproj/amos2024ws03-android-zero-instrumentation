@@ -5,41 +5,57 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{ops::DerefMut, sync::Arc};
-
-use async_broadcast::{broadcast, Receiver, Sender};
-use aya::Ebpf;
-use aya_log::EbpfLogger;
-use tokio::join;
-use shared::{
-    config::Configuration,
-    counter::counter_server::CounterServer,
-    ziofa::{
-        ziofa_server::{Ziofa, ZiofaServer},
-        CheckServerResponse, ProcessList, SetConfigurationResponse,
-    },
-};
-use tokio::sync::Mutex;
-use tonic::{transport::Server, Request, Response, Status};
-use shared::ziofa::Event;
 use crate::collector::MultiCollector;
+use crate::symbols::SymbolHandler;
 use crate::{
     configuration, constants,
     counter::Counter,
     ebpf_utils::{EbpfErrorWrapper, State},
     procfs_utils::{list_processes, ProcErrorWrapper},
 };
+use async_broadcast::{broadcast, Receiver, Sender};
+use aya::Ebpf;
+use aya_log::EbpfLogger;
+use shared::ziofa::{
+    Event, GetSymbolsRequest,
+    PidMessage, StringResponse, Symbol,
+};
+use shared::{
+    config::Configuration,
+    counter::counter_server::CounterServer,
+    ziofa::{
+        ziofa_server::{Ziofa, ZiofaServer},
+        CheckServerResponse, ProcessList,
+    },
+};
+use std::path::PathBuf;
+use std::{ops::DerefMut, sync::Arc};
+use tokio::join;
+use tokio::sync::{mpsc, Mutex};
+use tokio_stream::wrappers::ReceiverStream;
+use tonic::{transport::Server, Request, Response, Status};
 
 pub struct ZiofaImpl {
     // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
     ebpf: Arc<Mutex<Ebpf>>,
     state: Arc<Mutex<State>>,
     channel: Arc<Channel>,
+    symbol_handler: Arc<Mutex<SymbolHandler>>,
 }
 
 impl ZiofaImpl {
-    pub fn new(ebpf: Arc<Mutex<Ebpf>>, state: Arc<Mutex<State>>, channel: Arc<Channel>) -> ZiofaImpl {
-        ZiofaImpl { ebpf, state, channel }
+    pub fn new(
+        ebpf: Arc<Mutex<Ebpf>>,
+        state: Arc<Mutex<State>>,
+        channel: Arc<Channel>,
+        symbol_handler: Arc<Mutex<SymbolHandler>>,
+    ) -> ZiofaImpl {
+        ZiofaImpl {
+            ebpf,
+            state,
+            channel,
+            symbol_handler,
+        }
     }
 }
 
@@ -77,7 +93,7 @@ impl Ziofa for ZiofaImpl {
     async fn set_configuration(
         &self,
         request: Request<Configuration>,
-    ) -> Result<Response<SetConfigurationResponse>, Status> {
+    ) -> Result<Response<()>, Status> {
         let config = request.into_inner();
 
         // TODO: Implement function 'validate'
@@ -93,7 +109,7 @@ impl Ziofa for ZiofaImpl {
             .update_from_config(ebpf_guard.deref_mut(), &config)
             .map_err(EbpfErrorWrapper::from)?;
 
-        Ok(Response::new(SetConfigurationResponse { response_type: 0 }))
+        Ok(Response::new(()))
     }
 
     type InitStreamStream = Receiver<Result<Event, Status>>;
@@ -104,10 +120,87 @@ impl Ziofa for ZiofaImpl {
     ) -> Result<Response<Self::InitStreamStream>, Status> {
         Ok(Response::new(self.channel.rx.clone()))
     }
+
+    type GetOdexFilesStream = ReceiverStream<Result<StringResponse, Status>>;
+
+    // TODO: What is this function for?
+    async fn get_odex_files(
+        &self,
+        request: Request<PidMessage>,
+    ) -> Result<Response<Self::GetOdexFilesStream>, Status> {
+        let pid = request.into_inner().pid;
+
+        let (tx, rx) = mpsc::channel(4);
+
+        let symbol_handler = self.symbol_handler.clone();
+
+        tokio::spawn(async move {
+            let mut symbol_handler_guard = symbol_handler.lock().await;
+            // TODO Error Handling
+            let odex_paths = match symbol_handler_guard.get_odex_paths(pid) {
+                Ok(paths) => paths,
+                Err(e) => {
+                    tx.send(Err(Status::from(e)))
+                        .await
+                        .expect("Error sending Error to client ._.");
+                    return;
+                }
+            };
+
+            for path in odex_paths {
+                tx.send(Ok(StringResponse {
+                    name: path.to_str().unwrap().to_string(),
+                }))
+                .await
+                .expect("Error sending odex file to client");
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
+    type GetSymbolsStream = ReceiverStream<Result<Symbol, Status>>;
+
+    async fn get_symbols(
+        &self,
+        request: Request<GetSymbolsRequest>,
+    ) -> Result<Response<Self::GetSymbolsStream>, Status> {
+        let process_request = request.into_inner();
+        let odex_file_path_string = process_request.odex_file_path;
+        let odex_file_path = PathBuf::from(odex_file_path_string);
+
+        let (tx, rx) = mpsc::channel(4);
+        
+        let symbol_handler = self.symbol_handler.clone();
+
+        tokio::spawn(async move {
+            let mut symbol_handler_guard = symbol_handler.lock().await;
+
+            let symbol = match symbol_handler_guard.get_symbols(&odex_file_path).await{
+                Ok(symbol) => symbol,
+                Err(e) => {
+                    tx.send(Err(Status::from(e)))
+                        .await
+                        .expect("Error sending Error to client ._.");
+                    return;
+                }
+            };
+            for (symbol, offset) in symbol.iter() {
+                tx.send(Ok(Symbol{
+                    method: symbol.to_string(),
+                    offset: *offset,
+                }))
+                    .await
+                    .expect("Error sending odex file to client");
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
 }
 
 pub async fn serve_forever() {
-    let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+    let mut ebpf = Ebpf::load(aya::include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/backend-ebpf"
     )))
@@ -124,9 +217,12 @@ pub async fn serve_forever() {
     let mut state = State::new();
     state.init(&mut ebpf).expect("should work");
 
+    let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
+
     let ebpf = Arc::new(Mutex::new(ebpf));
     let state = Arc::new(Mutex::new(state));
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), state, channel));
+    let ziofa_server =
+        ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), state, channel, symbol_handler));
     let counter_server = CounterServer::new(Counter::new(ebpf).await);
 
     let serve = async move {
