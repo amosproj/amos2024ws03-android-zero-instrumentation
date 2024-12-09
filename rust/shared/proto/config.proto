@@ -18,9 +18,9 @@ message UprobeConfig {
 }
 
 message Configuration {
-  VfsWriteConfig vfs_write = 1;
-  SysSendmsgConfig sys_sendmsg = 2;
-  JniReferencesConfig jniReferences = 3;
+  optional VfsWriteConfig vfs_write = 1;
+  optional SysSendmsgConfig sys_sendmsg = 2;
+  optional JniReferencesConfig jniReferences = 3;
   repeated UprobeConfig uprobes = 4;
 }
 
