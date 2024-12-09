@@ -80,6 +80,10 @@ private fun Configuration.into() =
         jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
     )
 
+private fun uniffi.shared.StringResponse.into() = StringResponse(name)
+
+private fun uniffi.shared.Symbol.into() = Symbol(method, offset)
+
 class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun serverCount(): Flow<UInt> = inner.serverCountFlow()
@@ -104,6 +108,12 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun setConfiguration(configuration: Configuration) =
         inner.setConfiguration(configuration.into())
+
+    override suspend fun getOdexFiles(pid: UInt): Flow<String> =
+        inner.getOdexFilesFlow(pid).mapNotNull { it.into().name }
+
+    override suspend fun getSymbols(odexFilePath: String): Flow<Symbol> =
+        inner.getSymbolFlow(odexFilePath).mapNotNull { it.into() }
 
     override suspend fun initStream(): Flow<Event> = inner.initStreamFlow().mapNotNull { it.into() }
 }
@@ -141,6 +151,22 @@ fun uniffi.client.Client.initStreamFlow() = flow {
     initStream().use { stream ->
         while (true) {
             stream.next()?.also { event -> emit(event) } ?: break
+        }
+    }
+}
+
+fun uniffi.client.Client.getOdexFilesFlow(pid: UInt) = flow {
+    getOdexFiles(pid).use { stream ->
+        while (true) {
+            stream.next()?.also { file -> emit(file) } ?: break
+        }
+    }
+}
+
+fun uniffi.client.Client.getSymbolFlow(odexFilePath: String) = flow {
+    getSymbols(odexFilePath).use { stream ->
+        while (true) {
+            stream.next()?.also { symbol -> emit(symbol) } ?: break
         }
     }
 }

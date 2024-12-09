@@ -28,8 +28,8 @@ fn handle_trace(ctx: ProbeContext, method: JNIMethodName) -> u32 {
     }
 
     let call = JNICall {
-        pid: pid,
-        tid: tid,
+        pid,
+        tid,
         begin_time_stamp: time_stamp,
         method_name: method,
     };
