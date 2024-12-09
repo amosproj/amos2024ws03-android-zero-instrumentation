@@ -68,6 +68,7 @@ message Event {
     oneof event_data {
         VfsWriteEvent vfs_write = 1;
         SysSendmsgEvent sys_sendmsg = 2;
+        JniReferencesEvent jni_references = 3;
     }
 }
 
@@ -86,3 +87,18 @@ message SysSendmsgEvent {
     uint64 fd = 4;
     uint64 duration_nano_sec = 5;
 }
+
+message JniReferencesEvent {
+    enum JniMethodName {
+        None = 0;
+        AddLocalRef = 1;
+        DeleteLocalRef = 2;
+        AddGlobalRef = 3;
+        DeleteGlobalRef = 4;
+    }
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 begin_time_stamp = 3;
+    JniMethodName jni_method_name = 4;
+}
+
