@@ -5,10 +5,27 @@
 name: "Setup Gradle Cache"
 description: "Sets up a cache for Gradle builds"
 
+inputs:
+  accessKey:
+    required: true
+  secretKey:
+    required: true
+
 runs:
   using: "composite"
   steps:
-    - name: Set up Gradle cache
-      uses: burrunan/gradle-cache-action@v1
+    - uses: tespkg/actions-cache@v1
       with:
-        build-root-directory: frontend
+        path: |
+          frontend/.gradle
+          frontend/app/build
+          frontend/client/build
+          frontend/build
+        key: ${{ github.repository }}-${{ runner.os }}-gradle-${{ github.job }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ github.repository }}-${{ runner.os }}-gradle-
+        bucket: actions-cache
+        accessKey: ${{ inputs.accessKey }}
+        secretKey: ${{ inputs.secretKey }}
+        endpoint: nbg1.your-objectstorage.com
+        use-fallback: false

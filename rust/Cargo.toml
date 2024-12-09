@@ -7,8 +7,23 @@
 
 [workspace]
 resolver = "2"
-members = ["xtask", "backend/daemon", "backend/ebpf", "backend/common", "shared", "client", "playground/sendmsg-demo"]
-default-members = ["xtask", "backend/daemon", "backend/common", "shared", "client"]
+members = [
+  "xtask",
+  "backend/daemon",
+  "backend/ebpf",
+  "backend/common",
+  "shared",
+  "client",
+  "playground/sendmsg-demo",
+  "uniffi-bindgen",
+]
+default-members = [
+  "xtask",
+  "backend/daemon",
+  "backend/common",
+  "shared",
+  "client",
+]
 
 [workspace.package]
 license = "MIT"
@@ -33,7 +48,7 @@ log = { version = "0.4.22", default-features = false }
 tokio = { version = "1.40.0", default-features = false }
 which = { version = "6.0.0", default-features = false }
 prost = "0.13.3"
-serde = { version ="1.0.214", features = ["derive"] }
+serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0"
 tonic = "0.12.3"
 tonic-build = "0.12.3"
@@ -53,6 +68,7 @@ console = "0.15.8"
 dialoguer = "0.11.0"
 indicatif = "0.17.9"
 nix = "0.29.0"
+object = "0.36.5"
 
 [profile.dev]
 panic = "abort"

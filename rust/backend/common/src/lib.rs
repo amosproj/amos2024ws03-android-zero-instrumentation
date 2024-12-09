@@ -7,8 +7,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-pub const TIME_LIMIT_NS: u64 = 1_000_000;
-
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VfsWriteCall {
@@ -32,13 +30,31 @@ pub struct SysSendmsgCall {
     pub tid: u32,
     pub begin_time_stamp: u64,
     pub fd: u64,
-    pub duration_micro_sec: u64, // in microseconds
+    pub duration_nano_sec: u64, // in nanoseconds
 }
 
 impl SysSendmsgCall {
-    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: u64, duration_micro_sec: u64) -> Self {
-        Self { pid, tid, begin_time_stamp, fd, duration_micro_sec }
+    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: u64, duration_nano_sec: u64) -> Self {
+        Self { pid, tid, begin_time_stamp, fd, duration_nano_sec }
     }
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub enum JNIMethodName {
+    AddLocalRef,
+    DeleteLocalRef,
+    AddGlobalRef,
+    DeleteGlobalRef,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JNICall {
+    pub pid: u32,
+    pub tid: u32,
+    pub begin_time_stamp: u64,
+    pub method_name: JNIMethodName,
 }
 
 #[inline(always)]

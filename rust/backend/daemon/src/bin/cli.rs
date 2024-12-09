@@ -10,6 +10,7 @@ use shared::{
     ziofa::ziofa_client::ZiofaClient,
 };
 use tonic::transport::Channel;
+use shared::config::JniReferencesConfig;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -50,6 +51,7 @@ async fn test_get_configuration(client: &mut ZiofaClient<Channel>, verbose: bool
                 uprobes: vec![],
                 vfs_write: Some(VfsWriteConfig { entries: std::collections::HashMap::new() }),
                 sys_sendmsg: Some(SysSendmsgConfig { entries: std::collections::HashMap::new() }),
+                jni_references: Some(JniReferencesConfig { pids: vec![]}),
             }
         }
     };

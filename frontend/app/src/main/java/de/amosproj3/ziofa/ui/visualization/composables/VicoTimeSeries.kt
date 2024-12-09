@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -36,13 +36,14 @@ import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
+import de.amosproj3.ziofa.ui.visualization.utils.isDefaultSeries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
 fun VicoTimeSeries(
     modifier: Modifier = Modifier,
-    seriesData: List<Pair<Int, Int>>,
+    seriesData: List<Pair<Float, Float>>,
     chartMetadata: VisualizationMetaData,
 ) {
     Column(
@@ -50,12 +51,9 @@ fun VicoTimeSeries(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val modelProducer = remember { CartesianChartModelProducer() }
-        if (seriesData.isNotEmpty()) {
+        if (seriesData.isNotEmpty() && !seriesData.isDefaultSeries()) {
             modelProducer.SeriesUpdate(seriesData)
             modelProducer.TimeSeriesChart(modifier, chartMetadata)
-        } else {
-            Text("No data received!", color = Color.Red)
-            // TODO replace with error screen
         }
     }
 }
@@ -85,8 +83,8 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                                 padding = dimensions(8.dp, 2.dp),
                                 background =
                                     rememberShapeComponent(
-                                        MaterialTheme.colorScheme.secondary,
-                                        CorneredShape.Pill,
+                                        fill = fill(MaterialTheme.colorScheme.secondary),
+                                        shape = CorneredShape.Pill,
                                     ),
                             ),
                         title = chartMetadata.yLabel,
@@ -100,8 +98,8 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                                 padding = dimensions(8.dp, 2.dp),
                                 background =
                                     shapeComponent(
-                                        MaterialTheme.colorScheme.primary,
-                                        CorneredShape.Pill,
+                                        fill = fill(MaterialTheme.colorScheme.primary),
+                                        shape = CorneredShape.Pill,
                                     ),
                             ),
                         title = chartMetadata.xLabel,
@@ -118,7 +116,7 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
 }
 
 @Composable
-private fun CartesianChartModelProducer.SeriesUpdate(update: List<Pair<Int, Int>>) {
+private fun CartesianChartModelProducer.SeriesUpdate(update: List<Pair<Float, Float>>) {
     LaunchedEffect(update) {
         withContext(Dispatchers.Default) {
             this@SeriesUpdate.runTransaction {

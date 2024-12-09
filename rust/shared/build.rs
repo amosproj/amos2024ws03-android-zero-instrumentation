@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -22,6 +23,10 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "SysSendmsgEvent",
             "VfsWriteConfig",
             "SysSendmsgConfig",
+            "JniReferencesConfig",
+            "StringResponse",
+            "Symbol",
+            "SetConfigurationResponse",
         ]
     } else {
         vec![]
@@ -55,8 +60,7 @@ fn main() {
 
     builder = builder
         .protoc_arg("--experimental_allow_proto3_optional")
-        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
-        .type_attribute(".", "#[derive(Eq, Hash, PartialOrd, Ord)]");
+        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]");
 
     builder = derive_records(builder);
     builder = derive_enums(builder);

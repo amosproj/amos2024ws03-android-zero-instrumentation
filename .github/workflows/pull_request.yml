@@ -1,0 +1,113 @@
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+name: PR
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main, dev]
+
+env:
+  RUSTFLAGS: "-Dwarnings"
+  CARGO_INCREMENTAL: 0
+
+jobs:
+
+  reuse-lint:
+    name: Reuse Lint
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reuse Lint
+        run: nix develop --command reuse lint
+  
+  sbom:
+    name: Generate Sbom
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Sbom
+        run: nix develop --command python utils/generate_sbom.py
+  
+  rust-lint:
+    name: Rust Lint
+    runs-on: self-hosted
+    needs: [reuse-lint]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust-cache
+        with:
+          accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+          secretKey: ${{ secrets.CACHE_SECRET_KEY }}
+
+      - name: Cargo Clippy
+        run: | 
+          cd rust
+          nix develop --command cargo clippy --all-targets --all-features
+  
+  rust-test:
+    name: Rust Tests
+    runs-on: self-hosted
+    needs: [rust-lint]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust-cache
+        with:
+          accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+          secretKey: ${{ secrets.CACHE_SECRET_KEY }}
+
+      - name: Cargo test
+        run: | 
+          cd rust
+          nix develop --command cargo test --workspace --all-targets --all-features --exclude backend-daemon
+
+  rust-build:
+    name: Rust Build
+    runs-on: self-hosted
+    needs: [rust-test]
+    strategy:
+      matrix:
+        target: [arm64-v8a, x86_64]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust-cache
+        with:
+          accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+          secretKey: ${{ secrets.CACHE_SECRET_KEY }}
+          cacheKey: ${{ matrix.target }}
+
+      - name: Cargo Build Daemon ${{ matrix.target }}
+        run: | 
+          cd rust
+          nix develop --command cargo ndk --target ${{ matrix.target }} build --package backend-daemon --package client
+
+
+  gradle-build:
+    name: Gradle Build
+    runs-on: self-hosted
+    needs: [reuse-lint]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust-cache
+        with:
+          accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+          secretKey: ${{ secrets.CACHE_SECRET_KEY }}      
+      - uses: ./.github/actions/setup-gradle-cache
+        with:
+          accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+          secretKey: ${{ secrets.CACHE_SECRET_KEY }}
+      
+      - name: Gradle Lint
+        run: | 
+          cd frontend
+          nix develop --command ./gradlew build --no-daemon --parallel

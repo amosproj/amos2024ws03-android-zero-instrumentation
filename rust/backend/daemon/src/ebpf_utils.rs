@@ -5,11 +5,8 @@
 //
 // SPDX-License-Identifier: MIT
 
-use aya::{Ebpf, EbpfError};
-use shared::config::Configuration;
+use aya::EbpfError;
 use thiserror::Error;
-
-use crate::features::{SysSendmsgFeature, VfsFeature};
 
 #[derive(Debug, Error)]
 pub enum EbpfErrorWrapper {

@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import de.amosproj3.ziofa.api.RunningComponent
 import de.amosproj3.ziofa.ui.processes.composables.EditButton
 import de.amosproj3.ziofa.ui.processes.composables.IconAndName
 import de.amosproj3.ziofa.ui.processes.composables.ProcessesHeader
@@ -31,11 +32,11 @@ import org.koin.androidx.compose.koinViewModel
 fun ProcessesScreen(
     modifier: Modifier,
     viewModel: ProcessesViewModel = koinViewModel(),
-    onClickEdit: (ProcessListEntry) -> Unit,
+    onClickEdit: (RunningComponent) -> Unit,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column {
-            val options by remember { viewModel.processesList }.collectAsState()
+            val options by remember { viewModel.applicationsAndProcessesList }.collectAsState()
 
             ProcessesHeader()
             LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
@@ -47,10 +48,10 @@ fun ProcessesScreen(
 
 @Composable
 fun ProcessListRow(
-    option: ProcessListEntry,
-    onClickProcessInfo: (ProcessListEntry) -> Unit =
+    option: RunningComponent,
+    onClickProcessInfo: (RunningComponent) -> Unit =
         {}, // TODO implement modal with info about processes
-    onClickEdit: (ProcessListEntry) -> Unit = {},
+    onClickEdit: (RunningComponent) -> Unit = {},
 ) {
     Row(
         modifier = Modifier.fillMaxSize().padding(vertical = 10.dp),
@@ -58,13 +59,13 @@ fun ProcessListRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         when (option) {
-            is ProcessListEntry.ProcessEntry -> {
+            is RunningComponent.StandaloneProcess -> {
                 IconAndName(option, modifier = Modifier.weight(1f))
                 Text(text = option.process.pid.toString(), modifier = Modifier.weight(1f))
                 Text(text = option.process.ppid.toString(), modifier = Modifier.weight(1f))
             }
 
-            is ProcessListEntry.ApplicationEntry -> {
+            is RunningComponent.Application -> {
                 IconAndName(option, modifier = Modifier.weight(1f))
                 Text(
                     text = option.processList.map { it.pid }.joinToString(","),

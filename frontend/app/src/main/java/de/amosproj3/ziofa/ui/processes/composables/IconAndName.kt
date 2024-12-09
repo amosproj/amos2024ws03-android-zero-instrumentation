@@ -17,11 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
-import de.amosproj3.ziofa.ui.processes.ProcessListEntry
+import de.amosproj3.ziofa.api.RunningComponent
 import de.amosproj3.ziofa.ui.shared.toReadableString
 
 @Composable
-fun IconAndName(option: ProcessListEntry.ApplicationEntry, modifier: Modifier = Modifier) {
+fun IconAndName(option: RunningComponent.Application, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         val painter = rememberDrawablePainter(option.packageInfo.icon)
         Image(painter = painter, contentDescription = "", modifier = Modifier.size(50.dp, 50.dp))
@@ -31,7 +31,7 @@ fun IconAndName(option: ProcessListEntry.ApplicationEntry, modifier: Modifier = 
 }
 
 @Composable
-fun IconAndName(option: ProcessListEntry.ProcessEntry, modifier: Modifier = Modifier) {
+fun IconAndName(option: RunningComponent.StandaloneProcess, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Image(
             imageVector = Icons.Filled.Info,
