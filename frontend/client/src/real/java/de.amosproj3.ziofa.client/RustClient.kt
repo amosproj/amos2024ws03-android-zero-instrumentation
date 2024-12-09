@@ -61,6 +61,7 @@ private fun uniffi.shared.Configuration.into() =
                     pid = it.pid,
                 )
             },
+        jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
     )
 
 private fun Configuration.into() =
@@ -76,6 +77,7 @@ private fun Configuration.into() =
                     pid = it.pid,
                 )
             },
+        jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
     )
 
 private fun uniffi.shared.StringResponse.into() = StringResponse(name)

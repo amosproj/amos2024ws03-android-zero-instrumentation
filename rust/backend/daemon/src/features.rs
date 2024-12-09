@@ -1,16 +1,165 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
-use std::collections::BTreeSet;
+#![allow(unused)]
 
+use std::collections::BTreeSet;
 use aya::{
     maps::HashMap,
-    programs::{kprobe::KProbeLinkId, trace_point::TracePointLink, KProbe, TracePoint},
+    programs::{kprobe::KProbeLinkId, uprobe::UProbeLink, trace_point::TracePointLink, KProbe, TracePoint, UProbe, ProgramError},
     Ebpf, EbpfError,
 };
-use shared::config::{SysSendmsgConfig, VfsWriteConfig};
+use shared::config::{SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig};
+
+
+pub struct JNIReferencesFeature {
+    trace_add_local_link: Option<UProbeLink>,
+    trace_del_local_link: Option<UProbeLink>,
+    trace_add_global_link: Option<UProbeLink>,
+    trace_del_global_link: Option<UProbeLink>,
+}
+
+impl JNIReferencesFeature {
+    pub fn new() -> JNIReferencesFeature {
+        JNIReferencesFeature {
+            trace_add_local_link: None,
+            trace_del_local_link: None,
+            trace_add_global_link: None,
+            trace_del_global_link: None,
+        }
+    }
+
+    fn jni_load_program_by_name(ebpf: &mut Ebpf, name: &str) -> Result<(), EbpfError> {
+        let jni_probe: &mut UProbe = ebpf
+            .program_mut(name)
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: name.to_string(),
+                },
+            ))?
+            .try_into()?;
+        jni_probe.load()?;
+        Ok(())
+    }
+
+    fn jni_get_offset_by_name(name: &str) -> u64 {
+        todo!("get offset of symbol by name");
+    }
+
+    fn jni_get_target_by_name(name: &str) -> &str {
+        todo!("get absolute path to library/ binary");
+    }
+
+    fn jni_attach_program_by_name(&mut self, ebpf: &mut Ebpf, probe_name: &str, jni_method_name: &str) -> Result<(), EbpfError> {
+        let jni_program: &mut UProbe = ebpf
+            .program_mut(probe_name)
+            .ok_or(EbpfError::ProgramError(
+                aya::programs::ProgramError::InvalidName {
+                    name: probe_name.to_string(),
+                },
+            ))?
+            .try_into()?;
+
+        let offset = Self::jni_get_offset_by_name(jni_method_name);
+        let target = Self::jni_get_target_by_name(jni_method_name);
+        let link_id = jni_program.attach(
+            Some(jni_method_name),
+            offset,
+            target,
+            None
+        ).map_err(|err| {EbpfError::ProgramError(err)})?;
+        self.trace_add_local_link = Some(jni_program.take_link(link_id).map_err(|err| {EbpfError::ProgramError(err)})?);
+        Ok(())
+    }
+
+    pub fn create(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+        Self::jni_load_program_by_name(ebpf, "trace_add_local");
+        Self::jni_load_program_by_name(ebpf, "trace_del_local");
+        Self::jni_load_program_by_name(ebpf, "trace_add_global");
+        Self::jni_load_program_by_name(ebpf, "trace_del_global");
+
+        Ok(())
+    }
+
+    #[allow(unreachable_code)]
+    pub fn attach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+        if self.trace_add_local_link.is_none() {
+            Self::jni_attach_program_by_name(self, ebpf, "trace_add_local", "AddLocalRef")?
+        }
+
+        if self.trace_del_local_link.is_none() {
+            Self::jni_attach_program_by_name(self, ebpf, "trace_del_local", "DeleteLocalRef")?
+        }
+
+        if self.trace_add_global_link.is_none() {
+            Self::jni_attach_program_by_name(self, ebpf, "trace_add_global", "AddGlobalRef")?
+        }
+
+        if self.trace_del_global_link.is_none() {
+            Self::jni_attach_program_by_name(self, ebpf, "trace_del_global", "DeleteGlobalRef")?
+        }
+
+        Ok(())
+    }
+
+    pub fn detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+        let _ = self.trace_add_local_link.take();
+        let _ = self.trace_del_local_link.take();
+        let _ = self.trace_add_global_link.take();
+        let _ = self.trace_del_global_link.take();
+
+        Ok(())
+    }
+
+    fn update_pids(
+        &mut self,
+        ebpf: &mut Ebpf,
+        pids: &[u32]
+    ) -> Result<(), EbpfError> {
+        let mut pids_to_track: HashMap<_, u32, u32> = ebpf
+            .map_mut("JNI_REF_PIDS")
+            .ok_or(EbpfError::MapError(aya::maps::MapError::InvalidName {
+                name: "JNI_REF_PIDS".to_string(),
+            }))?
+            .try_into()?;
+
+        let new_keys = pids.iter().copied().collect::<BTreeSet<u32>>();
+        let existing_keys = pids_to_track.keys().collect::<Result<BTreeSet<u32>, _>>()?;
+
+        for key_to_remove in existing_keys.difference(&new_keys) {
+            pids_to_track.remove(key_to_remove)?;
+        }
+
+        for key_to_add in new_keys.difference(&existing_keys) {
+            pids_to_track.insert(key_to_add, 0, 0)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn apply(
+        &mut self,
+        ebpf: &mut Ebpf,
+        config: Option<&JniReferencesConfig>,
+    ) -> Result<(), EbpfError> {
+        match config {
+            Some(config) => {
+                self.attach(ebpf)?;
+                self.update_pids(ebpf, &config.pids)?;
+            }
+            None => {
+                self.detach(ebpf)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+
+
 
 pub struct SysSendmsgFeature {
     sys_enter_sendmsg_id: Option<TracePointLink>,

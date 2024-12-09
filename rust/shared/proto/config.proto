@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -19,7 +20,8 @@ message UprobeConfig {
 message Configuration {
   VfsWriteConfig vfs_write = 1;
   SysSendmsgConfig sys_sendmsg = 2;
-  repeated UprobeConfig uprobes = 3;
+  JniReferencesConfig jniReferences = 3;
+  repeated UprobeConfig uprobes = 4;
 }
 
 message VfsWriteConfig {
@@ -28,4 +30,8 @@ message VfsWriteConfig {
 
 message SysSendmsgConfig {
   map<uint32, uint64> entries = 1;
+}
+
+message JniReferencesConfig {
+  repeated uint32 pids = 1;
 }

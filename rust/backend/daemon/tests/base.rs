@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig};
+use shared::config::{Configuration, JniReferencesConfig, SysSendmsgConfig, VfsWriteConfig};
 use shared::ziofa::{process::Cmd, ziofa_client::ZiofaClient};
 use tonic::transport::Channel;
 
@@ -69,6 +69,7 @@ async fn set_get_configuration() {
         sys_sendmsg: Some(SysSendmsgConfig {
             entries: std::collections::HashMap::new(),
         }),
+        jni_references: Some(JniReferencesConfig { pids: vec![] }),
     };
     client
         .set_configuration(default_config.clone())

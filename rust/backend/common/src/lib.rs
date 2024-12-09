@@ -39,6 +39,24 @@ impl SysSendmsgCall {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub enum JNIMethodName {
+    AddLocalRef,
+    DeleteLocalRef,
+    AddGlobalRef,
+    DeleteGlobalRef,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JNICall {
+    pub pid: u32,
+    pub tid: u32,
+    pub begin_time_stamp: u64,
+    pub method_name: JNIMethodName,
+}
+
 #[inline(always)]
 pub fn generate_id(pid: u32, tgid: u32) -> u64{
     let pid_u64 = pid as u64;

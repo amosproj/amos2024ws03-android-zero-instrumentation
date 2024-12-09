@@ -7,7 +7,7 @@ use clap::Parser;
 use clap::Subcommand;
 use client::Client;
 use client::ClientError;
-use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig};
+use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig};
 use std::collections::HashMap;
 use tokio_stream::StreamExt;
 
@@ -79,6 +79,7 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
             sys_sendmsg: Some(SysSendmsgConfig {
                 entries: HashMap::from([(pid, 0)]),
             }),
+            jni_references: None,
         })
         .await?;
 
@@ -101,6 +102,7 @@ async fn set_config(client: &mut Client) -> Result<()> {
             sys_sendmsg: Some(SysSendmsgConfig {
                 entries: std::collections::HashMap::new(),
             }),
+            jni_references: Some(JniReferencesConfig { pids: vec![] }),
         })
         .await?;
     println!("Success");
