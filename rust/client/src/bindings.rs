@@ -9,6 +9,7 @@ use shared::{config::Configuration, ziofa::Process};
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
 use shared::ziofa::{Event, StringResponse, Symbol};
+use shared::ziofa::jni_references_event::JniMethodName;
 
 type Result<T> = core::result::Result<T, ClientError>;
 
@@ -170,4 +171,9 @@ impl Client {
 
         Ok(SymbolStream(Mutex::new(Box::pin(stream))))
     }
+}
+
+#[uniffi::export]
+pub fn jni_method_name_from_i32(num: i32) -> JniMethodName {
+    JniMethodName::try_from(num).unwrap()
 }

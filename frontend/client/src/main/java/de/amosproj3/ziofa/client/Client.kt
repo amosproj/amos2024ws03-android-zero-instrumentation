@@ -38,6 +38,20 @@ sealed class Event {
         val fd: ULong,
         val durationNanoSecs: ULong,
     ) : Event()
+
+    data class JniReferences(
+        val pid: UInt,
+        val tid: UInt,
+        val beginTimeStamp: ULong,
+        val jniMethodName: JniMethodName?,
+    ) : Event() {
+        enum class JniMethodName {
+            AddLocalRef,
+            DeleteLocalRef,
+            AddGlobalRef,
+            DeleteGlobalRef,
+        }
+    }
 }
 
 data class Process(val pid: Int, val ppid: Int, val state: String, val cmd: Command?)

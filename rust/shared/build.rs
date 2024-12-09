@@ -21,6 +21,7 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "Event",
             "VfsWriteEvent",
             "SysSendmsgEvent",
+            "JniReferencesEvent",
             "VfsWriteConfig",
             "SysSendmsgConfig",
             "JniReferencesConfig",
@@ -35,7 +36,7 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
 static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     if cfg!(feature = "uniffi") {
-        vec!["Process.cmd", "Event.event_data"]
+        vec!["Process.cmd", "Event.event_data", "JniReferencesEvent.JniMethodName"]
     } else {
         vec![]
     }

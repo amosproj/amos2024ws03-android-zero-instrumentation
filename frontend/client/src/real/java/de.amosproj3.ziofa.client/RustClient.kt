@@ -11,8 +11,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import uniffi.client.jniMethodNameFromI32
 import uniffi.shared.Cmd
 import uniffi.shared.EventData
+import uniffi.shared.JniMethodName
 
 private fun uniffi.shared.Process.into() =
     Process(
@@ -44,6 +46,23 @@ private fun uniffi.shared.Event.into() =
                 beginTimeStamp = d.v1.beginTimeStamp,
                 fd = d.v1.fd,
                 durationNanoSecs = d.v1.durationNanoSec,
+            )
+        is EventData.JniReferences ->
+            Event.JniReferences(
+                pid = d.v1.pid,
+                tid = d.v1.tid,
+                beginTimeStamp = d.v1.beginTimeStamp,
+                jniMethodName =
+                    when (jniMethodNameFromI32(d.v1.jniMethodName)) {
+                        JniMethodName.ADD_LOCAL_REF -> Event.JniReferences.JniMethodName.AddLocalRef
+                        JniMethodName.DELETE_LOCAL_REF ->
+                            Event.JniReferences.JniMethodName.DeleteLocalRef
+                        JniMethodName.ADD_GLOBAL_REF ->
+                            Event.JniReferences.JniMethodName.AddGlobalRef
+                        JniMethodName.DELETE_GLOBAL_REF ->
+                            Event.JniReferences.JniMethodName.DeleteGlobalRef
+                        JniMethodName.NONE -> null
+                    },
             )
         null -> null
     }
