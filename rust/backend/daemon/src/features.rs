@@ -11,6 +11,7 @@ use aya::{
     Ebpf, EbpfError,
 };
 use shared::config::Configuration;
+use crate::jni_reference_feature::JNIReferencesFeature;
 use crate::sys_sendmsg_feature::SysSendmsgFeature;
 use crate::vfs_write_feature::VfsWriteFeature;
 
@@ -27,6 +28,7 @@ pub trait Feature {
 pub struct Features {
     sys_sendmsg_feature: SysSendmsgFeature,
     vfs_write_feature: VfsWriteFeature,
+    jni_reference_feature: JNIReferencesFeature,
 }
 
 impl Features {
@@ -34,16 +36,19 @@ impl Features {
     pub fn init_all_features(ebpf: &mut Ebpf) -> Self {
         let sys_sendmsg_feature = SysSendmsgFeature::init(ebpf).expect("Error when initializing sys_sendmsg feature");
         let vfs_write_feature = VfsWriteFeature::init(ebpf).expect("Error when initializing vfs_write feature");
+        let jni_reference_feature = JNIReferencesFeature::init(ebpf).expect("Error when initializing jni reference feature");
 
         Self {
             sys_sendmsg_feature,
             vfs_write_feature,
+            jni_reference_feature,
         }
     }
 
     pub fn apply_all_features(&mut self, ebpf: &mut Ebpf, config: &mut Configuration) -> Result<(), EbpfError> {
         self.sys_sendmsg_feature.apply(ebpf, &mut config.sys_sendmsg)?;
         self.vfs_write_feature.apply(ebpf, &mut config.vfs_write)?;
+        self.jni_reference_feature.apply(ebpf, &mut config.jni_references)?;
 
         Ok(())
     }
@@ -57,6 +62,7 @@ impl Features {
 
         self.vfs_write_feature.apply(ebpf, &config.vfs_write)?;
         self.sys_sendmsg_feature.apply(ebpf, &config.sys_sendmsg)?;
+        self.jni_reference_feature.apply(ebpf, &config.jni_references)?;
 
         Ok(())
     }
