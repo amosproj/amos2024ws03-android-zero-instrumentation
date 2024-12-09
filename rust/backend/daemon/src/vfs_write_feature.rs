@@ -1,6 +1,9 @@
-use std::collections::BTreeSet;
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
+// SPDX-License-Identifier: MIT
+
 use aya::{Ebpf, EbpfError};
-use aya::maps::HashMap;
 use aya::programs::KProbe;
 use aya::programs::kprobe::KProbeLinkId;
 use shared::config::VfsWriteConfig;

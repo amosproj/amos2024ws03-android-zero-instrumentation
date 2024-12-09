@@ -1,13 +1,14 @@
-use std::collections::BTreeSet;
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
+// SPDX-License-Identifier: MIT
+
 use aya::{
-    maps::HashMap,
     programs::uprobe::UProbeLink,
     Ebpf, EbpfError,
 };
-use aya::programs::{TracePoint, UProbe};
+use aya::programs::UProbe;
 use crate::features::{update_pids, Feature};
 use shared::config::JniReferencesConfig;
-use crate::sys_sendmsg_feature::SysSendmsgFeature;
 
 pub struct JNIReferencesFeature {
     trace_add_local_link: Option<UProbeLink>,

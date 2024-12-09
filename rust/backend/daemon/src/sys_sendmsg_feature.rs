@@ -1,14 +1,13 @@
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
+// SPDX-License-Identifier: MIT
+
 use aya::{Ebpf, EbpfError};
 use aya::programs::trace_point::TracePointLink;
 use aya::programs::TracePoint;
 use shared::config::SysSendmsgConfig;
 use crate::features::{update_pids, Feature};
-
-use std::collections::BTreeSet;
-use aya::{
-    maps::HashMap
-};
-use shared::config::Configuration;
 
 pub struct SysSendmsgFeature {
     sys_enter_sendmsg: Option<TracePointLink>,
