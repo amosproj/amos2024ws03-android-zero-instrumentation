@@ -116,26 +116,12 @@ impl JNIReferencesFeature {
         ebpf: &mut Ebpf,
         pids: &[u32]
     ) -> Result<(), EbpfError> {
-        // TODO: generalize the existing update_pids function to work with regular list (instead of a hashmap)
-        let mut pids_to_track: HashMap<_, u32, u32> = ebpf
-            .map_mut("JNI_REF_PIDS")
-            .ok_or(EbpfError::MapError(aya::maps::MapError::InvalidName {
-                name: "JNI_REF_PIDS".to_string(),
-            }))?
-            .try_into()?;
-
-        let new_keys = pids.iter().copied().collect::<BTreeSet<u32>>();
-        let existing_keys = pids_to_track.keys().collect::<Result<BTreeSet<u32>, _>>()?;
-
-        for key_to_remove in existing_keys.difference(&new_keys) {
-            pids_to_track.remove(key_to_remove)?;
-        }
-
-        for key_to_add in new_keys.difference(&existing_keys) {
-            pids_to_track.insert(key_to_add, 0, 0)?;
-        }
-
-        Ok(())
+        
+        // the general update_pids function for all features works with hashmaps, so the list is converted into a hashmap with keys always being 0
+        let pid_0_tuples = pids.iter().map(|pid| (pid, 0)).collect();
+        let pids_as_hashmap: std::collections::HashMap<u32, u64> = std::collections::HashMap::from_iter(pid_0_tuples);
+        
+        update_pids(ebpf,  &pids_as_hashmap, "JNI_REF_PIDS")
     }
     fn jni_load_program_by_name(ebpf: &mut Ebpf, name: &str) -> Result<(), EbpfError> {
         let jni_probe: &mut UProbe = ebpf
