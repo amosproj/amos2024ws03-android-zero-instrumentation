@@ -38,10 +38,11 @@ fn handle_trace(ctx: ProbeContext, method: JNIMethodName) -> u32 {
     let entry_mut = entry.as_mut_ptr();
 
     unsafe {
-        (*entry_mut).pid = pid;
-        (*entry_mut).tid = tid;
-        (*entry_mut).begin_time_stamp = time_stamp;
-        (*entry_mut).method_name = method;
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).tid).write(tid);
+        (&raw mut (*entry_mut).begin_time_stamp).write(time_stamp);
+        (&raw mut (*entry_mut).method_name).write(method);
     }
 
     entry.submit(0);

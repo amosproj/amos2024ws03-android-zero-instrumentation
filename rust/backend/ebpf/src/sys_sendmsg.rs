@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 use aya_ebpf::{macros::{tracepoint, map}, maps::{HashMap, RingBuf}, programs::{TracePointContext}, EbpfContext, helpers::gen::bpf_ktime_get_ns};
 use aya_log_ebpf::error;
 use backend_common::{generate_id, SysSendmsgCall};
@@ -84,16 +85,14 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
     let entry_mut = entry.as_mut_ptr();
 
     unsafe {
-        (*entry_mut).pid = pid;
-        (*entry_mut).tid = tid;
-        (*entry_mut).begin_time_stamp = data.begin_time_stamp;
-        (*entry_mut).fd = data.fd;
-        (*entry_mut).duration_nano_sec = duration_nano_sec;
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).tid).write(tid);
+        (&raw mut (*entry_mut).begin_time_stamp).write(data.begin_time_stamp);
+        (&raw mut (*entry_mut).fd).write(data.fd);
+        (&raw mut (*entry_mut).duration_nano_sec).write(duration_nano_sec);
     }
 
-
     entry.submit(0);
-
 
     0
 }

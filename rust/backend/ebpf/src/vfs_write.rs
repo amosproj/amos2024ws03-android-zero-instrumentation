@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 use aya_ebpf::{
     macros::{kprobe, map, kretprobe},
     maps::{HashMap, RingBuf},
@@ -97,14 +98,13 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
     };
 
     let entry_mut = entry.as_mut_ptr();
-
+    
     unsafe {
-        (*entry_mut).pid = pid;
-        (*entry_mut).tid = tid;
-        (*entry_mut).begin_time_stamp = data.begin_time_stamp;
-        (*entry_mut).fp = data.fp;
-        (*entry_mut).bytes_written = data.bytes_written;
-
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).tid).write(tid);
+        (&raw mut (*entry_mut).begin_time_stamp).write(data.begin_time_stamp);
+        (&raw mut (*entry_mut).fp).write(data.fp);
+        (&raw mut (*entry_mut).bytes_written).write(data.bytes_written);
     }
 
     entry.submit(0);
