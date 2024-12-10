@@ -101,7 +101,7 @@ impl VfsWriteFeature {
         Ok(())
     }
 
-    fn destroy(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    fn _destroy(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         
         self.detach(ebpf)?;
         

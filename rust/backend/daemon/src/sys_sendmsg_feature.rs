@@ -41,7 +41,7 @@ impl SysSendmsgFeature {
         Ok(())
     }
 
-    fn detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    fn detach(&mut self, _ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         // the TrakePointLinks will be automatically detached when the reference is dropped
         let _ = self.sys_enter_sendmsg.take();
         let _ = self.sys_exit_sendmsg.take();
@@ -49,7 +49,8 @@ impl SysSendmsgFeature {
         Ok(())
     }
 
-    fn destroy(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    // make clippy happy
+    fn _destroy(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
 
         self.detach(ebpf)?;
 
