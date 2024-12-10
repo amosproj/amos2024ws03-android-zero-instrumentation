@@ -64,7 +64,9 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
     ) {
         _localConfiguration.update { prev ->
             Timber.e("changeFeatureConfigurationForPIDs.prev $prev")
-            Timber.e("changeFeatureConfigurationForPIDs() $vfsWriteFeature, $sendMessageFeature")
+            Timber.e(
+                "changeFeatureConfigurationForPIDs() $vfsWriteFeature, $sendMessageFeature, $uprobesFeature, $jniReferencesFeature"
+            )
             // the configuration shall not be changed from the UI if there is none received from
             // backend
             if (prev != null && prev is ConfigurationUpdate.Valid) {

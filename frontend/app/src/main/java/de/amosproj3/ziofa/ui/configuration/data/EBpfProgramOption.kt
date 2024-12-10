@@ -13,9 +13,10 @@ sealed class BackendFeatureOptions(val featureName: String, val active: Boolean)
         BackendFeatureOptions("Unix Domain Socket Analysis", enabled)
 
     data class UprobeOption(
-        val displayName: String,
-        val id: String,
+        val method: String,
         val enabled: Boolean,
         val pids: Set<UInt>,
-    ) : BackendFeatureOptions(id, enabled)
+        val offset: ULong,
+        val odexFilePath: String,
+    ) : BackendFeatureOptions(method, enabled)
 }

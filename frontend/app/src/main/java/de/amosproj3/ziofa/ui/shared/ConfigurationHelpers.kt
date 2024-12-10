@@ -83,12 +83,10 @@ fun ConfigurationUpdate.Valid.toUIOptionsForPids(
                 options.add(
                     BackendFeatureOptions.UprobeOption(
                         enabled = true, // uprobe options are either active or not visible
-                        displayName =
-                            "UProbe for Symbol ${uprobeConfig.fnName} in ${uprobeConfig.target}",
-                        id = uprobeConfig.fnName,
-                        pids =
-                            uprobeConfig.pid?.let { setOf(it.toUInt()) }
-                                ?: setOf(), // TODO This should not be null asserted
+                        method = uprobeConfig.fnName,
+                        pids = uprobeConfig.pid?.let { setOf(it.toUInt()) } ?: setOf(),
+                        odexFilePath = uprobeConfig.target,
+                        offset = uprobeConfig.offset,
                     )
                 )
             }

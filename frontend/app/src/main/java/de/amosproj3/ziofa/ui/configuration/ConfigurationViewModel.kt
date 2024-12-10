@@ -11,6 +11,7 @@ import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
 import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
@@ -63,6 +64,21 @@ class ConfigurationViewModel(
                                 pids.associateWith { DURATION_THRESHOLD }
                                 // TODO this is not a duration
                             ),
+                    )
+                }
+
+                is BackendFeatureOptions.UprobeOption -> {
+                    localConfigurationAccess.changeFeatureConfiguration(
+                        enable = active,
+                        uprobesFeature =
+                            pids.map {
+                                UprobeConfig(
+                                    fnName = option.method,
+                                    target = option.odexFilePath,
+                                    offset = option.offset,
+                                    pid = it.toInt(),
+                                )
+                            },
                     )
                 }
 
