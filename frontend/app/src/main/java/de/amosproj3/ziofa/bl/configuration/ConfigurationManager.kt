@@ -88,7 +88,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                                         if (!enable) requestedChanges.entries.entries else setOf(),
                                 )
                             } ?: previousConfiguration.sysSendmsg,
-                        uprobes = uprobesFeature ?: prev.configuration.uprobes, //TODO diff uprobes
+                        uprobes = uprobesFeature ?: prev.configuration.uprobes, // TODO diff uprobes
                         jniReferences =
                             jniReferencesFeature?.let { requestedChanges ->
                                 previousConfiguration.jniReferences.updatePIDs(
@@ -114,7 +114,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
 
     override fun reset() {
         runBlocking {
-            client?.setConfiguration(Configuration(null, null, listOf(),null))
+            client?.setConfiguration(Configuration(null, null, listOf(), null))
             updateBothConfigurations(getFromBackend())
         }
     }

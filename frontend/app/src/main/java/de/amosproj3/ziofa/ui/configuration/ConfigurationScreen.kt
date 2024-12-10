@@ -5,29 +5,25 @@
 
 package de.amosproj3.ziofa.ui.configuration
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.composables.EbpfIOFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.composables.EbpfUprobeFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
+import de.amosproj3.ziofa.ui.configuration.composables.SectionTitleRow
 import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
@@ -41,15 +37,10 @@ fun ConfigurationScreen(
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {},
     onAddUprobeSelected: () -> Unit = {},
-    pids: IntArray? = null,
+    pids: List<UInt>? = listOf(),
 ) {
 
-    val viewModel: ConfigurationViewModel =
-        koinViewModel(
-            parameters = {
-                parametersOf(pids?.let { it.map { int -> int.toUInt() } } ?: listOf<UInt>())
-            }
-        )
+    val viewModel: ConfigurationViewModel = koinViewModel(parameters = { parametersOf(pids) })
 
     Box(modifier = modifier.padding(horizontal = 20.dp, vertical = 20.dp).fillMaxSize()) {
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
@@ -100,12 +91,4 @@ fun ConfigurationScreen(
             }
         }
     }
-}
-
-@Composable
-fun SectionTitleRow(title: String) {
-    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.padding(bottom = 10.dp)) {
-        Text(title, fontWeight = FontWeight.Bold)
-    }
-    HorizontalDivider(thickness = 5.dp)
 }

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.symbols.data
 
 data class SymbolsEntry(val name: String, val odexFile: String, val offset: ULong)

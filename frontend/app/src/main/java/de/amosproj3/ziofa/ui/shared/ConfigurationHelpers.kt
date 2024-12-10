@@ -41,12 +41,8 @@ fun JniReferencesConfig?.updatePIDs(
     pidsToRemove: List<UInt> = listOf(),
 ): JniReferencesConfig {
     val config = this ?: JniReferencesConfig(listOf())
-    return config.copy(
-        pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet())
-    )
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet()))
 }
-
-
 
 /** Show as enabled depending on the PIDs the screen is configuring. */
 fun ConfigurationUpdate.Valid.toUIOptionsForPids(
@@ -78,9 +74,12 @@ fun ConfigurationUpdate.Valid.toUIOptionsForPids(
                 options.add(
                     BackendFeatureOptions.UprobeOption(
                         enabled = true, // uprobe options are either active or not visible
-                        displayName = "UProbe for Symbol ${uprobeConfig.fnName} in ${uprobeConfig.target}",
+                        displayName =
+                            "UProbe for Symbol ${uprobeConfig.fnName} in ${uprobeConfig.target}",
                         id = uprobeConfig.fnName,
-                        pids = uprobeConfig.pid?.let { setOf(it.toUInt()) }?: setOf(), // TODO This should not be null asserted
+                        pids =
+                            uprobeConfig.pid?.let { setOf(it.toUInt()) }
+                                ?: setOf(), // TODO This should not be null asserted
                     )
                 )
             }

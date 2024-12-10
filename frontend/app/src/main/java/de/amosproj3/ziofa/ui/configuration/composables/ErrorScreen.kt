@@ -30,9 +30,7 @@ import kotlin.system.exitProcess
 fun ErrorScreen(error: String = "No error message available") {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -48,10 +46,7 @@ fun ErrorScreen(error: String = "No error message available") {
                 exitProcess(1)
             },
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 20.dp),
+                Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(horizontal = 20.dp),
         ) {
             Text("Exit application")
         }

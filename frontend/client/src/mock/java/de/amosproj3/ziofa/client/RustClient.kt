@@ -109,7 +109,6 @@ object RustClient : Client {
                     )
                 )
             }
-
         }
     }
 

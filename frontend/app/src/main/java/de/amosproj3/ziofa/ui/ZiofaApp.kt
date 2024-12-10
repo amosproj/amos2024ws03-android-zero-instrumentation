@@ -5,11 +5,6 @@
 package de.amosproj3.ziofa.ui
 
 import android.net.Uri
-import android.os.Bundle
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -18,21 +13,20 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.ui.about.AboutScreen
 import de.amosproj3.ziofa.ui.configuration.ConfigurationScreen
 import de.amosproj3.ziofa.ui.navigation.ConfigurationMenu
 import de.amosproj3.ziofa.ui.navigation.HomeScreen
-import de.amosproj3.ziofa.ui.navigation.composables.ZiofaTopBar
+import de.amosproj3.ziofa.ui.navigation.composables.DynamicTopBar
+import de.amosproj3.ziofa.ui.navigation.utils.copyToSymbolsRoute
+import de.amosproj3.ziofa.ui.navigation.utils.parameterizedScreen
+import de.amosproj3.ziofa.ui.navigation.utils.screenWithDefaultAnimations
+import de.amosproj3.ziofa.ui.navigation.utils.toConfigurationScreenRouteForComponent
 import de.amosproj3.ziofa.ui.processes.ProcessesScreen
 import de.amosproj3.ziofa.ui.reset.ResetScreen
 import de.amosproj3.ziofa.ui.shared.deserializePIDs
-import de.amosproj3.ziofa.ui.shared.getDisplayName
-import de.amosproj3.ziofa.ui.shared.serializePIDs
 import de.amosproj3.ziofa.ui.shared.validPIDsOrNull
 import de.amosproj3.ziofa.ui.symbols.SymbolsScreen
 import de.amosproj3.ziofa.ui.visualization.VisualizationScreen
@@ -52,7 +46,7 @@ fun ZIOFAApp() {
             modifier = Modifier.fillMaxSize(),
             startDestination = Routes.Home.name,
         ) {
-            composable(Routes.Home.name) {
+            screenWithDefaultAnimations(Routes.Home.name) {
                 HomeScreen(
                     toVisualize = { navController.navigate(Routes.Visualize.name) },
                     toConfiguration = { navController.navigate(Routes.Configuration.name) },
@@ -60,12 +54,13 @@ fun ZIOFAApp() {
                     modifier = Modifier.padding(innerPadding),
                 )
             }
-            composable(
-                Routes.Configuration.name,
-                popEnterTransition = { fadeIn() },
-                enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
-            ) {
+            screenWithDefaultAnimations(Routes.Reset.name) {
+                ResetScreen(
+                    Modifier.padding(innerPadding),
+                    afterResetConfirmed = { navController.popBackStack() },
+                )
+            }
+            screenWithDefaultAnimations(Routes.Configuration.name) {
                 ConfigurationMenu(
                     Modifier.padding(innerPadding),
                     toProcesses = { navController.navigate(Routes.Processes.name) },
@@ -73,7 +68,21 @@ fun ZIOFAApp() {
                     toReset = { navController.navigate(Routes.Reset.name) },
                 )
             }
-            composable(
+            screenWithDefaultAnimations(Routes.Visualize.name) {
+                VisualizationScreen(Modifier.padding(innerPadding))
+            }
+            screenWithDefaultAnimations(Routes.About.name) {
+                AboutScreen(Modifier.padding(innerPadding))
+            }
+            screenWithDefaultAnimations(Routes.Processes.name) {
+                ProcessesScreen(
+                    Modifier.padding(innerPadding),
+                    onClickEdit = {
+                        navController.navigate(it.toConfigurationScreenRouteForComponent())
+                    },
+                )
+            }
+            parameterizedScreen(
                 "${Routes.IndividualConfiguration.name}?displayName={displayName}?pids={pids}",
                 arguments =
                     listOf(
@@ -86,8 +95,6 @@ fun ZIOFAApp() {
                             nullable = true
                         },
                     ),
-                enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
             ) {
                 ConfigurationScreen(
                     Modifier.padding(innerPadding),
@@ -98,35 +105,8 @@ fun ZIOFAApp() {
                     },
                 )
             }
-            composable(
-                Routes.Visualize.name,
-                enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
-            ) {
-                VisualizationScreen(Modifier.padding(innerPadding))
-            }
-            composable(
-                Routes.About.name,
-                enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
-            ) {
-                AboutScreen(Modifier.padding(innerPadding))
-            }
 
-            composable(
-                Routes.Processes.name,
-                popEnterTransition = { fadeIn() },
-                enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
-            ) {
-                ProcessesScreen(
-                    Modifier.padding(innerPadding),
-                    onClickEdit = {
-                        navController.navigate(it.toConfigurationScreenRouteForProcess())
-                    },
-                )
-            }
-            composable(
+            parameterizedScreen(
                 "${Routes.Symbols.name}?displayName={displayName}?pids={pids}",
                 arguments =
                     listOf(
@@ -141,74 +121,13 @@ fun ZIOFAApp() {
                     ),
             ) {
                 SymbolsScreen(
-                    Modifier.padding(innerPadding),
+                    modifier = Modifier.padding(innerPadding),
                     onSymbolsSubmitted = { navController.popBackStack() },
                     pids =
-                        it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull()?.map {
-                            it.toUInt()
-                        } ?: listOf(), // TODO pass uint list as args everywhere
-                )
-            }
-            composable(
-                Routes.Reset.name,
-                popEnterTransition = { fadeIn() },
-                enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-                exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
-            ) {
-                ResetScreen(
-                    Modifier.padding(innerPadding),
-                    afterResetConfirmed = { navController.popBackStack() },
+                        it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull()
+                            ?: listOf(),
                 )
             }
         }
     }
-}
-
-/** Top bar with a back button on all screens except for the home screen. */
-@Composable
-fun DynamicTopBar(navController: NavController) {
-    val backStackEntry = navController.currentBackStackEntryAsState().value
-    val route = backStackEntry?.destination?.route?.split("?")?.getOrNull(0)
-    val displayName = backStackEntry?.arguments?.getString("displayName")
-    route?.let { currentRoute ->
-        when (currentRoute) {
-            Routes.Home.name -> {
-                ZiofaTopBar(
-                    screenName = "Zero Instrumentation Observability for Android",
-                    showBackButton = false,
-                )
-            }
-
-            Routes.IndividualConfiguration.name -> {
-                ZiofaTopBar(
-                    screenName = "Configuration for ${Uri.decode(displayName)}",
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            Routes.Symbols.name -> {
-                ZiofaTopBar(
-                    screenName = "Add uprobes for ${Uri.decode(displayName)}",
-                    onBack = { navController.popBackStack() },
-                )
-            }
-
-            else -> {
-                ZiofaTopBar(screenName = currentRoute, onBack = { navController.popBackStack() })
-            }
-        }
-    }
-}
-
-fun RunningComponent.toConfigurationScreenRouteForProcess(): String {
-    val displayNameParam = Uri.encode(this.getDisplayName())
-    val pidsParam = Uri.encode(this.serializePIDs())
-    return "${Routes.IndividualConfiguration.name}?displayName=$displayNameParam?pids=$pidsParam"
-}
-
-/** Pass the parameters of the opened configuration to the symbols screen. */
-fun Bundle?.copyToSymbolsRoute(): String {
-    val displayName = this?.getString("displayName")
-    val pids = this?.getString("pids")
-    return "${Routes.Symbols.name}?displayName=$displayName?pids=$pids"
 }

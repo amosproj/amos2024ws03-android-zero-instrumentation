@@ -35,11 +35,11 @@ fun String.deserializePIDs(): IntArray {
     return this.split(",").map { it.toInt() }.toIntArray()
 }
 
-fun IntArray.validPIDsOrNull(): IntArray? {
-    if (this.contains(-1)) {
+fun IntArray.validPIDsOrNull(): List<UInt>? {
+    if (this.any { it < 0 }) {
         return null
     }
-    return this
+    return this.map { it.toUInt() }
 }
 
 fun Iterable<UInt>.anyPidsEnabled(pids: List<UInt>?): Boolean =

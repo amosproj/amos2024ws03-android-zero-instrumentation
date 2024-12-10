@@ -65,7 +65,7 @@ class ZiofaApplication : Application() {
             RunningComponentsProvider(clientFactory = get(), packageInformationProvider = get())
         }
         single { ConfigurationManager(clientFactory = get()) } binds
-                arrayOf(BackendConfigurationAccess::class, LocalConfigurationAccess::class)
+            arrayOf(BackendConfigurationAccess::class, LocalConfigurationAccess::class)
         factory<DataStreamProvider> { (scope: CoroutineScope) -> DataStreamManager(get(), scope) }
         single<SymbolsAccess> { UProbeManager(get()) }
     }
