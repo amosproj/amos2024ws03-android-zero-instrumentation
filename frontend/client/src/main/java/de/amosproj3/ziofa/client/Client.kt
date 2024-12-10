@@ -18,7 +18,7 @@ data class VfsWriteConfig(val entries: Map<UInt, ULong>)
 
 data class SysSendmsgConfig(val entries: Map<UInt, ULong>)
 
-data class UprobeConfig(val fnName: String, val offset: ULong, var target: String, val pid: Int?)
+data class UprobeConfig(val fnName: String, val offset: ULong, var target: String, val pid: UInt?)
 
 data class JniReferencesConfig(val pids: List<UInt>)
 
@@ -40,7 +40,7 @@ sealed class Event {
     ) : Event()
 }
 
-data class Process(val pid: Int, val ppid: Int, val state: String, val cmd: Command?)
+data class Process(val pid: UInt, val ppid: UInt, val state: String, val cmd: Command?)
 
 data class StringResponse(val name: String)
 

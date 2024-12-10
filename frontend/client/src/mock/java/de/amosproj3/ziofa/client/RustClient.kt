@@ -63,8 +63,8 @@ object RustClient : Client {
     private val processes =
         alphabet.indices.map {
             Process(
-                pid = Random.nextUInt(1000u).toInt(),
-                ppid = Random.nextUInt(1000u).toInt(),
+                pid = Random.nextUInt(1000u),
+                ppid = Random.nextUInt(1000u),
                 state = "R",
                 cmd = Command.Comm("/bin/sh/${alphabet.substring(it, it + 1)}"),
             )
