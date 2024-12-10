@@ -10,8 +10,9 @@ use crate::symbols::SymbolHandler;
 use crate::{
     configuration, constants,
     counter::Counter,
-    ebpf_utils::{EbpfErrorWrapper, State},
+    ebpf_utils::EbpfErrorWrapper,
     procfs_utils::{list_processes, ProcErrorWrapper},
+    features::Features,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use aya::Ebpf;
@@ -35,7 +36,7 @@ use tonic::{transport::Server, Request, Response, Status};
 pub struct ZiofaImpl {
     // tx: Option<Sender<Result<EbpfStreamObject, Status>>>,
     ebpf: Arc<Mutex<Ebpf>>,
-    state: Arc<Mutex<State>>,
+    features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
 }
@@ -43,13 +44,13 @@ pub struct ZiofaImpl {
 impl ZiofaImpl {
     pub fn new(
         ebpf: Arc<Mutex<Ebpf>>,
-        state: Arc<Mutex<State>>,
+        features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
         symbol_handler: Arc<Mutex<SymbolHandler>>,
     ) -> ZiofaImpl {
         ZiofaImpl {
             ebpf,
-            state,
+            features,
             channel,
             symbol_handler,
         }
@@ -96,9 +97,10 @@ impl Ziofa for ZiofaImpl {
         configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
 
         let mut ebpf_guard = self.ebpf.lock().await;
-        let mut state_guard = self.state.lock().await;
+        let mut features_guard = self.features.lock().await;
 
-        state_guard
+        // TODO: set config path
+        features_guard
             .update_from_config(ebpf_guard.deref_mut(), &config)
             .map_err(EbpfErrorWrapper::from)?;
 
@@ -207,15 +209,13 @@ pub async fn serve_forever() {
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
     let event_tx = channel.tx.clone();
 
-    let mut state = State::new();
-    state.init(&mut ebpf).expect("should work");
+    let features = Features::init_all_features(&mut ebpf);
 
     let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
 
     let ebpf = Arc::new(Mutex::new(ebpf));
-    let state = Arc::new(Mutex::new(state));
-    let ziofa_server =
-        ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), state, channel, symbol_handler));
+    let features = Arc::new(Mutex::new(features));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), features, channel, symbol_handler));
     let counter_server = CounterServer::new(Counter::new(ebpf).await);
 
     let serve = async move {
