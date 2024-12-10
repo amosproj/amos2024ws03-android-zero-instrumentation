@@ -7,7 +7,6 @@
 use std::collections::BTreeSet;
 use aya::{
     maps::HashMap,
-    programs::{kprobe::KProbeLinkId, uprobe::UProbeLink, trace_point::TracePointLink, KProbe, TracePoint, UProbe, ProgramError},
     Ebpf, EbpfError,
 };
 use shared::config::Configuration;
@@ -21,7 +20,7 @@ pub trait Feature {
     type Config;
 
     fn init(ebpf: &mut Ebpf) -> Self;
-    fn apply(&mut self, ebpf: &mut Ebpf, config: &Self::Config) -> Result<(), EbpfError>;
+    fn apply(&mut self, ebpf: &mut Ebpf, config: &Option<Self::Config>) -> Result<(), EbpfError>;
 
 }
 
@@ -34,9 +33,9 @@ pub struct Features {
 impl Features {
 
     pub fn init_all_features(ebpf: &mut Ebpf) -> Self {
-        let sys_sendmsg_feature = SysSendmsgFeature::init(ebpf).expect("Error when initializing sys_sendmsg feature");
-        let vfs_write_feature = VfsWriteFeature::init(ebpf).expect("Error when initializing vfs_write feature");
-        let jni_reference_feature = JNIReferencesFeature::init(ebpf).expect("Error when initializing jni reference feature");
+        let sys_sendmsg_feature = SysSendmsgFeature::init(ebpf);
+        let vfs_write_feature = VfsWriteFeature::init(ebpf);
+        let jni_reference_feature = JNIReferencesFeature::init(ebpf);
 
         Self {
             sys_sendmsg_feature,
@@ -46,9 +45,9 @@ impl Features {
     }
 
     pub fn apply_all_features(&mut self, ebpf: &mut Ebpf, config: &mut Configuration) -> Result<(), EbpfError> {
-        self.sys_sendmsg_feature.apply(ebpf, &mut config.sys_sendmsg)?;
-        self.vfs_write_feature.apply(ebpf, &mut config.vfs_write)?;
-        self.jni_reference_feature.apply(ebpf, &mut config.jni_references)?;
+        self.sys_sendmsg_feature.apply(ebpf, &config.sys_sendmsg)?;
+        self.vfs_write_feature.apply(ebpf, &config.vfs_write)?;
+        self.jni_reference_feature.apply(ebpf, &config.jni_references)?;
 
         Ok(())
     }

@@ -7,80 +7,81 @@ package de.amosproj3.ziofa.ui.configuration
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.api.ConfigurationAccess
+import de.amosproj3.ziofa.api.BackendConfigurationAccess
 import de.amosproj3.ziofa.api.ConfigurationUpdate
+import de.amosproj3.ziofa.api.LocalConfigurationAccess
+import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.VfsWriteConfig
+import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
-import de.amosproj3.ziofa.ui.configuration.data.EbpfProgramOptions
-import de.amosproj3.ziofa.ui.configuration.data.VfsWriteOption
-import kotlinx.coroutines.flow.MutableStateFlow
+import de.amosproj3.ziofa.ui.shared.DURATION_THRESHOLD
+import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import uniffi.shared.Configuration
-import uniffi.shared.VfsWriteConfig
 
-class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : ViewModel() {
+class ConfigurationViewModel(
+    private val localConfigurationAccess: LocalConfigurationAccess,
+    private val backendConfigurationAccess: BackendConfigurationAccess,
+    private val pids: List<UInt>,
+) : ViewModel() {
 
-    private val _changed = MutableStateFlow(false)
-    val changed = _changed.stateIn(viewModelScope, SharingStarted.Lazily, false)
-
-    private val checkedOptions =
-        MutableStateFlow(
-            EbpfProgramOptions(vfsWriteOption = VfsWriteOption(enabled = false, pids = listOf()))
-        )
-
-    private val _configurationScreenState =
-        MutableStateFlow<ConfigurationScreenState>(ConfigurationScreenState.Loading)
-    val configurationScreenState: StateFlow<ConfigurationScreenState> =
-        _configurationScreenState
-            .onEach { Timber.i(it.toString()) }
+    val configurationScreenState =
+        localConfigurationAccess.localConfiguration
+            .onEach { Timber.i("Update from UI: $it") }
+            .map { it.toConfigurationScreenState(pids) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.Loading)
 
-    init {
-        viewModelScope.launch { updateUIFromBackend() }
-    }
+    val changed =
+        combine(
+                localConfigurationAccess.localConfiguration,
+                backendConfigurationAccess.backendConfiguration,
+            ) { local, backend ->
+                local != backend
+            }
+            .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
-    private suspend fun updateUIFromBackend() {
-        configurationAccess.configuration.collect { receivedConfiguration ->
-            _configurationScreenState.update { receivedConfiguration.toUIUpdate() }
-        }
-    }
-
-    fun vfsWriteChanged(pids: IntArray?, newState: Boolean) {
-        checkedOptions.update {
-            it.copy(
-                vfsWriteOption =
-                    VfsWriteOption(
-                        enabled = newState,
-                        pids = pids?.let { it.map { it.toUInt() } } ?: listOf(),
+    fun optionChanged(option: BackendFeatureOptions, active: Boolean) {
+        if (configurationScreenState.value is ConfigurationScreenState.Valid) {
+            when (option) {
+                is BackendFeatureOptions.VfsWriteOption -> {
+                    localConfigurationAccess.changeFeatureConfiguration(
+                        enable = active,
+                        vfsWriteFeature = VfsWriteConfig(pids.associateWith { DURATION_THRESHOLD }),
                     )
-            )
+                }
+
+                is BackendFeatureOptions.SendMessageOption -> {
+                    localConfigurationAccess.changeFeatureConfiguration(
+                        enable = active,
+                        sendMessageFeature =
+                            SysSendmsgConfig(
+                                pids.associateWith { DURATION_THRESHOLD }
+                                // TODO this is not a duration
+                            ),
+                    )
+                }
+
+                else -> throw NotImplementedError("NO SUPPORT YET")
+            }
         }
-        _configurationScreenState.update { ConfigurationScreenState.Valid(checkedOptions.value) }
-        _changed.update { true }
     }
 
-    /**
-     * Submit the configuration to the backend.
-     *
-     * @param pids the affected Process IDs or null if the configuration should be set globally
-     */
-    fun configurationSubmitted(pids: IntArray?) {
-        viewModelScope.launch {
-            configurationAccess.submitConfiguration(checkedOptions.value.toConfiguration())
-        }
-        _changed.update { false }
+    /** Submit the configuration changes to the backend. */
+    fun configurationSubmitted() {
+        viewModelScope.launch { localConfigurationAccess.submitConfiguration() }
     }
 
-    private fun ConfigurationUpdate.toUIUpdate(): ConfigurationScreenState {
+    private fun ConfigurationUpdate.toConfigurationScreenState(
+        relevantPids: List<UInt>
+    ): ConfigurationScreenState {
         return when (this) {
             is ConfigurationUpdate.Valid -> {
-                checkedOptions.update { this.toUIOptions() }
-                ConfigurationScreenState.Valid(checkedOptions.value)
+                ConfigurationScreenState.Valid(this.toUIOptionsForPids(relevantPids))
             }
 
             is ConfigurationUpdate.Invalid ->
@@ -88,23 +89,5 @@ class ConfigurationViewModel(val configurationAccess: ConfigurationAccess) : Vie
 
             is ConfigurationUpdate.Unknown -> ConfigurationScreenState.Loading
         }
-    }
-
-    private fun ConfigurationUpdate.Valid.toUIOptions(): EbpfProgramOptions {
-        val vfsOption =
-            this.configuration.vfsWrite?.let { VfsWriteOption(enabled = true, pids = it.pids) }
-                ?: VfsWriteOption(enabled = false, pids = listOf())
-
-        return EbpfProgramOptions(vfsWriteOption = vfsOption)
-    }
-
-    private fun EbpfProgramOptions.toConfiguration(): Configuration {
-        val vfsConfig =
-            if (this.vfsWriteOption.enabled) {
-                VfsWriteConfig(this.vfsWriteOption.pids)
-            } else null
-
-        // TODO: sysSendmsg
-        return Configuration(vfsWrite = vfsConfig, sysSendmsg = null, uprobes = listOf())
     }
 }

@@ -5,10 +5,26 @@
 name: "Setup Rust"
 description: "Sets up a rust action"
 
+inputs:
+  accessKey:
+    required: true
+  secretKey:
+    required: true
+  cacheKey:
+    required: false
+
 runs:
   using: "composite"
   steps:
-    - name: Set up Rust cache
-      uses: Swatinem/rust-cache@v2
+    - uses: tespkg/actions-cache@v1
       with:
-        workspaces: "rust -> rust/target"
+        path: |
+          rust/target
+        key: ${{ github.repository }}-${{ runner.os }}-cargo-${{ github.job }}-${{ inputs.cacheKey }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ github.repository }}-${{ runner.os }}-cargo-${{ github.job }}-${{ inputs.cacheKey }}-
+        bucket: actions-cache
+        accessKey: ${{ inputs.accessKey }}
+        secretKey: ${{ inputs.secretKey }}
+        endpoint: nbg1.your-objectstorage.com
+        use-fallback: false

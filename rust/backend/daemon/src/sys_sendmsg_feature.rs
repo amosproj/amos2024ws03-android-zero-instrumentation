@@ -108,8 +108,8 @@ impl SysSendmsgFeature {
 
 impl Feature for SysSendmsgFeature {
     type Config = SysSendmsgConfig;
-    fn init(ebpf: &mut Ebpf) -> Result<Self, EbpfError> {
-        SysSendmsgFeature::create(ebpf)
+    fn init(ebpf: &mut Ebpf) -> Self {
+        SysSendmsgFeature::create(ebpf).expect("Error initializing sys_sendmsg feature")
     }
 
     fn apply(&mut self, ebpf: &mut Ebpf, config: &Option<Self::Config>) -> Result<(), EbpfError> {

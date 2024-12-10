@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
 // SPDX-License-Identifier: MIT
-
+#![allow(unused)]
 use aya::{
     programs::uprobe::UProbeLink,
     Ebpf, EbpfError,
@@ -119,7 +119,7 @@ impl JNIReferencesFeature {
     ) -> Result<(), EbpfError> {
         
         // the general update_pids function for all features works with hashmaps, so the list is converted into a hashmap with keys always being 0
-        let pid_0_tuples = pids.iter().map(|pid| (pid, 0)).collect();
+        let pid_0_tuples: Vec<(u32, u64)> = pids.iter().map(|pid| (*pid, 0)).collect();
         let pids_as_hashmap: std::collections::HashMap<u32, u64> = std::collections::HashMap::from_iter(pid_0_tuples);
         
         update_pids(ebpf,  &pids_as_hashmap, "JNI_REF_PIDS")
@@ -171,8 +171,8 @@ impl JNIReferencesFeature {
 impl Feature for JNIReferencesFeature {
     type Config = JniReferencesConfig;
 
-    fn init(ebpf: &mut Ebpf) -> Result<Self, EbpfError> {
-        JNIReferencesFeature::create(ebpf)
+    fn init(ebpf: &mut Ebpf) -> Self {
+        JNIReferencesFeature::create(ebpf).expect("Error initializing JNI reference feature")
     }
     fn apply(
         &mut self,

@@ -1,8 +1,10 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -30,3 +32,4 @@ gradle.rootProject{
 }
 include(":app")
 include(":client")
+include(":bindings")

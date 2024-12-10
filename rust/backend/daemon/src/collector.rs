@@ -25,7 +25,7 @@ pub trait CollectFromMap {
 struct VfsWriteCollect;
 
 impl CollectFromMap for VfsWriteCollect {
-    const MAP_NAME: &'static str = "VFS_WRITE_MAP";
+    const MAP_NAME: &'static str = "VFS_WRITE_EVENTS";
 
     fn convert(item: RingBufItem<'_>) -> Result<Event, Status> {
         let data = unsafe { &*(item.as_ptr() as *const VfsWriteCall) };
@@ -44,7 +44,7 @@ impl CollectFromMap for VfsWriteCollect {
 struct SysSendmsgCollect;
 
 impl CollectFromMap for SysSendmsgCollect {
-    const MAP_NAME: &'static str = "SYS_SENDMSG_MAP";
+    const MAP_NAME: &'static str = "SYS_SENDMSG_EVENTS";
 
     fn convert(item: RingBufItem<'_>) -> Result<Event, Status> {
         let data = unsafe { &*(item.as_ptr() as *const SysSendmsgCall) };
@@ -54,7 +54,7 @@ impl CollectFromMap for SysSendmsgCollect {
                 tid: data.tid,
                 begin_time_stamp: data.begin_time_stamp,
                 fd: data.fd,
-                duration_micro_sec: data.duration_micro_sec
+                duration_nano_sec: data.duration_nano_sec
             }))
         })
     }

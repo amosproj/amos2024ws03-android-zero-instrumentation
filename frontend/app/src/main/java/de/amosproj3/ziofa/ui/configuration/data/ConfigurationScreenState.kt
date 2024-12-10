@@ -6,7 +6,7 @@
 package de.amosproj3.ziofa.ui.configuration.data
 
 sealed class ConfigurationScreenState {
-    data class Valid(val options: EbpfProgramOptions) : ConfigurationScreenState()
+    data class Valid(val options: List<BackendFeatureOptions>) : ConfigurationScreenState()
 
     data class Invalid(val errorMessage: String) : ConfigurationScreenState()
 

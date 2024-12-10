@@ -1,10 +1,10 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 package de.amosproj3.ziofa.ui.visualization.composables
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
@@ -13,6 +13,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -21,44 +22,52 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MetricDropdown(
-    options: List<Pair<String, ImageVector?>>, // TODO replace with data class
+    options: List<DropdownOption>, // TODO replace with data class
     title: String,
     modifier: Modifier = Modifier,
+    optionSelected: (DropdownOption) -> Unit,
+    selectedOption: String,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf(options[0].first) }
 
     Box(modifier = modifier) {
         ExposedDropdownMenuBox(
             expanded = expanded,
-            onExpandedChange = { !expanded },
+            onExpandedChange = { expanded = it },
             modifier = modifier,
         ) {
             TextField(
-                value = selected,
+                value = selectedOption,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(title) },
                 trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
-                modifier = Modifier.clickable { expanded = !expanded }.fillMaxWidth(),
+                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
             )
             ExposedDropdownMenu(
                 modifier = modifier,
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
             ) {
-                options.forEach { (displayName, icon) ->
+                options.forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(displayName) },
+                        text = { Text(option.displayName) },
                         trailingIcon = {
-                            icon?.let { Icon(imageVector = it, contentDescription = "") }
+                            if (option is DropdownOption.AppOption) {
+                                val painter = rememberDrawablePainter(option.icon)
+                                Icon(painter = painter, contentDescription = "")
+                            }
                         },
-                        onClick = {},
+                        onClick = {
+                            optionSelected(option)
+                            expanded = false
+                        },
                     )
                 }
             }

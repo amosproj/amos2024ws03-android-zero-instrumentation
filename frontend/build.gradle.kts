@@ -1,5 +1,6 @@
 import com.android.utils.TraceUtils.simpleId
 
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
@@ -16,9 +17,7 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.com.ncorti.ktfmt.gradle) apply true
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.rust.android) apply false
 }
-
 
 subprojects {
     apply { plugin(rootProject.libs.plugins.com.ncorti.ktfmt.gradle.get().pluginId) }

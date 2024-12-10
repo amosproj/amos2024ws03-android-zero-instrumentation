@@ -154,10 +154,10 @@ impl VfsWriteFeature {
 impl Feature for VfsWriteFeature {
     type Config = VfsWriteConfig;
 
-    fn init(ebpf: &mut Ebpf) -> Result<Self, EbpfError> {
+    fn init(ebpf: &mut Ebpf) -> Self {
         let mut this = Self { vfs_write_id: None, vfs_write_ret_id: None };
-        this.create(ebpf)?;
-        Ok(this)
+        this.create(ebpf).expect("Error initializing vfs_write feature");
+        this
     }
 
     fn apply(&mut self, ebpf: &mut Ebpf, config: &Option<Self::Config>) -> Result<(), EbpfError> {
