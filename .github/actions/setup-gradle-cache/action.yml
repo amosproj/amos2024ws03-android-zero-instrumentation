@@ -18,9 +18,6 @@ runs:
       with:
         path: |
           frontend/.gradle
-          frontend/app/build
-          frontend/client/build
-          frontend/build
         key: ${{ github.repository }}-${{ runner.os }}-gradle-${{ github.job }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ github.repository }}-${{ runner.os }}-gradle-

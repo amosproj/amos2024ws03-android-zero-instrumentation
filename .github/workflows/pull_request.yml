@@ -110,4 +110,8 @@ jobs:
       - name: Gradle Lint
         run: | 
           cd frontend
-          nix develop --command ./gradlew build --no-daemon --parallel
+          nix develop --command ./gradlew build \
+            --no-daemon \
+            --parallel \
+            --build-cache \
+            -Dorg.gradle.jvmargs=-Xmx4G
