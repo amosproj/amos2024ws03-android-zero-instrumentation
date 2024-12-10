@@ -16,10 +16,7 @@ use crate::{
 use async_broadcast::{broadcast, Receiver, Sender};
 use aya::Ebpf;
 use aya_log::EbpfLogger;
-use shared::ziofa::{
-    Event, GetSymbolsRequest,
-    PidMessage, StringResponse, Symbol,
-};
+use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
 use shared::{
     config::Configuration,
     counter::counter_server::CounterServer,
@@ -96,15 +93,11 @@ impl Ziofa for ZiofaImpl {
     ) -> Result<Response<()>, Status> {
         let config = request.into_inner();
 
-        // TODO: Implement function 'validate'
-        // TODO: if ? fails needs valid return value for the function so that the server doesn't fail
-        configuration::validate(&config)?;
         configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
 
         let mut ebpf_guard = self.ebpf.lock().await;
         let mut state_guard = self.state.lock().await;
 
-        // TODO: set config path
         state_guard
             .update_from_config(ebpf_guard.deref_mut(), &config)
             .map_err(EbpfErrorWrapper::from)?;
@@ -170,13 +163,13 @@ impl Ziofa for ZiofaImpl {
         let odex_file_path = PathBuf::from(odex_file_path_string);
 
         let (tx, rx) = mpsc::channel(4);
-        
+
         let symbol_handler = self.symbol_handler.clone();
 
         tokio::spawn(async move {
             let mut symbol_handler_guard = symbol_handler.lock().await;
 
-            let symbol = match symbol_handler_guard.get_symbols(&odex_file_path).await{
+            let symbol = match symbol_handler_guard.get_symbols(&odex_file_path).await {
                 Ok(symbol) => symbol,
                 Err(e) => {
                     tx.send(Err(Status::from(e)))
@@ -186,12 +179,12 @@ impl Ziofa for ZiofaImpl {
                 }
             };
             for (symbol, offset) in symbol.iter() {
-                tx.send(Ok(Symbol{
+                tx.send(Ok(Symbol {
                     method: symbol.to_string(),
                     offset: *offset,
                 }))
-                    .await
-                    .expect("Error sending odex file to client");
+                .await
+                .expect("Error sending odex file to client");
             }
         });
 

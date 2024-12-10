@@ -43,7 +43,6 @@ impl State {
         self.sys_sendmsg_feature.create(ebpf)?;
         self.jni_references_feature.create(ebpf)?;
 
-
         Ok(())
     }
 

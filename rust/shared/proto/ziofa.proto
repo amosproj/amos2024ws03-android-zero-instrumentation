@@ -90,7 +90,7 @@ message SysSendmsgEvent {
 
 message JniReferencesEvent {
     enum JniMethodName {
-        None = 0;
+        Undefined = 0;
         AddLocalRef = 1;
         DeleteLocalRef = 2;
         AddGlobalRef = 3;
