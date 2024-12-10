@@ -7,6 +7,7 @@ package de.amosproj3.ziofa.ui.shared
 import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
 import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 
@@ -34,6 +35,14 @@ fun SysSendmsgConfig?.updatePIDs(
                 it.key to it.value
             }
     )
+}
+
+fun List<UprobeConfig>?.updateUProbes(
+    pidsToAdd: List<UprobeConfig> = listOf(),
+    pidsToRemove: List<UprobeConfig> = listOf(),
+): List<UprobeConfig> {
+    val config = this ?: listOf()
+    return config.minus(pidsToRemove.toSet()).plus(pidsToAdd).toSet().toList()
 }
 
 fun JniReferencesConfig?.updatePIDs(

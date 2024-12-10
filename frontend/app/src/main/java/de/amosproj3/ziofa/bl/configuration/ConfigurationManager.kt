@@ -17,6 +17,7 @@ import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.shared.updatePIDs
+import de.amosproj3.ziofa.ui.shared.updateUProbes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,7 +89,15 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                                         if (!enable) requestedChanges.entries.entries else setOf(),
                                 )
                             } ?: previousConfiguration.sysSendmsg,
-                        uprobes = uprobesFeature ?: prev.configuration.uprobes, // TODO diff uprobes
+                        uprobes =
+                            uprobesFeature.let { requestedChanges ->
+                                if (requestedChanges == null)
+                                    return@let previousConfiguration.uprobes
+                                previousConfiguration.uprobes.updateUProbes(
+                                    pidsToAdd = if (enable) requestedChanges else listOf(),
+                                    pidsToRemove = if (!enable) requestedChanges else listOf(),
+                                )
+                            },
                         jniReferences =
                             jniReferencesFeature?.let { requestedChanges ->
                                 previousConfiguration.jniReferences.updatePIDs(
