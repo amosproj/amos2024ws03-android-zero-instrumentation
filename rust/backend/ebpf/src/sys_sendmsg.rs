@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 use aya_ebpf::{macros::{tracepoint, map}, maps::{HashMap, RingBuf}, programs::{TracePointContext}, EbpfContext, helpers::gen::bpf_ktime_get_ns};
 use aya_log_ebpf::error;
 use backend_common::{generate_id, SysSendmsgCall};
@@ -59,9 +60,8 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
         Some(duration) => duration,
     };
 
-
-    let tgid = ctx.tgid();
-    let call_id = generate_id(pid, tgid);
+    let tid = ctx.tgid();
+    let call_id = generate_id(pid, tid);
     let data = match unsafe { SYS_SENDMSG_TIMESTAMPS.get(&call_id) } {
         None => {return 1}
         Some(entry) => {entry}
@@ -74,19 +74,25 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
         return 0;
     }
 
-    let result_data = SysSendmsgCall::new(pid, tgid, data.begin_time_stamp, data.fd, duration_nano_sec);
-
     let mut entry = match SYS_SENDMSG_EVENTS.reserve::<SysSendmsgCall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in SYS_SENDMSG_MAP");
+            error!(&ctx, "could not reserve space in map: SYS_SENDMSG_CALLS");
             return 1;
         }
     };
 
-    entry.write(result_data);
-    entry.submit(0);
+    let entry_mut = entry.as_mut_ptr();
 
+    unsafe {
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).tid).write(tid);
+        (&raw mut (*entry_mut).begin_time_stamp).write(data.begin_time_stamp);
+        (&raw mut (*entry_mut).fd).write(data.fd);
+        (&raw mut (*entry_mut).duration_nano_sec).write(duration_nano_sec);
+    }
+
+    entry.submit(0);
 
     0
 }

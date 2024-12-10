@@ -109,6 +109,16 @@ object RustClient : Client {
                     )
                 )
             }
+            configuration.jniReferences?.pids?.forEach {
+                emit(
+                    Event.JniReferences(
+                        pid = it,
+                        tid = 1234u,
+                        beginTimeStamp = System.currentTimeMillis().toULong(),
+                        jniMethodName = Event.JniReferences.JniMethodName.AddLocalRef,
+                    )
+                )
+            }
         }
     }
 

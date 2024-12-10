@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 use aya_ebpf::{
     macros::{kprobe, map, kretprobe},
     maps::{HashMap, RingBuf},
@@ -75,8 +76,8 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
         Some(duration) => duration,
     };
 
-    let tgid = ctx.tgid();
-    let call_id = generate_id(pid, tgid);
+    let tid = ctx.tgid();
+    let call_id = generate_id(pid, tid);
     let data = match unsafe { VFS_WRITE_TIMESTAMPS.get(&call_id) } {
         None => {return Err(0)}
         Some(entry) => {entry}
@@ -88,17 +89,24 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
         return Ok(());
     }
 
-    let data = VfsWriteCall::new(pid, tgid, data.begin_time_stamp, data.fp, data.bytes_written);
-
     let mut entry = match VFS_WRITE_EVENTS.reserve::<VfsWriteCall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in VFS_WRITE_MAP");
+            error!(&ctx, "could not reserve space in map: VFS_WRITE_EVENTS");
             return Err(0)
         },
     };
 
-    entry.write(data);
+    let entry_mut = entry.as_mut_ptr();
+    
+    unsafe {
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).tid).write(tid);
+        (&raw mut (*entry_mut).begin_time_stamp).write(data.begin_time_stamp);
+        (&raw mut (*entry_mut).fp).write(data.fp);
+        (&raw mut (*entry_mut).bytes_written).write(data.bytes_written);
+    }
+
     entry.submit(0);
 
 
