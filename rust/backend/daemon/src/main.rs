@@ -13,9 +13,6 @@ mod procfs_utils;
 mod server;
 mod features;
 mod collector;
-mod vfs_write_feature;
-mod sys_sendmsg_feature;
-mod jni_reference_feature;
 mod symbols;
 
 #[tokio::main]

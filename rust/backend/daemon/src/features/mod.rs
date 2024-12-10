@@ -4,16 +4,19 @@
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
 // SPDX-License-Identifier: MIT
 
+mod jni_reference_feature;
+mod vfs_write_feature;
+mod sys_sendmsg_feature;
+
 use std::collections::BTreeSet;
 use aya::{
     maps::HashMap,
     Ebpf, EbpfError,
 };
+use jni_reference_feature::JNIReferencesFeature;
 use shared::config::Configuration;
-use crate::jni_reference_feature::JNIReferencesFeature;
-use crate::sys_sendmsg_feature::SysSendmsgFeature;
-use crate::vfs_write_feature::VfsWriteFeature;
-
+use sys_sendmsg_feature::SysSendmsgFeature;
+use vfs_write_feature::VfsWriteFeature;
 
 
 pub trait Feature {
