@@ -18,7 +18,7 @@ data class VfsWriteConfig(val entries: Map<UInt, ULong>)
 
 data class SysSendmsgConfig(val entries: Map<UInt, ULong>)
 
-data class UprobeConfig(val fnName: String, val offset: ULong, var target: String, val pid: Int?)
+data class UprobeConfig(val fnName: String, val offset: ULong, var target: String, val pid: UInt?)
 
 data class JniReferencesConfig(val pids: List<UInt>)
 
@@ -38,9 +38,23 @@ sealed class Event {
         val fd: ULong,
         val durationNanoSecs: ULong,
     ) : Event()
+
+    data class JniReferences(
+        val pid: UInt,
+        val tid: UInt,
+        val beginTimeStamp: ULong,
+        val jniMethodName: JniMethodName?,
+    ) : Event() {
+        enum class JniMethodName {
+            AddLocalRef,
+            DeleteLocalRef,
+            AddGlobalRef,
+            DeleteGlobalRef,
+        }
+    }
 }
 
-data class Process(val pid: Int, val ppid: Int, val state: String, val cmd: Command?)
+data class Process(val pid: UInt, val ppid: UInt, val state: String, val cmd: Command?)
 
 data class StringResponse(val name: String)
 

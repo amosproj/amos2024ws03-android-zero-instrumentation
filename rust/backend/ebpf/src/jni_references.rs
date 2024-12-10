@@ -27,13 +27,6 @@ fn handle_trace(ctx: ProbeContext, method: JNIMethodName) -> u32 {
         return 0;
     }
 
-    let call = JNICall {
-        pid,
-        tid,
-        begin_time_stamp: time_stamp,
-        method_name: method,
-    };
-
     let mut entry = match JNI_REF_CALLS.reserve::<JNICall>(0) {
         Some(entry) => entry,
         None => {
@@ -42,7 +35,16 @@ fn handle_trace(ctx: ProbeContext, method: JNIMethodName) -> u32 {
         }
     };
 
-    entry.write(call);
+    let entry_mut = entry.as_mut_ptr();
+
+    unsafe {
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).tid).write(tid);
+        (&raw mut (*entry_mut).begin_time_stamp).write(time_stamp);
+        (&raw mut (*entry_mut).method_name).write(method);
+    }
+
     entry.submit(0);
 
     0

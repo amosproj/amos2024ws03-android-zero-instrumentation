@@ -67,12 +67,7 @@ class SymbolsViewModel(
     }
 
     private fun SymbolsEntry.toUprobeConfigForPid(pid: UInt) =
-        UprobeConfig(
-            fnName = this.name,
-            offset = this.offset,
-            target = this.odexFile,
-            pid = pid.toInt(), // TODO why is this not an uint
-        )
+        UprobeConfig(fnName = this.name, offset = this.offset, target = this.odexFile, pid = pid)
 
     private fun GetSymbolsRequestState.toUIState(): SymbolsScreenState {
         return when (this) {

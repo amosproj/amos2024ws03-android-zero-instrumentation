@@ -76,7 +76,7 @@ class ConfigurationViewModel(
                                     fnName = option.method,
                                     target = option.odexFilePath,
                                     offset = option.offset,
-                                    pid = it.toInt(),
+                                    pid = it,
                                 )
                             },
                     )
