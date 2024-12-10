@@ -61,8 +61,8 @@ private fun uniffi.shared.Event.into() =
                             Event.JniReferences.JniMethodName.AddGlobalRef
                         JniMethodName.DELETE_GLOBAL_REF ->
                             Event.JniReferences.JniMethodName.DeleteGlobalRef
-                        JniMethodName.NONE -> null
-                    },
+                        JniMethodName.UNDEFINED -> none 
+                    }
             )
         null -> null
     }
