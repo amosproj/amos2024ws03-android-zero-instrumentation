@@ -5,6 +5,7 @@
 package de.amosproj3.ziofa.ui.shared
 
 import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
+import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
@@ -35,6 +36,18 @@ fun SysSendmsgConfig?.updatePIDs(
     )
 }
 
+fun JniReferencesConfig?.updatePIDs(
+    pidsToAdd: List<UInt> = listOf(),
+    pidsToRemove: List<UInt> = listOf(),
+): JniReferencesConfig {
+    val config = this ?: JniReferencesConfig(listOf())
+    return config.copy(
+        pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet())
+    )
+}
+
+
+
 /** Show as enabled depending on the PIDs the screen is configuring. */
 fun ConfigurationUpdate.Valid.toUIOptionsForPids(
     relevantPids: List<UInt>? = null
@@ -61,13 +74,13 @@ fun ConfigurationUpdate.Valid.toUIOptionsForPids(
 
         this.configuration.uprobes
             .filter { it.pid == null || relevantPids.contains(it.pid!!.toUInt()) }
-            .forEach {
+            .forEach { uprobeConfig ->
                 options.add(
                     BackendFeatureOptions.UprobeOption(
                         enabled = true, // uprobe options are either active or not visible
-                        displayName = "UProbe for Symbol ${it.fnName} in ${it.target}",
-                        id = it.fnName,
-                        pids = setOf(it.pid?.toUInt()!!), // TODO This should not be null asserted
+                        displayName = "UProbe for Symbol ${uprobeConfig.fnName} in ${uprobeConfig.target}",
+                        id = uprobeConfig.fnName,
+                        pids = uprobeConfig.pid?.let { setOf(it.toUInt()) }?: setOf(), // TODO This should not be null asserted
                     )
                 )
             }

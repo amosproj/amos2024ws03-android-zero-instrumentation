@@ -91,7 +91,7 @@ fun ConfigurationScreen(
             }
 
             is ConfigurationScreenState.Invalid -> {
-                ErrorScreen(state.errorMessage, onBack)
+                ErrorScreen(state.errorMessage)
             }
 
             is ConfigurationScreenState.Loading -> {

@@ -43,11 +43,25 @@ class SymbolsViewModel(
             if (prev is SymbolsScreenState.SearchResultReady) {
                 prev.copy(
                     symbols =
-                        prev.symbols.updateEntry(symbolsEntry = symbolsEntry, newState = newState)
+                    prev.symbols.updateEntry(symbolsEntry = symbolsEntry, newState = newState)
                 )
             } else {
                 prev
             }
+        }
+    }
+
+
+    fun startSearch(searchQuery: String) {
+        viewModelScope.launch {
+            symbolsAccess
+                .searchSymbols(pids, searchQuery)
+                .onStart { Timber.i("starting search") }
+                .onEach { Timber.i("Search State: $it") }
+                .onCompletion { Timber.i("search completed") }
+                .collect {
+                    screenState.value = it.toUIState()
+                }
         }
     }
 
@@ -59,26 +73,16 @@ class SymbolsViewModel(
             pid = pid.toInt(), // TODO why is this not an uint
         )
 
-    fun startSearch(searchQuery: String) {
-        val searchQuery = searchQuery
-        val symbolsResult = symbolsAccess.searchSymbols(pids, searchQuery)
-        viewModelScope.launch {
-            symbolsResult
-                .onStart { Timber.i("starting search") }
-                .onEach { Timber.i("Search State: $it") }
-                .onCompletion { Timber.i("search completed") }
-                .collect {
-                    screenState.value =
-                        when (it) {
-                            is GetSymbolsRequestState.Loading -> SymbolsScreenState.SymbolsLoading
-                            is GetSymbolsRequestState.Error ->
-                                SymbolsScreenState.Error(it.errorMessage)
-                            is GetSymbolsRequestState.Response ->
-                                SymbolsScreenState.SearchResultReady(
-                                    symbols = it.symbols.associateWith { false }
-                                )
-                        }
-                }
+    private fun GetSymbolsRequestState.toUIState(): SymbolsScreenState {
+        return when (this) {
+            is GetSymbolsRequestState.Loading -> SymbolsScreenState.SymbolsLoading
+            is GetSymbolsRequestState.Error ->
+                SymbolsScreenState.Error(this.errorMessage)
+
+            is GetSymbolsRequestState.Response ->
+                SymbolsScreenState.SearchResultReady(
+                    symbols = this.symbols.associateWith { false }
+                )
         }
     }
 

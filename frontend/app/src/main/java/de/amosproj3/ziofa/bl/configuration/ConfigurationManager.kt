@@ -88,9 +88,14 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                                         if (!enable) requestedChanges.entries.entries else setOf(),
                                 )
                             } ?: previousConfiguration.sysSendmsg,
-                        uprobes = uprobesFeature ?: prev.configuration.uprobes, // TODO
+                        uprobes = uprobesFeature ?: prev.configuration.uprobes, //TODO diff uprobes
                         jniReferences =
-                            jniReferencesFeature ?: prev.configuration.jniReferences, // TODO
+                            jniReferencesFeature?.let { requestedChanges ->
+                                previousConfiguration.jniReferences.updatePIDs(
+                                    pidsToAdd = if (enable) requestedChanges.pids else listOf(),
+                                    pidsToRemove = if (!enable) requestedChanges.pids else listOf(),
+                                )
+                            } ?: previousConfiguration.jniReferences,
                     )
                     .also { Timber.i("new local configuration = $it") }
                     .let { ConfigurationUpdate.Valid(it) }
@@ -109,7 +114,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
 
     override fun reset() {
         runBlocking {
-            client?.setConfiguration(Configuration(null, null, listOf()))
+            client?.setConfiguration(Configuration(null, null, listOf(),null))
             updateBothConfigurations(getFromBackend())
         }
     }
@@ -133,7 +138,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                     vfsWrite = null,
                     sysSendmsg = null,
                     uprobes = listOf(),
-                    jniReferences = JniReferencesConfig(pids = listOf()),
+                    jniReferences = null,
                 )
             )
             ConfigurationUpdate.Valid(client!!.getConfiguration())

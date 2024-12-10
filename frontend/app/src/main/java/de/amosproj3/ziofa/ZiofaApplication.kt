@@ -37,12 +37,6 @@ import timber.log.Timber
 
 class ZiofaApplication : Application() {
 
-    val appModule: Module = module {
-        createExternalDependencies()
-        createBLModules()
-        createViewModelFactories()
-    }
-
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree()) // start Timber logging
@@ -50,7 +44,13 @@ class ZiofaApplication : Application() {
         startKoin {
             androidLogger()
             androidContext(this@ZiofaApplication)
-            modules(appModule)
+            modules(
+                module {
+                    createExternalDependencies()
+                    createBLModules()
+                    createViewModelFactories()
+                }
+            )
         }
     }
 
@@ -65,9 +65,9 @@ class ZiofaApplication : Application() {
             RunningComponentsProvider(clientFactory = get(), packageInformationProvider = get())
         }
         single { ConfigurationManager(clientFactory = get()) } binds
-            arrayOf(BackendConfigurationAccess::class, LocalConfigurationAccess::class)
+                arrayOf(BackendConfigurationAccess::class, LocalConfigurationAccess::class)
         factory<DataStreamProvider> { (scope: CoroutineScope) -> DataStreamManager(get(), scope) }
-        single<SymbolsAccess> { UProbeManager() }
+        single<SymbolsAccess> { UProbeManager(get()) }
     }
 
     private fun Module.createViewModelFactories() {

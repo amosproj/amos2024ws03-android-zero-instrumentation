@@ -4,6 +4,7 @@
 
 package de.amosproj3.ziofa.ui.configuration.composables
 
+import android.os.Process
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,28 +23,37 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import kotlin.system.exitProcess
 
 @Preview(device = Devices.AUTOMOTIVE_1024p)
 @Composable
-fun ErrorScreen(error: String = "No error message available", onBack: () -> Unit = {}) {
+fun ErrorScreen(error: String = "No error message available") {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Error while retrieving configuration",
+                text = "Error while communicating with backend",
                 color = Color.Red,
                 fontSize = TextUnit(25f, TextUnitType.Sp),
             )
             Text(text = error)
         }
         Button(
-            onBack,
+            onClick = {
+                Process.killProcess(Process.myPid())
+                exitProcess(1)
+            },
             modifier =
-                Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(horizontal = 20.dp),
+            Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 20.dp),
         ) {
-            Text("Back to home screen")
+            Text("Exit application")
         }
     }
 }
