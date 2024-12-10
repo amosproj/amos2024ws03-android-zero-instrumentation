@@ -75,8 +75,8 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
         Some(duration) => duration,
     };
 
-    let tgid = ctx.tgid();
-    let call_id = generate_id(pid, tgid);
+    let tid = ctx.tgid();
+    let call_id = generate_id(pid, tid);
     let data = match unsafe { VFS_WRITE_TIMESTAMPS.get(&call_id) } {
         None => {return Err(0)}
         Some(entry) => {entry}
@@ -88,17 +88,25 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
         return Ok(());
     }
 
-    let data = VfsWriteCall::new(pid, tgid, data.begin_time_stamp, data.fp, data.bytes_written);
-
     let mut entry = match VFS_WRITE_EVENTS.reserve::<VfsWriteCall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in VFS_WRITE_MAP");
+            error!(&ctx, "could not reserve space in map: VFS_WRITE_EVENTS");
             return Err(0)
         },
     };
 
-    entry.write(data);
+    let entry_mut = entry.as_mut_ptr();
+
+    unsafe {
+        (*entry_mut).pid = pid;
+        (*entry_mut).tid = tid;
+        (*entry_mut).begin_time_stamp = data.begin_time_stamp;
+        (*entry_mut).fp = data.fp;
+        (*entry_mut).bytes_written = data.bytes_written;
+
+    }
+
     entry.submit(0);
 
 
