@@ -50,8 +50,8 @@ message ProcessList {
 }
 
 message Process {
-    int32 pid = 1;
-    int32 ppid = 2;
+    uint32 pid = 1;
+    uint32 ppid = 2;
     oneof cmd {
         CmdlineData cmdline = 3;
         string comm = 4;
