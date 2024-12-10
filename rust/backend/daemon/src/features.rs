@@ -44,15 +44,6 @@ impl Features {
         }
     }
 
-    // make clippy happy
-    pub fn _apply_all_features(&mut self, ebpf: &mut Ebpf, config: &mut Configuration) -> Result<(), EbpfError> {
-        self.sys_sendmsg_feature.apply(ebpf, &config.sys_sendmsg)?;
-        self.vfs_write_feature.apply(ebpf, &config.vfs_write)?;
-        self.jni_reference_feature.apply(ebpf, &config.jni_references)?;
-
-        Ok(())
-    }
-
     pub fn update_from_config(
         &mut self,
         ebpf: &mut Ebpf,

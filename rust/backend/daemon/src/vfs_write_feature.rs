@@ -5,18 +5,18 @@
 
 use aya::{Ebpf, EbpfError};
 use aya::programs::KProbe;
-use aya::programs::kprobe::KProbeLinkId;
+use aya::programs::kprobe::KProbeLink;
 use shared::config::VfsWriteConfig;
 use crate::features::{Feature, update_pids};
 
 pub struct VfsWriteFeature {
-    vfs_write_id: Option<KProbeLinkId>,
-    vfs_write_ret_id: Option<KProbeLinkId>,
+    vfs_write: Option<KProbeLink>,
+    vfs_write_ret: Option<KProbeLink>,
 }
 
 impl VfsWriteFeature {
 
-    fn create(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    fn create(ebpf: &mut Ebpf) -> Result<Self, EbpfError> {
         let vfs_write: &mut KProbe = ebpf
             .program_mut("vfs_write")
             .ok_or(EbpfError::ProgramError(
@@ -37,11 +37,17 @@ impl VfsWriteFeature {
             .try_into()?;
         vfs_write_ret.load()?;
 
-        Ok(())
+        Ok(
+            VfsWriteFeature {
+                vfs_write: None,
+                vfs_write_ret: None
+            }
+        )
     }
 
     fn attach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
-        let vfs_write: &mut KProbe = ebpf
+        if self.vfs_write.is_none() {
+            let program: &mut KProbe = ebpf
             .program_mut("vfs_write")
             .ok_or(EbpfError::ProgramError(
                 aya::programs::ProgramError::InvalidName {
@@ -49,9 +55,13 @@ impl VfsWriteFeature {
                 },
             ))?
             .try_into()?;
-        self.vfs_write_id = Some(vfs_write.attach("vfs_write", 0)?);
 
-        let vfs_write_ret: &mut KProbe = ebpf
+            let link_id = program.attach("vfs_write",0)?;
+            self.vfs_write = Some(program.take_link(link_id)?);
+        }
+
+        if self.vfs_write_ret.is_none() {
+            let program: &mut KProbe = ebpf
             .program_mut("vfs_write_ret")
             .ok_or(EbpfError::ProgramError(
                 aya::programs::ProgramError::InvalidName {
@@ -59,51 +69,23 @@ impl VfsWriteFeature {
                 },
             ))?
             .try_into()?;
-        self.vfs_write_ret_id = Some(vfs_write_ret.attach("vfs_write", 0)?);
+            let link_id = program.attach("vfs_write", 0)?;
+            self.vfs_write_ret = Some(program.take_link(link_id)?);
+
+        }
+
+        
         Ok(())
     }
 
-    fn detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
-        let vfs_write: &mut KProbe = ebpf
-            .program_mut("vfs_write")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "vfs_write".to_string(),
-                },
-            ))?
-            .try_into()?;
-
-        if let Some(vfs_write_id) = self.vfs_write_id.take() {
-            vfs_write.detach(vfs_write_id)?;
-        } else {
-            return Err(EbpfError::ProgramError(
-                aya::programs::ProgramError::NotAttached,
-            ));
-        }
-
-        let vfs_write_ret: &mut KProbe = ebpf
-            .program_mut("vfs_write_ret")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "vfs_write_ret".to_string(),
-                },
-            ))?
-            .try_into()?;
-
-        if let Some(vfs_write_ret_id) = self.vfs_write_ret_id.take() {
-            vfs_write_ret.detach(vfs_write_ret_id)?;
-        } else {
-            return Err(EbpfError::ProgramError(
-                aya::programs::ProgramError::NotAttached,
-            ));
-        }
-
-        Ok(())
+    fn detach(&mut self) {
+        let _ = self.vfs_write.take();
+        let _ = self.vfs_write_ret.take();
     }
 
     fn _destroy(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
         
-        self.detach(ebpf)?;
+        self.detach();
         
         // TODO Error handling
         let vfs_write: &mut KProbe = ebpf
@@ -155,9 +137,7 @@ impl Feature for VfsWriteFeature {
     type Config = VfsWriteConfig;
 
     fn init(ebpf: &mut Ebpf) -> Self {
-        let mut this = Self { vfs_write_id: None, vfs_write_ret_id: None };
-        this.create(ebpf).expect("Error initializing vfs_write feature");
-        this
+        VfsWriteFeature::create(ebpf).expect("Error initializing vfs_write feature")
     }
 
     fn apply(&mut self, ebpf: &mut Ebpf, config: &Option<Self::Config>) -> Result<(), EbpfError> {
@@ -167,7 +147,7 @@ impl Feature for VfsWriteFeature {
                 self.update_pids(ebpf, &config.entries)?;
             },
             None => {
-                self.detach(ebpf)?;
+                self.detach();
             }
         }
         Ok(())

@@ -53,18 +53,16 @@ impl JNIReferencesFeature {
         Ok(())
     }
 
-    pub fn detach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
+    pub fn detach(&mut self) {
         let _ = self.trace_add_local_link.take();
         let _ = self.trace_del_local_link.take();
         let _ = self.trace_add_global_link.take();
         let _ = self.trace_del_global_link.take();
-
-        Ok(())
     }
 
     fn destroy(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
 
-        self.detach(ebpf)?;
+        self.detach();
 
         // TODO Error handling
         let trace_add_local: &mut UProbe = ebpf
@@ -185,7 +183,7 @@ impl Feature for JNIReferencesFeature {
                 self.update_pids(ebpf, &config.pids)?;
             }
             None => {
-                self.detach(ebpf)?;
+                self.detach();
             }
         }
         Ok(())
