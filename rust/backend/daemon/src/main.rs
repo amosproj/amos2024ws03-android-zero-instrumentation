@@ -6,7 +6,6 @@
 use tracing_subscriber::EnvFilter;
 mod configuration;
 mod constants;
-pub mod counter;
 mod ebpf_utils;
 mod helpers;
 mod procfs_utils;
@@ -14,6 +13,7 @@ mod server;
 mod features;
 mod collector;
 mod symbols;
+mod registry;
 
 #[tokio::main]
 async fn main() {

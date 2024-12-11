@@ -6,7 +6,6 @@
 
 mod configuration;
 mod constants;
-pub mod counter;
 mod ebpf_utils;
 mod helpers;
 mod procfs_utils;
@@ -14,6 +13,7 @@ mod server;
 mod features;
 mod collector;
 mod symbols;
+mod registry;
 
 pub async fn run_server() {
     helpers::bump_rlimit();

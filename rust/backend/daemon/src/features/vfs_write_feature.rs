@@ -3,121 +3,57 @@
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
 // SPDX-License-Identifier: MIT
 
-use aya::{Ebpf, EbpfError};
+use aya::EbpfError;
 use aya::programs::KProbe;
 use aya::programs::kprobe::KProbeLink;
 use shared::config::VfsWriteConfig;
 use crate::features::{Feature, update_pids};
+use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
 
 pub struct VfsWriteFeature {
-    vfs_write: Option<KProbeLink>,
-    vfs_write_ret: Option<KProbeLink>,
+    vfs_write: RegistryGuard<KProbe>,
+    vfs_write_ret: RegistryGuard<KProbe>,
+    vfs_write_pids: RegistryGuard<OwnedHashMap<u32, u64>>,
+    vfs_write_link: Option<KProbeLink>,
+    vfs_write_ret_link: Option<KProbeLink>,
 }
 
 impl VfsWriteFeature {
-
-    fn create(ebpf: &mut Ebpf) -> Result<Self, EbpfError> {
-        let vfs_write: &mut KProbe = ebpf
-            .program_mut("vfs_write")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "vfs_write".to_string(),
-                },
-            ))?
-            .try_into()?;
-        vfs_write.load()?;
-
-        let vfs_write_ret: &mut KProbe = ebpf
-            .program_mut("vfs_write_ret")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "vfs_write_ret".to_string(),
-                },
-            ))?
-            .try_into()?;
-        vfs_write_ret.load()?;
-
-        Ok(
-            VfsWriteFeature {
-                vfs_write: None,
-                vfs_write_ret: None
-            }
-        )
+    
+    pub fn create(registry: &EbpfRegistry) -> Self {
+        Self {
+            vfs_write: registry.program.vfs_write.take(),
+            vfs_write_ret: registry.program.vfs_write_ret.take(),
+            vfs_write_pids: registry.config.vfs_write_pids.take(),
+            vfs_write_link: None,
+            vfs_write_ret_link: None,
+        }
     }
 
-    fn attach(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
-        if self.vfs_write.is_none() {
-            let program: &mut KProbe = ebpf
-            .program_mut("vfs_write")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "vfs_write".to_string(),
-                },
-            ))?
-            .try_into()?;
-
-            let link_id = program.attach("vfs_write",0)?;
-            self.vfs_write = Some(program.take_link(link_id)?);
+    fn attach(&mut self) -> Result<(), EbpfError> {
+        if self.vfs_write_link.is_none() {
+            let link_id = self.vfs_write.attach("vfs_write", 0)?;
+            self.vfs_write_link = Some(self.vfs_write.take_link(link_id)?);
         }
 
-        if self.vfs_write_ret.is_none() {
-            let program: &mut KProbe = ebpf
-            .program_mut("vfs_write_ret")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "vfs_write_ret".to_string(),
-                },
-            ))?
-            .try_into()?;
-            let link_id = program.attach("vfs_write", 0)?;
-            self.vfs_write_ret = Some(program.take_link(link_id)?);
-
+        if self.vfs_write_ret_link.is_none() {
+            let link_id = self.vfs_write_ret.attach("vfs_write", 0)?;
+            self.vfs_write_ret_link = Some(self.vfs_write_ret.take_link(link_id)?);
         }
-
         
         Ok(())
     }
 
     fn detach(&mut self) {
-        let _ = self.vfs_write.take();
-        let _ = self.vfs_write_ret.take();
+        let _ = self.vfs_write_link.take();
+        let _ = self.vfs_write_ret_link.take();
     }
-
-    fn _destroy(&mut self, ebpf: &mut Ebpf) -> Result<(), EbpfError> {
-        
-        self.detach();
-        
-        // TODO Error handling
-        let vfs_write: &mut KProbe = ebpf
-            .program_mut("vfs_write")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "vfs_write".to_string(),
-                },
-            ))?
-            .try_into()?;
-        vfs_write.unload()?;
-
-        let vfs_write_ret: &mut KProbe = ebpf
-            .program_mut("vfs_write_ret")
-            .ok_or(EbpfError::ProgramError(
-                aya::programs::ProgramError::InvalidName {
-                    name: "vfs_write_ret".to_string(),
-                },
-            ))?
-            .try_into()?;
-        vfs_write_ret.unload()?;
-
-        Ok(())
-    }
-
 
     fn update_pids(
-        &self,
-        ebpf: &mut Ebpf,
+        &mut self,
         entries: &std::collections::HashMap<u32, u64>,
     ) -> Result<(), EbpfError> {
-        update_pids(ebpf, entries, "VFS_WRITE_PIDS")
+        update_pids(entries, &mut self.vfs_write_pids)
     }
 
     
@@ -136,15 +72,15 @@ impl VfsWriteFeature {
 impl Feature for VfsWriteFeature {
     type Config = VfsWriteConfig;
 
-    fn init(ebpf: &mut Ebpf) -> Self {
-        VfsWriteFeature::create(ebpf).expect("Error initializing vfs_write feature")
+    fn init(registry: &EbpfRegistry) -> Self {
+        VfsWriteFeature::create(registry)
     }
 
-    fn apply(&mut self, ebpf: &mut Ebpf, config: &Option<Self::Config>) -> Result<(), EbpfError> {
+    fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
         match config {
             Some(config) => {
-                self.attach(ebpf)?;
-                self.update_pids(ebpf, &config.entries)?;
+                self.attach()?;
+                self.update_pids(&config.entries)?;
             },
             None => {
                 self.detach();
