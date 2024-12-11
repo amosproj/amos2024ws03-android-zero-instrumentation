@@ -6,9 +6,7 @@ Uprobe Analysis: Setup ebpf uprobes	https://github.com/amosproj/amos2024ws03-and
 Uprobe Analysis: Collect Uprobe events	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/119	BenediktZinn, Mr-Kanister	Awaiting Review	1	3
 Setup eBPF Uprobes for JNI Reference Leak Detection	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/138		Feature Archive		
 EPIC: uprobe	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/19		In Progress	8	
-Refactor: Collection of events in Daemon	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/123	fhilgers	In Progress	2	
 Uprobe Analysis: Frontend Show Symbols	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/121	luca-dot-sh	Awaiting Review	2	
-Uprobe Analysis: Frontend Show Uprobe Events	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/122	luca-dot-sh	In Progress	2	
 Gradle refactoring	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/140	fhilgers	Feature Archive		5
 CI Rework	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/139	fhilgers	Feature Archive		1
 Uprobe Analysis: Setup	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/115	fhilgers	Feature Archive	2	5
@@ -22,6 +20,8 @@ Identify Running State	https://github.com/amosproj/amos2024ws03-android-zero-ins
 Plaintext architecture document	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/34	fhilgers, Mr-Kanister	Feature Archive	3	3
 Refactor: Configuration API	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/124	ffranzgitHub	Awaiting Review	2	
 Refactoring pIDs to uint32	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/149	Mr-Kanister	Awaiting Review	2	2
+Refactor: Collection of events in Daemon	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/123	fhilgers	Awaiting Review	2	
+Uprobe Analysis: Frontend Show Uprobe Events	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/122	luca-dot-sh	Awaiting Review	2	
 EPIC:  analyze unix domain sockets	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/80	BenediktZinn, der-whity, ffranzgitHub, fhilgers, luca-dot-sh, Mr-Kanister	Feature Archive	5	-1
 internal: implement client library and export to kotlin for load and list programs	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/60	BenediktZinn, fhilgers	Feature Archive	2	1
 Display running processes in UI	https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/issues/73	luca-dot-sh	Feature Archive	2	2
