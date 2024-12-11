@@ -5,7 +5,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::collector::MultiCollector;
+use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
 use crate::registry;
 use crate::symbols::SymbolHandler;
 use crate::{
@@ -15,6 +15,7 @@ use crate::{
     features::Features,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
+use ractor::Actor;
 use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
 use shared::{
     config::Configuration,
@@ -25,7 +26,6 @@ use shared::{
 };
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::join;
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
@@ -191,12 +191,12 @@ impl Ziofa for ZiofaImpl {
 
 pub async fn serve_forever() {
     let registry = registry::load_and_pin().unwrap();
+    
+    let channel = Channel::new();
+    let (collector_ref, _) = Actor::spawn(None, CollectorSupervisor, CollectorSupervisorArguments::new(registry.event.clone(), channel.tx.clone())).await.unwrap();
 
-    let mut collector = MultiCollector::from_registry(&registry).unwrap();
-    let channel = Arc::new(Channel::new());
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
-    let event_tx = channel.tx.clone();
+    //let mut collector = MultiCollector::from_registry(&registry).unwrap();
+    let channel = Arc::new(channel);
 
     let features = Features::init_all_features(&registry);
 
@@ -205,18 +205,11 @@ pub async fn serve_forever() {
     let features = Arc::new(Mutex::new(features));
     let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler));
 
-    let serve = async move {
-        Server::builder()
-            .add_service(ziofa_server)
-            .serve(constants::sock_addr())
-            .await
-            .unwrap();
-        shutdown_tx.send(()).unwrap();
-    };
-
-    let collect = async move {
-        collector.collect(event_tx, shutdown_rx).await.unwrap();
-    };
-
-    let (_, _) = join!(serve, collect);
+    Server::builder()
+        .add_service(ziofa_server)
+        .serve(constants::sock_addr())
+        .await
+        .unwrap();
+    
+    collector_ref.stop_and_wait(None, None).await.unwrap();
 }

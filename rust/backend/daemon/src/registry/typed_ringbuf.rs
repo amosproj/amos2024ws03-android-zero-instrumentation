@@ -18,11 +18,9 @@ impl<T> AsRawFd for TypedRingBuffer<T> {
 impl<T: TryFromRaw> TypedRingBuffer<T> 
 {
     pub fn next(&mut self) -> Option<T> {
-        if let Some(data) = self.inner.next() {
-            Some(T::try_from_raw(&*data).expect("wrong data type for ring buffer"))
-        } else {
-            None
-        }
+        self.inner
+            .next()
+            .map(|data| T::try_from_raw(&data).expect("wrong data type"))
     }
 }
 

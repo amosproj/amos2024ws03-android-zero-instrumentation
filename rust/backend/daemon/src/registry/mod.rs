@@ -62,9 +62,9 @@ impl EbpfRegistry {
 impl EbpfConfigRegistry {
     fn from_pin() -> Result<Self, MapError> {
         Ok(Self {
-            vfs_write_pids: HashMap::<_, u32, u64>::try_from_pin(&path("VFS_WRITE_PIDS"))?.into(),
-            sys_sendmsg_pids: HashMap::<_, u32, u64>::try_from_pin(&path("SYS_SENDMSG_PIDS"))?.into(),
-            jni_ref_pids: HashMap::<_, u32, u64>::try_from_pin(&path("JNI_REF_PIDS"))?.into(),
+            vfs_write_pids: HashMap::<_, u32, u64>::try_from_pin(path("VFS_WRITE_PIDS"))?.into(),
+            sys_sendmsg_pids: HashMap::<_, u32, u64>::try_from_pin(path("SYS_SENDMSG_PIDS"))?.into(),
+            jni_ref_pids: HashMap::<_, u32, u64>::try_from_pin(path("JNI_REF_PIDS"))?.into(),
         })
     }
 }
@@ -72,9 +72,9 @@ impl EbpfConfigRegistry {
 impl EbpfEventRegistry {
     fn from_pin() -> Result<Self, MapError> {
         Ok(Self {
-            vfs_write_events: RingBuf::try_from_pin(&path("VFS_WRITE_EVENTS"))?.into(),
-            sys_sendmsg_events: RingBuf::try_from_pin(&path("SYS_SENDMSG_EVENTS"))?.into(),
-            jni_ref_calls: RingBuf::try_from_pin(&path("JNI_REF_CALLS"))?.into(),
+            vfs_write_events: RingBuf::try_from_pin(path("VFS_WRITE_EVENTS"))?.into(),
+            sys_sendmsg_events: RingBuf::try_from_pin(path("SYS_SENDMSG_EVENTS"))?.into(),
+            jni_ref_calls: RingBuf::try_from_pin(path("JNI_REF_CALLS"))?.into(),
         })
     }
 }
@@ -82,14 +82,14 @@ impl EbpfEventRegistry {
 impl EbpfProgramRegistry {
     fn from_pin() -> Result<Self, ProgramError> {
         Ok(Self {
-            vfs_write: KProbe::from_pin(&path("vfs_write"), ProbeKind::KProbe)?.into(),
-            vfs_write_ret: KProbe::from_pin(&path("vfs_write_ret"), ProbeKind::KRetProbe)?.into(),
-            sys_enter_sendmsg: TracePoint::from_pin(&path("sys_enter_sendmsg"))?.into(),
-            sys_exit_sendmsg: TracePoint::from_pin(&path("sys_exit_sendmsg"))?.into(),
-            trace_add_local: UProbe::from_pin(&path("trace_add_local"), ProbeKind::UProbe)?.into(),
-            trace_del_local: UProbe::from_pin(&path("trace_del_local"), ProbeKind::UProbe)?.into(),
-            trace_add_global: UProbe::from_pin(&path("trace_add_global"), ProbeKind::UProbe)?.into(),
-            trace_del_global: UProbe::from_pin(&path("trace_del_global"), ProbeKind::UProbe)?.into(),
+            vfs_write: KProbe::from_pin(path("vfs_write"), ProbeKind::KProbe)?.into(),
+            vfs_write_ret: KProbe::from_pin(path("vfs_write_ret"), ProbeKind::KRetProbe)?.into(),
+            sys_enter_sendmsg: TracePoint::from_pin(path("sys_enter_sendmsg"))?.into(),
+            sys_exit_sendmsg: TracePoint::from_pin(path("sys_exit_sendmsg"))?.into(),
+            trace_add_local: UProbe::from_pin(path("trace_add_local"), ProbeKind::UProbe)?.into(),
+            trace_del_local: UProbe::from_pin(path("trace_del_local"), ProbeKind::UProbe)?.into(),
+            trace_add_global: UProbe::from_pin(path("trace_add_global"), ProbeKind::UProbe)?.into(),
+            trace_del_global: UProbe::from_pin(path("trace_del_global"), ProbeKind::UProbe)?.into(),
         })
     }
 }

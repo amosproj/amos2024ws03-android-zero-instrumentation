@@ -96,7 +96,7 @@ impl JNIReferencesFeature {
             target,
             None
         ).map_err(|err| {EbpfError::ProgramError(err)})?;
-        Ok(jni_program.take_link(link_id).map_err(|err| {EbpfError::ProgramError(err)})?)
+        jni_program.take_link(link_id).map_err(|err| {EbpfError::ProgramError(err)})
     }
 }
 

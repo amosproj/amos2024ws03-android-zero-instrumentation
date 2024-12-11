@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, path::Path};
 
 use aya::{maps::{HashMap, Map, MapData, MapError, RingBuf}, pin::PinError, programs::{KProbe, Program, ProgramError, TracePoint, UProbe}, Ebpf, EbpfError, Pod};
 
@@ -13,7 +13,7 @@ pub trait EbpfPin {
 }
 
 pub trait TryMapFromPin {
-    fn try_from_pin(path: &str) -> Result<Self, MapError> where Self: Sized;
+    fn try_from_pin<P: AsRef<Path>>(path: P) -> Result<Self, MapError> where Self: Sized;
 }
 
 
@@ -74,13 +74,13 @@ impl LoadAndPin for Ebpf {
 }
 
 impl TryMapFromPin for OwnedRingBuf {
-    fn try_from_pin(path: &str) -> Result<Self, MapError> where Self: Sized {
+    fn try_from_pin<P: AsRef<Path>>(path: P) -> Result<Self, MapError> where Self: Sized {
         RingBuf::try_from(Map::RingBuf(MapData::from_pin(path)?))
     }
 }
 
 impl<K: Pod, V: Pod> TryMapFromPin for OwnedHashMap<K, V> {
-    fn try_from_pin(path: &str) -> Result<Self, MapError> where Self: Sized {
+    fn try_from_pin<P: AsRef<Path>>(path: P) -> Result<Self, MapError> where Self: Sized {
         HashMap::<_, K, V>::try_from(Map::HashMap(MapData::from_pin(path)?))
     }
 }
