@@ -1,6 +1,6 @@
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
-// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 //
 // SPDX-License-Identifier: MIT
 
@@ -13,6 +13,7 @@ mod server;
 mod features;
 mod collector;
 mod symbols;
+mod registry;
 
 pub async fn run_server() {
     helpers::bump_rlimit();
