@@ -16,7 +16,7 @@ pub type Result<T> = core::result::Result<T, ClientError>;
 #[derive(Debug, Parser)]
 struct Args {
     /// Address the client binds to
-    #[arg(long, default_value = "http://127.0.0.1:50051")]
+    #[arg(long, default_value = "http://[::1]:50051")]
     addr: String,
 
     #[command(subcommand)]
