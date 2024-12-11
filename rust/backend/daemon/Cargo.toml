@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+# SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 # SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
 # SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 #
@@ -29,6 +30,9 @@ aya-log = { workspace = true }
 async-broadcast = { workspace = true }
 object = { workspace = true }
 serde = { workspace = true }
+crossbeam = { workspace = true }
+bytemuck = { workspace = true }
+ractor = { workspace = true, features = ["tokio_runtime"] }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }

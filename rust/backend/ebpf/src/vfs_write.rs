@@ -1,7 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
-
 
 use aya_ebpf::{
     macros::{kprobe, map, kretprobe},
@@ -15,10 +15,10 @@ use backend_common::{generate_id, VfsWriteCall};
 
 
 #[map(name = "VFS_WRITE_EVENTS")]
-pub static VFS_WRITE_EVENTS: RingBuf = RingBuf::with_byte_size(1024, 0);
+pub static VFS_WRITE_EVENTS: RingBuf = RingBuf::pinned(1024, 0);
 
 #[map(name = "VFS_WRITE_PIDS")]
-static VFS_WRITE_PIDS: HashMap<u32, u64> = HashMap::with_max_entries(4096, 0);
+static VFS_WRITE_PIDS: HashMap<u32, u64> = HashMap::pinned(4096, 0);
 
 #[map(name = "VfsWriteIntern")]
 static VFS_WRITE_TIMESTAMPS: HashMap<u64, VfsWriteIntern> = HashMap::with_max_entries(1024, 0);
@@ -30,7 +30,7 @@ struct VfsWriteIntern {
     bytes_written: usize,
 }
 
-#[kprobe]
+#[kprobe(function = "wow")]
 pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
     let pid = ctx.pid();
     let id = generate_id(pid, ctx.tgid());

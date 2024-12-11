@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
-// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
+//
 // SPDX-License-Identifier: MIT
 
 mod jni_reference_feature;
@@ -9,21 +10,20 @@ mod vfs_write_feature;
 mod sys_sendmsg_feature;
 
 use std::collections::BTreeSet;
-use aya::{
-    maps::HashMap,
-    Ebpf, EbpfError,
-};
+use aya::EbpfError;
 use jni_reference_feature::JNIReferencesFeature;
 use shared::config::Configuration;
 use sys_sendmsg_feature::SysSendmsgFeature;
 use vfs_write_feature::VfsWriteFeature;
 
+use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
+
 
 pub trait Feature {
     type Config;
 
-    fn init(ebpf: &mut Ebpf) -> Self;
-    fn apply(&mut self, ebpf: &mut Ebpf, config: &Option<Self::Config>) -> Result<(), EbpfError>;
+    fn init(registry: &EbpfRegistry) -> Self;
+    fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError>;
 
 }
 
@@ -35,10 +35,10 @@ pub struct Features {
 
 impl Features {
 
-    pub fn init_all_features(ebpf: &mut Ebpf) -> Self {
-        let sys_sendmsg_feature = SysSendmsgFeature::init(ebpf);
-        let vfs_write_feature = VfsWriteFeature::init(ebpf);
-        let jni_reference_feature = JNIReferencesFeature::init(ebpf);
+    pub fn init_all_features(registry: &EbpfRegistry) -> Self {
+        let sys_sendmsg_feature = SysSendmsgFeature::init(registry);
+        let vfs_write_feature = VfsWriteFeature::init(registry);
+        let jni_reference_feature = JNIReferencesFeature::init(registry);
 
         Self {
             sys_sendmsg_feature,
@@ -49,14 +49,13 @@ impl Features {
 
     pub fn update_from_config(
         &mut self,
-        ebpf: &mut Ebpf,
         config: &Configuration,
     ) -> Result<(), EbpfError> {
 
 
-        self.vfs_write_feature.apply(ebpf, &config.vfs_write)?;
-        self.sys_sendmsg_feature.apply(ebpf, &config.sys_sendmsg)?;
-        self.jni_reference_feature.apply(ebpf, &config.jni_references)?;
+        self.vfs_write_feature.apply(&config.vfs_write)?;
+        self.sys_sendmsg_feature.apply(&config.sys_sendmsg)?;
+        self.jni_reference_feature.apply( &config.jni_references)?;
 
         Ok(())
     }
@@ -65,17 +64,9 @@ impl Features {
 
 
 pub fn update_pids(
-    ebpf: &mut Ebpf,
     entries: &std::collections::HashMap<u32, u64>,
-    map_name: &str
+    pids_to_track: &mut RegistryGuard<OwnedHashMap<u32, u64>>
 ) -> Result<(), EbpfError> {
-    let mut pids_to_track: HashMap<_, u32, u64> = ebpf
-        .map_mut(map_name)
-        .ok_or(EbpfError::MapError(aya::maps::MapError::InvalidName {
-            name: map_name.to_string(),
-        }))?
-        .try_into()?;
-
     let new_keys = entries.keys().copied().collect();
     let existing_keys = pids_to_track.keys().collect::<Result<BTreeSet<u32>, _>>()?;
 

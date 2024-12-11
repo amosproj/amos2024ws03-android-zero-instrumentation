@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -11,10 +12,10 @@ use backend_common::{JNICall, JNIMethodName};
 const MAP_MAX_ENTRIES: u32 = 100;
 
 #[map(name = "JNI_REF_CALLS" )]
-static JNI_REF_CALLS: RingBuf = RingBuf::with_byte_size(MAP_MAX_ENTRIES * mem::size_of::<JNICall>() as u32, 0);
+static JNI_REF_CALLS: RingBuf = RingBuf::pinned(MAP_MAX_ENTRIES * mem::size_of::<JNICall>() as u32, 0);
 
 #[map(name = "JNI_REF_PIDS")]
-static JNI_REF_PIDS: HashMap<u32, u32> = HashMap::with_max_entries(4096, 0);
+static JNI_REF_PIDS: HashMap<u32, u64> = HashMap::pinned(4096, 0);
 
 
 fn handle_trace(ctx: ProbeContext, method: JNIMethodName) -> u32 {

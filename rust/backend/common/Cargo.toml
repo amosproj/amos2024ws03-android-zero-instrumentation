@@ -17,6 +17,7 @@ user = ["aya"]
 
 [dependencies]
 aya = { workspace = true, optional = true }
+bytemuck = { workspace = true, features = ["derive"] }
 
 [lib]
 path = "src/lib.rs"

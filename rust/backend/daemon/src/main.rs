@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -6,7 +7,6 @@
 use tracing_subscriber::EnvFilter;
 mod configuration;
 mod constants;
-pub mod counter;
 mod ebpf_utils;
 mod helpers;
 mod procfs_utils;
@@ -14,6 +14,7 @@ mod server;
 mod features;
 mod collector;
 mod symbols;
+mod registry;
 
 #[tokio::main]
 async fn main() {

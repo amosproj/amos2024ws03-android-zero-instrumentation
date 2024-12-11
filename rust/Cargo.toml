@@ -69,6 +69,9 @@ dialoguer = "0.11.0"
 indicatif = "0.17.9"
 nix = "0.29.0"
 object = "0.36.5"
+bytemuck = { version = "1.20.0" }
+crossbeam = "0.8.4"
+ractor = { version = "0.13.4", default-features = false }
 
 [profile.dev]
 panic = "abort"
