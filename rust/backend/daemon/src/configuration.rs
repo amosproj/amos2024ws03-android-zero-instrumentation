@@ -22,8 +22,3 @@ pub fn save_to_file(config: &Configuration, path: &str) -> io::Result<()> {
     serde_json::to_writer(writer, config)?;
     Ok(())
 }
-
-pub fn validate(_config: &Configuration) -> Result<(), io::Error> {
-    //TODO: Implement this function
-    Ok(())
-}

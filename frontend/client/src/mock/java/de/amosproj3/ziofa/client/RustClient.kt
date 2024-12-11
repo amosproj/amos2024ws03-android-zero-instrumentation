@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -19,6 +20,7 @@ object RustClient : Client {
             vfsWrite = VfsWriteConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
             sysSendmsg = SysSendmsgConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
             uprobes = listOf(),
+            jniReferences = JniReferencesConfig(pids = listOf()),
         )
 
     override suspend fun serverCount(): Flow<UInt> = flow {
@@ -61,8 +63,8 @@ object RustClient : Client {
     private val processes =
         alphabet.indices.map {
             Process(
-                pid = Random.nextUInt(1000u).toInt(),
-                ppid = Random.nextUInt(1000u).toInt(),
+                pid = Random.nextUInt(1000u),
+                ppid = Random.nextUInt(1000u),
                 state = "R",
                 cmd = Command.Comm("/bin/sh/${alphabet.substring(it, it + 1)}"),
             )
@@ -107,7 +109,67 @@ object RustClient : Client {
                     )
                 )
             }
+            configuration.jniReferences?.pids?.forEach {
+                emit(
+                    Event.JniReferences(
+                        pid = it,
+                        tid = 1234u,
+                        beginTimeStamp = System.currentTimeMillis().toULong(),
+                        jniMethodName = Event.JniReferences.JniMethodName.AddLocalRef,
+                    )
+                )
+            }
         }
+    }
+
+    override suspend fun getOdexFiles(pid: UInt): Flow<String> = flow {
+        emit("/system/framework/oat/x86_64/android.test.base.odex")
+        emit("/system/framework/oat/x86_64/android.hidl.base-V1.0-java.odex")
+        emit("/system/framework/oat/x86_64/org.apache.http.legacy.odex")
+        emit("/system/framework/oat/x86_64/android.hidl.manager-V1.0-java.odex")
+        emit("/system_ext/framework/oat/x86_64/androidx.window.sidecar.odex")
+        emit(
+            "/data/app/~~0cD8TtY5ggbzXOrlKANgwQ==/de.amosproj3.ziofa-Sm8ZemAtgxCr5VAK1Cwi8Q==/oat/x86_64/base.odex"
+        )
+
+        emit("/system_ext/framework/oat/x86_64/androidx.window.extensions.odex")
+    }
+
+    override suspend fun getSymbols(odexFilePath: String): Flow<Symbol> = flow {
+        emit(
+            Symbol(
+                method =
+                    "void androidx.compose.material3.SearchBarDefaults\$InputField\$1\$1.<init>(kotlin.jvm.functions.Function1)",
+                offset = 6012800u,
+            )
+        )
+        emit(
+            Symbol(
+                method =
+                    "void kotlin.collections.ArraysKt___ArraysKt\$asSequence\$\$inlined\$Sequence\$2.<init>(byte[])",
+                offset = 5915712u,
+            )
+        )
+        emit(
+            Symbol(
+                method =
+                    "boolean androidx.compose.ui.platform.ViewLayer\$Companion.getHasRetrievedMethod()",
+                offset = 24010112u,
+            )
+        )
+        emit(
+            Symbol(
+                method =
+                    "androidx.core.app.NotificationCompat\$BubbleMetadata androidx.core.app.NotificationCompat\$BubbleMetadata\$Api29Impl.fromPlatform(android.app.Notification\$BubbleMetadata)",
+                offset = 25453376u,
+            )
+        )
+        emit(
+            Symbol(
+                method = "byte androidx.emoji2.text.flatbuffer.FlexBuffers\$Blob.get(int)",
+                offset = 26906336u,
+            )
+        )
     }
 }
 

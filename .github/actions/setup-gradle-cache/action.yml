@@ -18,14 +18,13 @@ runs:
       with:
         path: |
           frontend/.gradle
-          frontend/app/build
-          frontend/client/build
-          frontend/build
         key: ${{ github.repository }}-${{ runner.os }}-gradle-${{ github.job }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ github.repository }}-${{ runner.os }}-gradle-
         bucket: actions-cache
         accessKey: ${{ inputs.accessKey }}
         secretKey: ${{ inputs.secretKey }}
-        endpoint: nbg1.your-objectstorage.com
+        endpoint: localhost
+        port: 9000
+        insecure: true
         use-fallback: false

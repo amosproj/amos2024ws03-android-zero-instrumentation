@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -10,13 +11,16 @@ data class Configuration(
     val vfsWrite: VfsWriteConfig?,
     val sysSendmsg: SysSendmsgConfig?,
     val uprobes: List<UprobeConfig>,
+    val jniReferences: JniReferencesConfig?,
 )
 
 data class VfsWriteConfig(val entries: Map<UInt, ULong>)
 
 data class SysSendmsgConfig(val entries: Map<UInt, ULong>)
 
-data class UprobeConfig(val fnName: String, val offset: ULong, var target: String, val pid: Int?)
+data class UprobeConfig(val fnName: String, val offset: ULong, var target: String, val pid: UInt?)
+
+data class JniReferencesConfig(val pids: List<UInt>)
 
 sealed class Event {
     data class VfsWrite(
@@ -34,9 +38,27 @@ sealed class Event {
         val fd: ULong,
         val durationNanoSecs: ULong,
     ) : Event()
+
+    data class JniReferences(
+        val pid: UInt,
+        val tid: UInt,
+        val beginTimeStamp: ULong,
+        val jniMethodName: JniMethodName?,
+    ) : Event() {
+        enum class JniMethodName {
+            AddLocalRef,
+            DeleteLocalRef,
+            AddGlobalRef,
+            DeleteGlobalRef,
+        }
+    }
 }
 
-data class Process(val pid: Int, val ppid: Int, val state: String, val cmd: Command?)
+data class Process(val pid: UInt, val ppid: UInt, val state: String, val cmd: Command?)
+
+data class StringResponse(val name: String)
+
+data class Symbol(val method: String, val offset: ULong)
 
 sealed class Command {
     data class Cmdline(val components: List<String>) : Command()
@@ -66,6 +88,10 @@ interface Client {
     suspend fun getConfiguration(): Configuration
 
     suspend fun setConfiguration(configuration: Configuration)
+
+    suspend fun getOdexFiles(pid: UInt): Flow<String>
+
+    suspend fun getSymbols(odexFilePath: String): Flow<Symbol>
 
     suspend fun initStream(): Flow<Event>
 }

@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -7,10 +8,10 @@ use aya_log_ebpf::error;
 use backend_common::{generate_id, SysSendmsgCall};
 
 #[map(name = "SYS_SENDMSG_EVENTS")]
-pub static SYS_SENDMSG_EVENTS: RingBuf = RingBuf::with_byte_size(1024, 0);
+pub static SYS_SENDMSG_EVENTS: RingBuf = RingBuf::pinned(1024, 0);
 
 #[map(name = "SYS_SENDMSG_PIDS")]
-static SYS_SENDMSG_PIDS: HashMap<u32, u64> = HashMap::with_max_entries(4096, 0);
+static SYS_SENDMSG_PIDS: HashMap<u32, u64> = HashMap::pinned(4096, 0);
 
 #[map(name = "SYS_SENDMSG_TIMESTAMPS")]
 static SYS_SENDMSG_TIMESTAMPS: HashMap<u64, SysSendmsgIntern> = HashMap::with_max_entries(1024, 0);
@@ -59,9 +60,8 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
         Some(duration) => duration,
     };
 
-
-    let tgid = ctx.tgid();
-    let call_id = generate_id(pid, tgid);
+    let tid = ctx.tgid();
+    let call_id = generate_id(pid, tid);
     let data = match unsafe { SYS_SENDMSG_TIMESTAMPS.get(&call_id) } {
         None => {return 1}
         Some(entry) => {entry}
@@ -74,19 +74,25 @@ pub fn sys_exit_sendmsg(ctx: TracePointContext) -> u32 {
         return 0;
     }
 
-    let result_data = SysSendmsgCall::new(pid, tgid, data.begin_time_stamp, data.fd, duration_nano_sec);
-
     let mut entry = match SYS_SENDMSG_EVENTS.reserve::<SysSendmsgCall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in SYS_SENDMSG_MAP");
+            error!(&ctx, "could not reserve space in map: SYS_SENDMSG_CALLS");
             return 1;
         }
     };
 
-    entry.write(result_data);
-    entry.submit(0);
+    let entry_mut = entry.as_mut_ptr();
 
+    unsafe {
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).tid).write(tid);
+        (&raw mut (*entry_mut).begin_time_stamp).write(data.begin_time_stamp);
+        (&raw mut (*entry_mut).fd).write(data.fd);
+        (&raw mut (*entry_mut).duration_nano_sec).write(duration_nano_sec);
+    }
+
+    entry.submit(0);
 
     0
 }

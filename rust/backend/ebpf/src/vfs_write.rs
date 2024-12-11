@@ -1,3 +1,4 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -14,10 +15,10 @@ use backend_common::{generate_id, VfsWriteCall};
 
 
 #[map(name = "VFS_WRITE_EVENTS")]
-pub static VFS_WRITE_EVENTS: RingBuf = RingBuf::with_byte_size(1024, 0);
+pub static VFS_WRITE_EVENTS: RingBuf = RingBuf::pinned(1024, 0);
 
 #[map(name = "VFS_WRITE_PIDS")]
-static VFS_WRITE_PIDS: HashMap<u32, u64> = HashMap::with_max_entries(4096, 0);
+static VFS_WRITE_PIDS: HashMap<u32, u64> = HashMap::pinned(4096, 0);
 
 #[map(name = "VfsWriteIntern")]
 static VFS_WRITE_TIMESTAMPS: HashMap<u64, VfsWriteIntern> = HashMap::with_max_entries(1024, 0);
@@ -29,7 +30,7 @@ struct VfsWriteIntern {
     bytes_written: usize,
 }
 
-#[kprobe]
+#[kprobe(function = "wow")]
 pub fn vfs_write(ctx: ProbeContext) -> Result<(), u32> {
     let pid = ctx.pid();
     let id = generate_id(pid, ctx.tgid());
@@ -75,8 +76,8 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
         Some(duration) => duration,
     };
 
-    let tgid = ctx.tgid();
-    let call_id = generate_id(pid, tgid);
+    let tid = ctx.tgid();
+    let call_id = generate_id(pid, tid);
     let data = match unsafe { VFS_WRITE_TIMESTAMPS.get(&call_id) } {
         None => {return Err(0)}
         Some(entry) => {entry}
@@ -88,17 +89,24 @@ pub fn vfs_write_ret(ctx: RetProbeContext) -> Result<(), u32> {
         return Ok(());
     }
 
-    let data = VfsWriteCall::new(pid, tgid, data.begin_time_stamp, data.fp, data.bytes_written);
-
     let mut entry = match VFS_WRITE_EVENTS.reserve::<VfsWriteCall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in VFS_WRITE_MAP");
+            error!(&ctx, "could not reserve space in map: VFS_WRITE_EVENTS");
             return Err(0)
         },
     };
 
-    entry.write(data);
+    let entry_mut = entry.as_mut_ptr();
+    
+    unsafe {
+        (&raw mut (*entry_mut).pid).write(pid);
+        (&raw mut (*entry_mut).tid).write(tid);
+        (&raw mut (*entry_mut).begin_time_stamp).write(data.begin_time_stamp);
+        (&raw mut (*entry_mut).fp).write(data.fp);
+        (&raw mut (*entry_mut).bytes_written).write(data.bytes_written);
+    }
+
     entry.submit(0);
 
 

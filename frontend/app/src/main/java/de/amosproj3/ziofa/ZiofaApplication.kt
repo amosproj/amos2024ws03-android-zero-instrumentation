@@ -7,18 +7,22 @@ package de.amosproj3.ziofa
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
-import de.amosproj3.ziofa.api.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.DataStreamProvider
-import de.amosproj3.ziofa.api.LocalConfigurationAccess
-import de.amosproj3.ziofa.api.RunningComponentsAccess
-import de.amosproj3.ziofa.bl.ConfigurationManager
-import de.amosproj3.ziofa.bl.DataStreamManager
-import de.amosproj3.ziofa.bl.PackageInformationProvider
-import de.amosproj3.ziofa.bl.RunningComponentsProvider
+import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.SymbolsAccess
+import de.amosproj3.ziofa.api.events.DataStreamProvider
+import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
+import de.amosproj3.ziofa.bl.configuration.ConfigurationManager
+import de.amosproj3.ziofa.bl.configuration.UProbeManager
+import de.amosproj3.ziofa.bl.events.DataStreamManager
+import de.amosproj3.ziofa.bl.processes.PackageInformationProvider
+import de.amosproj3.ziofa.bl.processes.RunningComponentsProvider
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.RustClientFactory
 import de.amosproj3.ziofa.ui.configuration.ConfigurationViewModel
 import de.amosproj3.ziofa.ui.processes.ProcessesViewModel
+import de.amosproj3.ziofa.ui.reset.ResetViewModel
+import de.amosproj3.ziofa.ui.symbols.SymbolsViewModel
 import de.amosproj3.ziofa.ui.visualization.VisualizationViewModel
 import kotlinx.coroutines.CoroutineScope
 import org.koin.android.ext.koin.androidContext
@@ -33,12 +37,6 @@ import timber.log.Timber
 
 class ZiofaApplication : Application() {
 
-    val appModule: Module = module {
-        createExternalDependencies()
-        createBLModules()
-        createViewModelFactories()
-    }
-
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree()) // start Timber logging
@@ -46,7 +44,13 @@ class ZiofaApplication : Application() {
         startKoin {
             androidLogger()
             androidContext(this@ZiofaApplication)
-            modules(appModule)
+            modules(
+                module {
+                    createExternalDependencies()
+                    createBLModules()
+                    createViewModelFactories()
+                }
+            )
         }
     }
 
@@ -63,6 +67,7 @@ class ZiofaApplication : Application() {
         single { ConfigurationManager(clientFactory = get()) } binds
             arrayOf(BackendConfigurationAccess::class, LocalConfigurationAccess::class)
         factory<DataStreamProvider> { (scope: CoroutineScope) -> DataStreamManager(get(), scope) }
+        single<SymbolsAccess> { UProbeManager(get()) }
     }
 
     private fun Module.createViewModelFactories() {
@@ -73,6 +78,7 @@ class ZiofaApplication : Application() {
                 pids = pids,
             )
         }
+        viewModel { ResetViewModel(get()) }
         viewModel { ProcessesViewModel(runningComponentsProvider = get()) }
         viewModel {
             VisualizationViewModel(
@@ -81,5 +87,7 @@ class ZiofaApplication : Application() {
                 runningComponentsAccess = get(),
             )
         }
+
+        viewModel { (pids: List<UInt>) -> SymbolsViewModel(get(), get(), pids) }
     }
 }

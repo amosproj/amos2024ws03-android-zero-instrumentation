@@ -31,43 +31,47 @@ repository = "https://github.com/amosproj/amos2024ws03-android-zero-instrumentat
 edition = "2021"
 
 [workspace.dependencies]
-aya = { version = "0.13.0", default-features = false }
+aya = { version = "0.13.1", default-features = false }
 aya-ebpf = { version = "0.1.1", default-features = false }
 aya-log = { version = "0.2.1", default-features = false }
 aya-log-ebpf = { version = "0.1.1", default-features = false }
 
 anyhow = { version = "1", default-features = false }
-cargo_metadata = { version = "0.18.0", default-features = false }
+cargo_metadata = { version = "0.19.1", default-features = false }
 # `std` feature is currently required to build `clap`.
 #
 # See https://github.com/clap-rs/clap/blob/61f5ee5/clap_builder/src/lib.rs#L15.
-clap = { version = "4.5.20", default-features = false, features = ["std"] }
+clap = { version = "4.5.23", default-features = false, features = ["std"] }
 env_logger = { version = "0.11.5", default-features = false }
-libc = { version = "0.2.159", default-features = false }
+libc = { version = "0.2.168", default-features = false }
 log = { version = "0.4.22", default-features = false }
-tokio = { version = "1.40.0", default-features = false }
-which = { version = "6.0.0", default-features = false }
-prost = "0.13.3"
-serde = { version = "1.0.214", features = ["derive"] }
+tokio = { version = "1.42.0", default-features = false }
+which = { version = "7.0.0", default-features = false }
+prost = "0.13.4"
+serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0"
 tonic = "0.12.3"
 tonic-build = "0.12.3"
-tokio-stream = "0.1.16"
-uniffi = { version = "0.28.2" }
-thiserror = "2.0.3"
+tokio-stream = "0.1.17"
+uniffi = { version = "0.28.3" }
+thiserror = "2.0.6"
 shared = { path = "./shared" }
 xtask = { path = "./xtask" }
 backend-common = { path = "./backend/common" }
 backend-daemon = { path = "./backend/daemon" }
 backend-ebpf = { path = "./backend/ebpf" }
-tracing = { version = "0.1.40" }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing = { version = "0.1.41" }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 procfs = "0.17.0"
 async-broadcast = "0.7.1"
 console = "0.15.8"
 dialoguer = "0.11.0"
 indicatif = "0.17.9"
 nix = "0.29.0"
+object = "0.36.5"
+bytemuck = { version = "1.20.0" }
+crossbeam = "0.8.4"
+ractor = { version = "0.13.4", default-features = false }
 
 [profile.dev]
 panic = "abort"

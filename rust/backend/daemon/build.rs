@@ -12,7 +12,7 @@ use std::{
 };
 
 use cargo_metadata::{
-    Artifact, CompilerMessage, Message, Metadata, MetadataCommand, Package, Target,
+    Artifact, CompilerMessage, Message, Metadata, MetadataCommand, Package, Target, TargetKind,
 };
 use xtask::AYA_BUILD_EBPF;
 
@@ -168,7 +168,7 @@ fn main() {
     } else {
         let Package { targets, .. } = ebpf_package;
         for Target { name, kind, .. } in targets {
-            if *kind != ["bin"] {
+            if !kind.contains(&TargetKind::Bin) {
                 continue;
             }
             let dst = out_dir.join(name);

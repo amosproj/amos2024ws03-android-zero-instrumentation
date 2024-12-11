@@ -21,9 +21,9 @@ import de.amosproj3.ziofa.ui.navigation.data.Emoji
 @Composable
 fun ConfigurationMenu(
     modifier: Modifier = Modifier,
-    toPresets: () -> Unit,
     toProcesses: () -> Unit,
     toGlobalConfiguration: () -> Unit,
+    toReset: () -> Unit,
 ) {
 
     Box(
@@ -38,11 +38,6 @@ fun ConfigurationMenu(
                 menuOptions =
                     listOf(
                         MenuOptionData(
-                            title = "Presets",
-                            logoEmoji = Emoji.Bookmarks.unicode,
-                            onClick = toPresets,
-                        ),
-                        MenuOptionData(
                             title = "Global",
                             logoEmoji = Emoji.Globe.unicode,
                             onClick = toGlobalConfiguration,
@@ -51,6 +46,11 @@ fun ConfigurationMenu(
                             title = "Per Process",
                             logoEmoji = Emoji.MagnifyingGlass.unicode,
                             onClick = toProcesses,
+                        ),
+                        MenuOptionData(
+                            title = "Reset",
+                            logoEmoji = Emoji.Reset.unicode,
+                            onClick = toReset,
                         ),
                     )
             )

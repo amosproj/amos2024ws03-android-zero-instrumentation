@@ -29,15 +29,15 @@ pub fn list_processes() -> Result<ProcessList, ProcError> {
                 let cmdline = process.cmdline();
                 match cmdline {
                     Ok(c) if !c.is_empty() => Some(ziofa::Process {
-                        pid: stat.pid,
-                        ppid: stat.ppid,
+                        pid: u32::try_from(stat.pid).unwrap(),
+                        ppid: u32::try_from(stat.ppid).unwrap(),
                         cmd: Some(Cmd::Cmdline(CmdlineData { args: c })),
                         state: stat.state.to_string(),
                     }),
                     // fallback to stat.comm if cmdline is empty
                     _ => Some(ziofa::Process {
-                        pid: stat.pid,
-                        ppid: stat.ppid,
+                        pid: u32::try_from(stat.pid).unwrap(),
+                        ppid: u32::try_from(stat.ppid).unwrap(),
                         cmd: Some(Cmd::Comm(stat.comm)),
                         state: stat.state.to_string(),
                     }),

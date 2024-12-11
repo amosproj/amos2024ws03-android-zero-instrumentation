@@ -7,8 +7,33 @@
 //
 // SPDX-License-Identifier: MIT
 
+use bytemuck::{checked::CheckedCastError, AnyBitPattern, CheckedBitPattern};
+
+
+pub trait TryFromRaw: Sized {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError>;
+}
+
+impl TryFromRaw for VfsWriteCall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::try_from_bytes(raw)?)
+    }
+}
+
+impl TryFromRaw for SysSendmsgCall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::try_from_bytes(raw)?)
+    }
+}
+
+impl TryFromRaw for JNICall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::checked::try_from_bytes(raw)?)
+    }
+}
+
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, AnyBitPattern)]
 pub struct VfsWriteCall {
     pub pid: u32,
     pub tid: u32,
@@ -19,12 +44,18 @@ pub struct VfsWriteCall {
 
 impl VfsWriteCall {
     pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fp: u64, bytes_written: usize) -> Self {
-        Self { pid, tid, begin_time_stamp, fp, bytes_written}
+        Self {
+            pid,
+            tid,
+            begin_time_stamp,
+            fp,
+            bytes_written,
+        }
     }
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, AnyBitPattern)]
 pub struct SysSendmsgCall {
     pub pid: u32,
     pub tid: u32,
@@ -35,12 +66,36 @@ pub struct SysSendmsgCall {
 
 impl SysSendmsgCall {
     pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, fd: u64, duration_nano_sec: u64) -> Self {
-        Self { pid, tid, begin_time_stamp, fd, duration_nano_sec }
+        Self {
+            pid,
+            tid,
+            begin_time_stamp,
+            fd,
+            duration_nano_sec,
+        }
     }
 }
 
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
+pub enum JNIMethodName {
+    AddLocalRef,
+    DeleteLocalRef,
+    AddGlobalRef,
+    DeleteGlobalRef,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
+pub struct JNICall {
+    pub pid: u32,
+    pub tid: u32,
+    pub begin_time_stamp: u64,
+    pub method_name: JNIMethodName,
+}
+
 #[inline(always)]
-pub fn generate_id(pid: u32, tgid: u32) -> u64{
+pub fn generate_id(pid: u32, tgid: u32) -> u64 {
     let pid_u64 = pid as u64;
     let tgid_u64 = tgid as u64;
 

@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig};
+use shared::config::{Configuration, JniReferencesConfig, SysSendmsgConfig, VfsWriteConfig};
 use shared::ziofa::{process::Cmd, ziofa_client::ZiofaClient};
 use tonic::transport::Channel;
 
@@ -63,18 +63,18 @@ async fn set_get_configuration() {
     let mut client = setup().await;
     let default_config = Configuration {
         uprobes: vec![],
-        vfs_write: Some(VfsWriteConfig { entries: std::collections::HashMap::new() }),
-        sys_sendmsg: Some(SysSendmsgConfig { entries: std::collections::HashMap::new() }),
+        vfs_write: Some(VfsWriteConfig {
+            entries: std::collections::HashMap::new(),
+        }),
+        sys_sendmsg: Some(SysSendmsgConfig {
+            entries: std::collections::HashMap::new(),
+        }),
+        jni_references: Some(JniReferencesConfig { pids: vec![] }),
     };
-    assert_eq!(
-        client
-            .set_configuration(default_config.clone())
-            .await
-            .expect("should work")
-            .into_inner()
-            .response_type,
-        0
-    );
+    client
+        .set_configuration(default_config.clone())
+        .await
+        .expect("should work");
 
     let res_config = client
         .get_configuration(())
@@ -82,8 +82,5 @@ async fn set_get_configuration() {
         .expect("should work")
         .into_inner();
 
-    assert_eq!(
-        res_config,
-        default_config
-    );
+    assert_eq!(res_config, default_config);
 }

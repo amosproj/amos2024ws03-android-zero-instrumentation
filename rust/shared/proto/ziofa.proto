@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.com>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <68117355+Mr-Kanister@users.noreply.github.com>
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 //
 // SPDX-License-Identifier: MIT
 
@@ -14,11 +15,30 @@ service Ziofa {
     rpc CheckServer(google.protobuf.Empty) returns (CheckServerResponse) {}
     rpc ListProcesses(google.protobuf.Empty) returns (ProcessList) {}
 
-    rpc GetConfiguration(google.protobuf.Empty) returns (config.Configuration){}
-    rpc SetConfiguration(config.Configuration) returns (SetConfigurationResponse){}
+    rpc GetConfiguration(google.protobuf.Empty) returns (config.Configuration) {}
+    rpc SetConfiguration(config.Configuration) returns (google.protobuf.Empty) {}
 
     rpc InitStream(google.protobuf.Empty) returns (stream Event) {}      // all Responses genereated by the ebpf-programms are send via this stream
 
+    rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
+    rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
+}
+
+message StringResponse {
+    string name = 1;
+}
+
+message GetSymbolsRequest {
+    string odex_file_path = 2;
+}
+
+message Symbol {
+    string method = 1;
+    uint64 offset = 2;
+}
+
+message PidMessage{
+    uint32 pid = 1;
 }
 
 message CheckServerResponse {
@@ -30,8 +50,8 @@ message ProcessList {
 }
 
 message Process {
-    int32 pid = 1;
-    int32 ppid = 2;
+    uint32 pid = 1;
+    uint32 ppid = 2;
     oneof cmd {
         CmdlineData cmdline = 3;
         string comm = 4;
@@ -44,14 +64,11 @@ message CmdlineData {
     repeated string args = 1;
 }
 
-message SetConfigurationResponse{
-    uint32 response_type = 1;
-}
-
 message Event {
     oneof event_data {
         VfsWriteEvent vfs_write = 1;
         SysSendmsgEvent sys_sendmsg = 2;
+        JniReferencesEvent jni_references = 3;
     }
 }
 
@@ -70,3 +87,18 @@ message SysSendmsgEvent {
     uint64 fd = 4;
     uint64 duration_nano_sec = 5;
 }
+
+message JniReferencesEvent {
+    enum JniMethodName {
+        Undefined = 0;
+        AddLocalRef = 1;
+        DeleteLocalRef = 2;
+        AddGlobalRef = 3;
+        DeleteGlobalRef = 4;
+    }
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 begin_time_stamp = 3;
+    JniMethodName jni_method_name = 4;
+}
+

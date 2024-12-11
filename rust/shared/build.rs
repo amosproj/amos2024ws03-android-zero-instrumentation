@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -20,8 +21,13 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "Event",
             "VfsWriteEvent",
             "SysSendmsgEvent",
+            "JniReferencesEvent",
             "VfsWriteConfig",
             "SysSendmsgConfig",
+            "JniReferencesConfig",
+            "StringResponse",
+            "Symbol",
+            "SetConfigurationResponse",
         ]
     } else {
         vec![]
@@ -30,7 +36,7 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
 static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     if cfg!(feature = "uniffi") {
-        vec!["Process.cmd", "Event.event_data"]
+        vec!["Process.cmd", "Event.event_data", "JniReferencesEvent.JniMethodName"]
     } else {
         vec![]
     }
