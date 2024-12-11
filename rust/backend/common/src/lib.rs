@@ -7,8 +7,33 @@
 //
 // SPDX-License-Identifier: MIT
 
+use bytemuck::{checked::CheckedCastError, AnyBitPattern, CheckedBitPattern};
+
+
+pub trait TryFromRaw: Sized {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError>;
+}
+
+impl TryFromRaw for VfsWriteCall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::try_from_bytes(raw)?)
+    }
+}
+
+impl TryFromRaw for SysSendmsgCall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::try_from_bytes(raw)?)
+    }
+}
+
+impl TryFromRaw for JNICall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::checked::try_from_bytes(raw)?)
+    }
+}
+
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, AnyBitPattern)]
 pub struct VfsWriteCall {
     pub pid: u32,
     pub tid: u32,
@@ -30,7 +55,7 @@ impl VfsWriteCall {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, AnyBitPattern)]
 pub struct SysSendmsgCall {
     pub pid: u32,
     pub tid: u32,
@@ -51,8 +76,8 @@ impl SysSendmsgCall {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
 pub enum JNIMethodName {
     AddLocalRef,
     DeleteLocalRef,
@@ -61,7 +86,7 @@ pub enum JNIMethodName {
 }
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
 pub struct JNICall {
     pub pid: u32,
     pub tid: u32,
