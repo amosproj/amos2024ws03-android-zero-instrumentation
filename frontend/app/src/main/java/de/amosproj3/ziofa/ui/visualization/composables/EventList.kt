@@ -12,7 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.intl.Locale
-import de.amosproj3.ziofa.api.BackendEvent
+import de.amosproj3.ziofa.api.events.BackendEvent
 
 @Composable
 fun EventList(events: List<BackendEvent>) {

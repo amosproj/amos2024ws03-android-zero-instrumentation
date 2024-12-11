@@ -4,11 +4,11 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl
+package de.amosproj3.ziofa.bl.configuration
 
-import de.amosproj3.ziofa.api.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.ConfigurationUpdate
-import de.amosproj3.ziofa.api.LocalConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
+import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.client.Client
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Configuration
@@ -17,6 +17,7 @@ import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.shared.updatePIDs
+import de.amosproj3.ziofa.ui.shared.updateUProbes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 class ConfigurationManager(val clientFactory: ClientFactory) :
@@ -62,7 +64,9 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
     ) {
         _localConfiguration.update { prev ->
             Timber.e("changeFeatureConfigurationForPIDs.prev $prev")
-            Timber.e("changeFeatureConfigurationForPIDs() $vfsWriteFeature, $sendMessageFeature")
+            Timber.e(
+                "changeFeatureConfigurationForPIDs() $vfsWriteFeature, $sendMessageFeature, $uprobesFeature, $jniReferencesFeature"
+            )
             // the configuration shall not be changed from the UI if there is none received from
             // backend
             if (prev != null && prev is ConfigurationUpdate.Valid) {
@@ -87,9 +91,22 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                                         if (!enable) requestedChanges.entries.entries else setOf(),
                                 )
                             } ?: previousConfiguration.sysSendmsg,
-                        uprobes = uprobesFeature ?: prev.configuration.uprobes, // TODO
+                        uprobes =
+                            uprobesFeature.let { requestedChanges ->
+                                if (requestedChanges == null)
+                                    return@let previousConfiguration.uprobes
+                                previousConfiguration.uprobes.updateUProbes(
+                                    pidsToAdd = if (enable) requestedChanges else listOf(),
+                                    pidsToRemove = if (!enable) requestedChanges else listOf(),
+                                )
+                            },
                         jniReferences =
-                            jniReferencesFeature ?: prev.configuration.jniReferences, // TODO
+                            jniReferencesFeature?.let { requestedChanges ->
+                                previousConfiguration.jniReferences.updatePIDs(
+                                    pidsToAdd = if (enable) requestedChanges.pids else listOf(),
+                                    pidsToRemove = if (!enable) requestedChanges.pids else listOf(),
+                                )
+                            } ?: previousConfiguration.jniReferences,
                     )
                     .also { Timber.i("new local configuration = $it") }
                     .let { ConfigurationUpdate.Valid(it) }
@@ -103,6 +120,13 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
             updateBothConfigurations(
                 getFromBackend()
             ) // "emulates" callback of changed configuration until
+        }
+    }
+
+    override fun reset() {
+        runBlocking {
+            client?.setConfiguration(Configuration(null, null, listOf(), null))
+            updateBothConfigurations(getFromBackend())
         }
     }
 
@@ -125,7 +149,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                     vfsWrite = null,
                     sysSendmsg = null,
                     uprobes = listOf(),
-                    jniReferences = JniReferencesConfig(pids = listOf()),
+                    jniReferences = null,
                 )
             )
             ConfigurationUpdate.Valid(client!!.getConfiguration())

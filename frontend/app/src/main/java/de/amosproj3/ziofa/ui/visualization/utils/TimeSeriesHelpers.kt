@@ -4,7 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.utils
 
-import de.amosproj3.ziofa.api.BackendEvent
+import de.amosproj3.ziofa.api.events.BackendEvent
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import kotlin.time.toDuration
 import kotlinx.coroutines.FlowPreview

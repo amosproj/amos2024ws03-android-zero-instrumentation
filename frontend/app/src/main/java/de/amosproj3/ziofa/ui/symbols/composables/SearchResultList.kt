@@ -1,11 +1,9 @@
-// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.ui.configuration.composables
+package de.amosproj3.ziofa.ui.symbols.composables
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,24 +18,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
+import de.amosproj3.ziofa.ui.symbols.data.SymbolsEntry
 
 @Composable
-fun EbpfOptions(
-    options: List<BackendFeatureOptions>,
-    onOptionChanged: (BackendFeatureOptions, Boolean) -> Unit,
+fun SearchResultList(
+    symbols: Map<SymbolsEntry, Boolean>,
+    onOptionChanged: (SymbolsEntry, Boolean) -> Unit,
 ) {
+
     LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
         item { Spacer(Modifier.height(15.dp)) }
 
-        items(options) { option ->
+        items(symbols.entries.toList().sortedBy { it.key.name }) { option ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(option.featureName)
-                Checkbox(checked = option.active, onCheckedChange = { onOptionChanged(option, it) })
+                Text(option.key.name, modifier = Modifier.weight(10f))
+                Checkbox(
+                    modifier = Modifier.weight(1f),
+                    checked = option.value,
+                    onCheckedChange = { onOptionChanged(option.key, it) },
+                )
             }
         }
     }

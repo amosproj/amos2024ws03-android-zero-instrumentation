@@ -4,8 +4,10 @@
 
 package de.amosproj3.ziofa.ui.shared
 
-import de.amosproj3.ziofa.api.ConfigurationUpdate
+import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
+import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 
@@ -35,6 +37,22 @@ fun SysSendmsgConfig?.updatePIDs(
     )
 }
 
+fun List<UprobeConfig>?.updateUProbes(
+    pidsToAdd: List<UprobeConfig> = listOf(),
+    pidsToRemove: List<UprobeConfig> = listOf(),
+): List<UprobeConfig> {
+    val config = this ?: listOf()
+    return config.minus(pidsToRemove.toSet()).plus(pidsToAdd).toSet().toList()
+}
+
+fun JniReferencesConfig?.updatePIDs(
+    pidsToAdd: List<UInt> = listOf(),
+    pidsToRemove: List<UInt> = listOf(),
+): JniReferencesConfig {
+    val config = this ?: JniReferencesConfig(listOf())
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet()))
+}
+
 /** Show as enabled depending on the PIDs the screen is configuring. */
 fun ConfigurationUpdate.Valid.toUIOptionsForPids(
     relevantPids: List<UInt>? = null
@@ -58,9 +76,21 @@ fun ConfigurationUpdate.Valid.toUIOptionsForPids(
                 )
             } ?: BackendFeatureOptions.SendMessageOption(enabled = false, pids = setOf())
         )
+
+        this.configuration.uprobes
+            .filter { it.pid == null || relevantPids.contains(it.pid!!.toUInt()) }
+            .forEach { uprobeConfig ->
+                options.add(
+                    BackendFeatureOptions.UprobeOption(
+                        enabled = true, // uprobe options are either active or not visible
+                        method = uprobeConfig.fnName,
+                        pids = uprobeConfig.pid?.let { setOf(it.toUInt()) } ?: setOf(),
+                        odexFilePath = uprobeConfig.target,
+                        offset = uprobeConfig.offset,
+                    )
+                )
+            }
     }
-    // TODO add uprobe
-    // TODO what to do with global?
 
     return options.toList()
 }

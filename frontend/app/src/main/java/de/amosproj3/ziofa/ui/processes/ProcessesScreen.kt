@@ -22,7 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import de.amosproj3.ziofa.api.RunningComponent
+import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.ui.processes.composables.EditButton
 import de.amosproj3.ziofa.ui.processes.composables.IconAndName
 import de.amosproj3.ziofa.ui.processes.composables.ProcessesHeader
