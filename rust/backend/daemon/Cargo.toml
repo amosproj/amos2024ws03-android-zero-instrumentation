@@ -31,6 +31,8 @@ async-broadcast = { workspace = true }
 object = { workspace = true }
 serde = { workspace = true }
 crossbeam = { workspace = true }
+bytemuck = { workspace = true }
+ractor = { workspace = true, features = ["tokio_runtime"] }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }

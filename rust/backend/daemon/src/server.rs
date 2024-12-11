@@ -5,6 +5,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
 use crate::registry;
 use crate::symbols::SymbolHandler;
 use crate::{
@@ -14,6 +15,7 @@ use crate::{
     features::Features,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
+use ractor::Actor;
 use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
 use shared::{
     config::Configuration,
@@ -184,9 +186,19 @@ impl Ziofa for ZiofaImpl {
     }
 }
 
+
+
 pub async fn serve_forever() {
     let registry = registry::load_and_pin().unwrap();
-    let channel = Arc::new(Channel::new());
+
+    let channel = Channel::new();
+    let (collector_ref, _) = Actor::spawn(
+        None, 
+        CollectorSupervisor, 
+        CollectorSupervisorArguments::new(registry.event.clone(), 
+        channel.tx.clone())
+    ).await.unwrap();
+    let channel = Arc::new(channel);
 
     let features = Features::init_all_features(&registry);
 
@@ -200,4 +212,6 @@ pub async fn serve_forever() {
         .serve(constants::sock_addr())
         .await
         .unwrap();
+    
+    collector_ref.stop_and_wait(None, None).await.unwrap();
 }

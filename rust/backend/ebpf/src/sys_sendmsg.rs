@@ -1,17 +1,17 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
-
 
 use aya_ebpf::{macros::{tracepoint, map}, maps::{HashMap, RingBuf}, programs::{TracePointContext}, EbpfContext, helpers::gen::bpf_ktime_get_ns};
 use aya_log_ebpf::error;
 use backend_common::{generate_id, SysSendmsgCall};
 
 #[map(name = "SYS_SENDMSG_EVENTS")]
-pub static SYS_SENDMSG_EVENTS: RingBuf = RingBuf::with_byte_size(1024, 0);
+pub static SYS_SENDMSG_EVENTS: RingBuf = RingBuf::pinned(1024, 0);
 
 #[map(name = "SYS_SENDMSG_PIDS")]
-static SYS_SENDMSG_PIDS: HashMap<u32, u64> = HashMap::with_max_entries(4096, 0);
+static SYS_SENDMSG_PIDS: HashMap<u32, u64> = HashMap::pinned(4096, 0);
 
 #[map(name = "SYS_SENDMSG_TIMESTAMPS")]
 static SYS_SENDMSG_TIMESTAMPS: HashMap<u64, SysSendmsgIntern> = HashMap::with_max_entries(1024, 0);
