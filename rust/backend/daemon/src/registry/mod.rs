@@ -15,7 +15,7 @@ use aya_log::EbpfLogger;
 use backend_common::{JNICall, SysSendmsgCall, VfsWriteCall};
 use pinning::{LoadAndPin, TryMapFromPin};
 pub use typed_ringbuf::TypedRingBuffer;
-pub use single_owner::RegistryItem;
+pub use single_owner::{RegistryGuard, RegistryItem};
 
 pub type OwnedRingBuf = RingBuf<MapData>;
 pub type OwnedHashMap<K, V> = HashMap<MapData, K, V>;
