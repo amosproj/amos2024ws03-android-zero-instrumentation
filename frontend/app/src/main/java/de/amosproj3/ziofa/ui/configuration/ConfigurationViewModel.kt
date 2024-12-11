@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
 import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
+import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
@@ -79,6 +80,13 @@ class ConfigurationViewModel(
                                     pid = it,
                                 )
                             },
+                    )
+                }
+
+                is BackendFeatureOptions.JniReferencesOption->{
+                    localConfigurationAccess.changeFeatureConfiguration(
+                        enable = active,
+                        jniReferencesFeature = JniReferencesConfig(pids)
                     )
                 }
 

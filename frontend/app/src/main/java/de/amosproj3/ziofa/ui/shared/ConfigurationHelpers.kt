@@ -18,9 +18,9 @@ fun VfsWriteConfig?.updatePIDs(
     val config = this ?: VfsWriteConfig(mapOf())
     return config.copy(
         entries =
-            config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-                it.key to it.value
-            }
+        config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
+            it.key to it.value
+        }
     )
 }
 
@@ -31,9 +31,9 @@ fun SysSendmsgConfig?.updatePIDs(
     val config = this ?: SysSendmsgConfig(mapOf())
     return config.copy(
         entries =
-            config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-                it.key to it.value
-            }
+        config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
+            it.key to it.value
+        }
     )
 }
 
@@ -75,6 +75,15 @@ fun ConfigurationUpdate.Valid.toUIOptionsForPids(
                     pids = it.entries.keys,
                 )
             } ?: BackendFeatureOptions.SendMessageOption(enabled = false, pids = setOf())
+        )
+
+        options.add(
+            this.configuration.jniReferences?.let {
+                BackendFeatureOptions.JniReferencesOption(
+                    enabled = it.pids.anyPidsEnabled(relevantPids),
+                    pids = it.pids.toSet()
+                )
+            } ?: BackendFeatureOptions.JniReferencesOption(enabled = false, pids = setOf())
         )
 
         this.configuration.uprobes
