@@ -69,6 +69,7 @@ dialoguer = "0.11.0"
 indicatif = "0.17.9"
 nix = "0.29.0"
 object = "0.36.5"
+bytemuck = { version = "1.20.0" }
 
 [profile.dev]
 panic = "abort"
