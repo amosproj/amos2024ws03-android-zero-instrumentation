@@ -9,7 +9,6 @@ use crate::collector::MultiCollector;
 use crate::symbols::SymbolHandler;
 use crate::{
     configuration, constants,
-    counter::Counter,
     ebpf_utils::EbpfErrorWrapper,
     procfs_utils::{list_processes, ProcErrorWrapper},
     features::Features,
@@ -20,7 +19,6 @@ use aya_log::EbpfLogger;
 use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
 use shared::{
     config::Configuration,
-    counter::counter_server::CounterServer,
     ziofa::{
         ziofa_server::{Ziofa, ZiofaServer},
         CheckServerResponse, ProcessList,
@@ -216,12 +214,10 @@ pub async fn serve_forever() {
     let ebpf = Arc::new(Mutex::new(ebpf));
     let features = Arc::new(Mutex::new(features));
     let ziofa_server = ZiofaServer::new(ZiofaImpl::new(ebpf.clone(), features, channel, symbol_handler));
-    let counter_server = CounterServer::new(Counter::new(ebpf).await);
 
     let serve = async move {
         Server::builder()
             .add_service(ziofa_server)
-            .add_service(counter_server)
             .serve(constants::sock_addr())
             .await
             .unwrap();

@@ -6,7 +6,6 @@
 
 mod configuration;
 mod constants;
-pub mod counter;
 mod ebpf_utils;
 mod helpers;
 mod procfs_utils;
