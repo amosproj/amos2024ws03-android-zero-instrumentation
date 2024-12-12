@@ -37,7 +37,7 @@ fun SymbolsScreen(pids: List<UInt>, modifier: Modifier = Modifier, onSymbolsSubm
 
     Box(modifier = modifier) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            SymbolsSearchBar (
+            SymbolsSearchBar(
                 value = searchQuery,
                 onValueChanged = { searchQuery = it },
                 onStartSearch = { viewModel.startSearch(it) },

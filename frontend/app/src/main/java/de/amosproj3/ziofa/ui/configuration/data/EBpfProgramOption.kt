@@ -15,7 +15,6 @@ sealed class BackendFeatureOptions(val featureName: String, val active: Boolean)
     data class JniReferencesOption(val enabled: Boolean, val pids: Set<UInt>) :
         BackendFeatureOptions("Local & Global Indirect JNI References", enabled)
 
-
     data class UprobeOption(
         val method: String,
         val enabled: Boolean,

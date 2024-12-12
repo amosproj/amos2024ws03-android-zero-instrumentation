@@ -11,26 +11,21 @@ import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
 import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
-import de.amosproj3.ziofa.ui.shared.HISTOGRAM_BUCKETS
-import de.amosproj3.ziofa.ui.shared.TIME_SERIES_SIZE
 import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
-import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_GRAPHED_DATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_SELECTION_DATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_TIMEFRAME_OPTIONS
 import de.amosproj3.ziofa.ui.visualization.utils.VisualizationDisplayMode
-import de.amosproj3.ziofa.ui.visualization.utils.accumulateEvents
 import de.amosproj3.ziofa.ui.visualization.utils.getChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
-import de.amosproj3.ziofa.ui.visualization.utils.sortAndClip
-import de.amosproj3.ziofa.ui.visualization.utils.toAveragedDurationOverTimeframe
-import de.amosproj3.ziofa.ui.visualization.utils.toBucketedData
+import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
+import de.amosproj3.ziofa.ui.visualization.utils.toEventList
+import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
 import de.amosproj3.ziofa.ui.visualization.utils.toUIOptions
-import kotlin.time.toDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -83,7 +78,7 @@ class VisualizationViewModel(
                     selectedTimeframe = activeTimeframe,
                     componentOptions = configuredComponents.toUIOptions(),
                     metricOptions =
-                        backendConfig.getMetricOptionsForPids(
+                        backendConfig.getActiveMetricsForPids(
                             pids = activeComponent.getPIDsOrNull()
                         ),
                     timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
@@ -155,8 +150,10 @@ class VisualizationViewModel(
 
     fun switchMode() {
         displayMode.update { prev ->
-            if (prev == VisualizationDisplayMode.CHART) VisualizationDisplayMode.EVENTS
-            else VisualizationDisplayMode.CHART
+            when (prev) {
+                VisualizationDisplayMode.EVENTS -> VisualizationDisplayMode.CHART
+                VisualizationDisplayMode.CHART -> VisualizationDisplayMode.EVENTS
+            }
         }
     }
 
@@ -170,43 +167,35 @@ class VisualizationViewModel(
     ): Flow<GraphedData> {
 
         val pids = selectedComponent.getPIDsOrNull()
-        return when (selectedMetric.backendFeature) {
-            is BackendFeatureOptions.VfsWriteOption ->
-                dataStreamProvider.vfsWriteEvents(pids = pids).let { events ->
-                    if (mode == VisualizationDisplayMode.CHART) {
-                        events
-                            .toBucketedData(
-                                selectedTimeframe.amount
-                                    .toDuration(selectedTimeframe.unit)
-                                    .inWholeMilliseconds
-                                    .toULong()
-                            )
-                            .sortAndClip(HISTOGRAM_BUCKETS)
-                            .map { GraphedData.HistogramData(it, visualizationMetaData) }
-                    } else {
-                        events.accumulateEvents().map { GraphedData.EventListData(it) }
-                    }
-                }
+        val metric = selectedMetric.backendFeature
 
-            is BackendFeatureOptions.SendMessageOption ->
-                dataStreamProvider.sendMessageEvents(pids = pids).let {
-                    if (mode == VisualizationDisplayMode.CHART) {
-                        it.toAveragedDurationOverTimeframe(
-                                TIME_SERIES_SIZE,
-                                selectedTimeframe.amount
-                                    .toDuration(selectedTimeframe.unit)
-                                    .inWholeMilliseconds,
-                            )
-                            .map { GraphedData.TimeSeriesData(it, visualizationMetaData) }
-                    } else {
-                        it.accumulateEvents().map { GraphedData.EventListData(it) }
-                    }
-                }
+        return if (mode == VisualizationDisplayMode.CHART) {
+            when (metric) {
+                is BackendFeatureOptions.VfsWriteOption ->
+                    dataStreamProvider
+                        .vfsWriteEvents(pids = pids)
+                        .toBucketedHistogram(visualizationMetaData, selectedTimeframe)
 
-            else -> flowOf<GraphedData>(DEFAULT_GRAPHED_DATA)
+                is BackendFeatureOptions.SendMessageOption ->
+                    dataStreamProvider
+                        .sendMessageEvents(pids = pids)
+                        .toMovingAverage(visualizationMetaData, selectedTimeframe)
+
+                else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+            }
+        } else {
+            when (metric) {
+                is BackendFeatureOptions.VfsWriteOption ->
+                    dataStreamProvider.vfsWriteEvents(pids = pids).toEventList()
+
+                is BackendFeatureOptions.SendMessageOption ->
+                    dataStreamProvider.sendMessageEvents(pids = pids).toEventList()
+
+                else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+            }
         }
     }
 
-    private fun ConfigurationUpdate.Valid.getMetricOptionsForPids(pids: List<UInt>?) =
+    private fun ConfigurationUpdate.Valid.getActiveMetricsForPids(pids: List<UInt>?) =
         this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.MetricOption(it) }
 }
