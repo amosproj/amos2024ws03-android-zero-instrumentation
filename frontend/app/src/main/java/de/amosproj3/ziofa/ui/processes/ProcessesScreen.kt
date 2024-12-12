@@ -46,23 +46,16 @@ fun ProcessesScreen(
             ProcessesSearchBar(
                 value = searchQuery,
                 onValueChanged = { searchQuery = it },
-                onStartSearch = { viewModel.startSearch(query = searchQuery) })
+                onStartSearch = { viewModel.startSearch(query = searchQuery) },
+            )
             ProcessesHeader()
             if (options.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .fillMaxSize()
-                ) {
+                LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
                     items(options) { option -> ProcessListRow(option, onClickEdit = onClickEdit) }
                 }
             } else {
                 Box(modifier.fillMaxSize()) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(
-                            Alignment.Center
-                        )
-                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
             }
         }
@@ -77,9 +70,7 @@ fun ProcessListRow(
     onClickEdit: (RunningComponent) -> Unit = {},
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(vertical = 10.dp),
+        modifier = Modifier.fillMaxSize().padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -106,5 +97,3 @@ fun ProcessListRow(
     }
     HorizontalDivider(Modifier.height(5.dp))
 }
-
-

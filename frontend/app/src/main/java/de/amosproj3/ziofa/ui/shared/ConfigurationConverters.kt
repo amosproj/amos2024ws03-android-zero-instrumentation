@@ -5,55 +5,17 @@
 package de.amosproj3.ziofa.ui.shared
 
 import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
+import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
 import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 
-fun VfsWriteConfig?.updatePIDs(
-    pidsToAdd: Set<Map.Entry<UInt, ULong>> = setOf(),
-    pidsToRemove: Set<Map.Entry<UInt, ULong>> = setOf(),
-): VfsWriteConfig {
-    val config = this ?: VfsWriteConfig(mapOf())
-    return config.copy(
-        entries =
-        config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-            it.key to it.value
-        }
-    )
-}
-
-fun SysSendmsgConfig?.updatePIDs(
-    pidsToAdd: Set<Map.Entry<UInt, ULong>> = setOf(),
-    pidsToRemove: Set<Map.Entry<UInt, ULong>> = setOf(),
-): SysSendmsgConfig {
-    val config = this ?: SysSendmsgConfig(mapOf())
-    return config.copy(
-        entries =
-        config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-            it.key to it.value
-        }
-    )
-}
-
-fun List<UprobeConfig>?.updateUProbes(
-    pidsToAdd: List<UprobeConfig> = listOf(),
-    pidsToRemove: List<UprobeConfig> = listOf(),
-): List<UprobeConfig> {
-    val config = this ?: listOf()
-    return config.minus(pidsToRemove.toSet()).plus(pidsToAdd).toSet().toList()
-}
-
-fun JniReferencesConfig?.updatePIDs(
-    pidsToAdd: List<UInt> = listOf(),
-    pidsToRemove: List<UInt> = listOf(),
-): JniReferencesConfig {
-    val config = this ?: JniReferencesConfig(listOf())
-    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet()))
-}
-
-/** Show as enabled depending on the PIDs the screen is configuring. */
+/**
+ * Convert ConfigurationUpdate to UI Options ([BackendFeatureOptions] ). Show as enabled depending
+ * on the PIDs the screen is configuring.
+ */
 fun ConfigurationUpdate.Valid.toUIOptionsForPids(
     relevantPids: List<UInt>? = null
 ): List<BackendFeatureOptions> {
@@ -81,7 +43,7 @@ fun ConfigurationUpdate.Valid.toUIOptionsForPids(
             this.configuration.jniReferences?.let {
                 BackendFeatureOptions.JniReferencesOption(
                     enabled = it.pids.anyPidsEnabled(relevantPids),
-                    pids = it.pids.toSet()
+                    pids = it.pids.toSet(),
                 )
             } ?: BackendFeatureOptions.JniReferencesOption(enabled = false, pids = setOf())
         )
@@ -93,13 +55,66 @@ fun ConfigurationUpdate.Valid.toUIOptionsForPids(
                     BackendFeatureOptions.UprobeOption(
                         enabled = true, // uprobe options are either active or not visible
                         method = uprobeConfig.fnName,
-                        pids = uprobeConfig.pid?.let { setOf(it.toUInt()) } ?: setOf(),
+                        pids = uprobeConfig.pid?.let { setOf(it) } ?: setOf(),
                         odexFilePath = uprobeConfig.target,
                         offset = uprobeConfig.offset,
                     )
                 )
             }
     }
-
     return options.toList()
+}
+
+/**
+ * Convert [BackendFeatureOptions] from UI to configuration and set the changes in the local
+ * configuration.
+ */
+fun BackendFeatureOptions.setInLocalConfiguration(
+    localConfigurationAccess: LocalConfigurationAccess,
+    pids: Set<UInt>,
+    active: Boolean,
+) {
+    when (this) {
+        is BackendFeatureOptions.VfsWriteOption -> {
+            localConfigurationAccess.changeFeatureConfiguration(
+                enable = active,
+                vfsWriteFeature = VfsWriteConfig(pids.associateWith { DURATION_THRESHOLD }),
+            )
+        }
+
+        is BackendFeatureOptions.SendMessageOption -> {
+            localConfigurationAccess.changeFeatureConfiguration(
+                enable = active,
+                sendMessageFeature =
+                    SysSendmsgConfig(
+                        pids.associateWith { DURATION_THRESHOLD }
+                        // TODO this is not a duration
+                    ),
+            )
+        }
+
+        is BackendFeatureOptions.UprobeOption -> {
+            localConfigurationAccess.changeFeatureConfiguration(
+                enable = active,
+                uprobesFeature =
+                    pids.map {
+                        UprobeConfig(
+                            fnName = this.method,
+                            target = this.odexFilePath,
+                            offset = this.offset,
+                            pid = it,
+                        )
+                    },
+            )
+        }
+
+        is BackendFeatureOptions.JniReferencesOption -> {
+            localConfigurationAccess.changeFeatureConfiguration(
+                enable = active,
+                jniReferencesFeature = JniReferencesConfig(pids.toList()),
+            )
+        }
+
+        else -> throw NotImplementedError("NO SUPPORT YET")
+    }
 }

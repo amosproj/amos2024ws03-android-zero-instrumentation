@@ -21,16 +21,16 @@ class ProcessesViewModel(runningComponentsProvider: RunningComponentsAccess) : V
     private val searchQuery = MutableStateFlow<String?>(null)
 
     val applicationsAndProcessesList =
-        combine(
-            runningComponentsProvider.runningComponentsList,
-            searchQuery
-        ) { runningComponents, query ->
-            if (query == null) return@combine runningComponents
-            runningComponents.filter { it.getDisplayName().lowercase().contains(query.lowercase()) }
-        }
+        combine(runningComponentsProvider.runningComponentsList, searchQuery) {
+                runningComponents,
+                query ->
+                if (query == null) return@combine runningComponents
+                runningComponents.filter {
+                    it.getDisplayName().lowercase().contains(query.lowercase())
+                }
+            }
             .sortApplicationsFirst()
             .stateIn(viewModelScope, started = SharingStarted.Lazily, listOf())
-
 
     fun startSearch(query: String) {
         searchQuery.value = query

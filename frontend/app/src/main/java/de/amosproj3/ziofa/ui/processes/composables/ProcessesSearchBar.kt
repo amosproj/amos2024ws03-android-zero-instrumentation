@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.processes.composables
 
 import androidx.compose.foundation.background
@@ -20,7 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ProcessesSearchBar(value: String, onValueChanged: (String) -> Unit, onStartSearch: (String) -> Unit) {
+fun ProcessesSearchBar(
+    value: String,
+    onValueChanged: (String) -> Unit,
+    onStartSearch: (String) -> Unit,
+) {
 
     Row(
         modifier = Modifier.background(MaterialTheme.colorScheme.primary),
@@ -29,25 +37,16 @@ fun ProcessesSearchBar(value: String, onValueChanged: (String) -> Unit, onStartS
         OutlinedTextField(
             value = value,
             onValueChange = onValueChanged,
-            modifier = Modifier
-                .weight(8f)
-                .background(Color.White),
+            modifier = Modifier.weight(8f).background(Color.White),
             placeholder = { Text("Search for processes and apps ... ") },
         )
         Icon(
             imageVector = Icons.Filled.Search,
             contentDescription = "",
-            modifier = Modifier
-                .weight(1f)
-                .padding(10.dp)
-                .size(20.dp)
-                .clickable { onStartSearch(value) },
-            tint = Color.White
+            modifier =
+                Modifier.weight(1f).padding(10.dp).size(20.dp).clickable { onStartSearch(value) },
+            tint = Color.White,
         )
     }
-    HorizontalDivider(
-        Modifier
-            .height(15.dp)
-            .background(MaterialTheme.colorScheme.primary)
-    )
+    HorizontalDivider(Modifier.height(15.dp).background(MaterialTheme.colorScheme.primary))
 }
