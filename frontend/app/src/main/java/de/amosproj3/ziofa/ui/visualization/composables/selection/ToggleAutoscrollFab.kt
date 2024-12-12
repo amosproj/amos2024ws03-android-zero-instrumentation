@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.ui.visualization.composables
+package de.amosproj3.ziofa.ui.visualization.composables.selection
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons

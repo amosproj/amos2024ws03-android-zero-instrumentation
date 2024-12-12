@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl.processes
+package de.amosproj3.ziofa.platform.processes
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager

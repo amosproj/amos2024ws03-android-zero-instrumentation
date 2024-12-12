@@ -9,10 +9,16 @@ import androidx.lifecycle.viewModelScope
 import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.ConfigurationState
 import de.amosproj3.ziofa.api.events.DataStreamProvider
+import de.amosproj3.ziofa.api.overlay.OverlayAction
+import de.amosproj3.ziofa.api.overlay.OverlayController
+import de.amosproj3.ziofa.api.overlay.OverlayState
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
 import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import de.amosproj3.ziofa.ui.visualization.data.GraphedData
+import de.amosproj3.ziofa.ui.visualization.data.OverlaySettings
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
+import de.amosproj3.ziofa.ui.visualization.data.VisualizationAction
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationDisplayMode
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_SELECTION_DATA
@@ -24,6 +30,7 @@ import de.amosproj3.ziofa.ui.visualization.utils.toUIOptions
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -31,13 +38,22 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class VisualizationViewModel(
     configurationAccess: ConfigurationAccess,
     runningComponentsAccess: RunningComponentsAccess,
     dataStreamProviderFactory: (CoroutineScope) -> DataStreamProvider,
+    private val overlayController: OverlayController,
 ) : ViewModel() {
+
+    data class VisualizationSettings(
+        val selection: SelectionData,
+        val mode: VisualizationDisplayMode,
+        val overlaySettings: OverlaySettings,
+        val overlayEnabled: Boolean,
+    )
 
     private val dataStreamProvider = dataStreamProviderFactory(viewModelScope)
 
@@ -46,6 +62,14 @@ class VisualizationViewModel(
     private val selectedMetric = MutableStateFlow<DropdownOption.Metric?>(null)
     private val selectedTimeframe = MutableStateFlow<DropdownOption.Timeframe?>(null)
     private val displayMode = MutableStateFlow(VisualizationDisplayMode.EVENTS)
+    private val overlaySettings =
+        overlayController.overlayState
+            .map { it.overlaySettings }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, OverlaySettings())
+    private val overlayEnabled =
+        overlayController.overlayState
+            .map { it is OverlayState.Enabled }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     /**
      * Combine the mutable state with current configuration and running components to create a
@@ -97,8 +121,13 @@ class VisualizationViewModel(
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     val visualizationScreenState =
-        combine(selectionData, displayMode) { a, b -> a to b }
-            .flatMapLatest { (selection, mode) ->
+        combine(selectionData, displayMode, overlaySettings, overlayEnabled) { a, b, c, d ->
+                VisualizationSettings(a, b, c, d)
+            }
+            .flatMapLatest {
+                val selection = it.selection
+                val mode = it.mode
+
                 Timber.i("Data flow changed!")
                 if (isValidSelection(selection.selectedMetric, selection.selectedTimeframe)) {
                     when (mode) {
@@ -110,7 +139,7 @@ class VisualizationViewModel(
                                     selectedTimeframe = selection.selectedTimeframe,
                                     chartMetadata = selection.selectedMetric.getChartMetadata(),
                                 )
-                                ?.map { VisualizationScreenState.Valid.ChartView(it, selection) }
+                                .toChartViewOrNull(selection)
 
                         VisualizationDisplayMode.EVENTS ->
                             dataStreamProvider
@@ -118,28 +147,12 @@ class VisualizationViewModel(
                                     selectedComponent = selection.selectedComponent,
                                     selectedMetric = selection.selectedMetric,
                                 )
-                                ?.map {
-                                    VisualizationScreenState.Valid.EventListView(
-                                        graphedData = it,
-                                        selectionData = selection,
-                                        eventListMetadata =
-                                            selection.selectedMetric.getEventListMetadata(),
-                                    )
-                                }
-                    }
-                        ?: flowOf(
-                            VisualizationScreenState.Incomplete.NoVisualizationExists(
-                                selection,
-                                mode,
-                            )
-                        )
+                                .toEventListViewOrNull(selection)
+
+                        VisualizationDisplayMode.OVERLAY -> it.overlayLauncher()
+                    } ?: it.noVisualizationExists()
                 } else {
-                    flowOf(
-                        VisualizationScreenState.Incomplete.WaitingForMetricSelection(
-                            selection,
-                            mode,
-                        )
-                    )
+                    it.waitingForMetricSelection()
                 }
             }
             .stateIn(
@@ -152,7 +165,7 @@ class VisualizationViewModel(
      * Called when the selection of a dropdown changes. The change should be reflected in the
      * displayed data.
      */
-    fun optionSelected(option: DropdownOption) {
+    private fun updateSelectionState(option: DropdownOption) {
         when (option) {
             is DropdownOption.App,
             is DropdownOption.Process -> selectedComponent.value = option
@@ -163,8 +176,62 @@ class VisualizationViewModel(
         }
     }
 
-    /** Set the active display mode. */
-    fun switchMode(newMode: VisualizationDisplayMode) {
-        displayMode.value = newMode
+    private fun updateOverlayState(shouldBeActive: Boolean) {
+        viewModelScope.launch {
+            if (shouldBeActive) {
+                overlayController.dispatchAction(OverlayAction.Enable(selectionData.value))
+            } else {
+                overlayController.dispatchAction(OverlayAction.Disable)
+            }
+        }
+    }
+
+    private fun changeOverlaySettings(newSettings: OverlaySettings) {
+        viewModelScope.launch {
+            overlayController.dispatchAction(OverlayAction.ChangeSettings(newSettings))
+        }
+    }
+
+    fun processAction(action: VisualizationAction) {
+        when (action) {
+            is VisualizationAction.OptionChanged -> updateSelectionState(action.option)
+            is VisualizationAction.ModeChanged -> this.displayMode.value = action.newMode
+            is VisualizationAction.OverlayStatusChanged -> updateOverlayState(action.newState)
+            is VisualizationAction.OverlaySettingsChanged ->
+                changeOverlaySettings(action.newSettings)
+        }
+    }
+
+    private fun VisualizationSettings.waitingForMetricSelection() =
+        flowOf(
+            VisualizationScreenState.Incomplete.WaitingForMetricSelection(this.selection, this.mode)
+        )
+
+    private fun VisualizationSettings.noVisualizationExists() =
+        flowOf(VisualizationScreenState.Incomplete.NoVisualizationExists(this.selection, this.mode))
+
+    private fun VisualizationSettings.overlayLauncher() =
+        flowOf(
+            VisualizationScreenState.Valid.OverlayView(
+                this.selection,
+                this.overlaySettings,
+                this.overlayEnabled,
+            )
+        )
+
+    private fun Flow<GraphedData>?.toChartViewOrNull(selection: SelectionData) =
+        this?.map { VisualizationScreenState.Valid.ChartView(it, selection) }
+
+    private fun Flow<GraphedData.EventListData>?.toEventListViewOrNull(
+        selection: SelectionData
+    ): Flow<VisualizationScreenState.Valid.EventListView>? {
+        require(selection.selectedMetric is DropdownOption.Metric)
+        return this?.map {
+            VisualizationScreenState.Valid.EventListView(
+                graphedData = it,
+                selectionData = selection,
+                eventListMetadata = selection.selectedMetric.getEventListMetadata(),
+            )
+        }
     }
 }

@@ -10,8 +10,12 @@ SPDX-License-Identifier: MIT
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- not a problem since we are not publishing to Play Store -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
 
     <application
         android:name=".ZiofaApplication"
@@ -26,13 +30,16 @@ SPDX-License-Identifier: MIT
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.ZIOFA">
+            android:theme="@style/Theme.AppCompat">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".OverlayService"
+            android:exported="false" />
     </application>
 
 </manifest>

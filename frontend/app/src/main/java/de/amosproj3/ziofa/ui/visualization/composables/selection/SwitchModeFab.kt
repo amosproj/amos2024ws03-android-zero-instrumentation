@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.ui.visualization.composables
+package de.amosproj3.ziofa.ui.visualization.composables.selection
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -69,30 +69,6 @@ fun SwitchModeFab(
 }
 
 @Composable
-private fun MenuItems(
-    onItemClicked: (VisualizationDisplayMode) -> Unit,
-    interactionSource: MutableInteractionSource,
-) {
-    Column(modifier = Modifier.padding(vertical = 20.dp, horizontal = 30.dp)) {
-        listOf(VisualizationDisplayMode.CHART, VisualizationDisplayMode.EVENTS).forEach { item ->
-            Row(
-                modifier =
-                    Modifier.padding(vertical = 10.dp)
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = { onItemClicked(item) },
-                        )
-            ) {
-                Icon(imageVector = item.icon, contentDescription = "")
-                Spacer(modifier = Modifier.width(15.dp))
-                Text(text = item.displayName)
-            }
-        }
-    }
-}
-
-@Composable
 private fun MenuToggle(onClick: () -> Unit, interactionSource: MutableInteractionSource) {
     Card(
         modifier =
@@ -110,5 +86,34 @@ private fun MenuToggle(onClick: () -> Unit, interactionSource: MutableInteractio
                 Text(text = "Select mode")
             }
         }
+    }
+}
+
+@Composable
+private fun MenuItems(
+    onItemClicked: (VisualizationDisplayMode) -> Unit,
+    interactionSource: MutableInteractionSource,
+) {
+    Column(modifier = Modifier.padding(vertical = 20.dp, horizontal = 30.dp)) {
+        listOf(
+                VisualizationDisplayMode.CHART,
+                VisualizationDisplayMode.EVENTS,
+                VisualizationDisplayMode.OVERLAY,
+            )
+            .forEach { item ->
+                Row(
+                    modifier =
+                        Modifier.padding(vertical = 10.dp)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = { onItemClicked(item) },
+                            )
+                ) {
+                    Icon(imageVector = item.icon, contentDescription = "")
+                    Spacer(modifier = Modifier.width(15.dp))
+                    Text(text = item.displayName)
+                }
+            }
     }
 }

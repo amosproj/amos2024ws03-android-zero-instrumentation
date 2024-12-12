@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.ui.visualization.composables
+package de.amosproj3.ziofa.ui.visualization.composables.viewers
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,9 +12,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData

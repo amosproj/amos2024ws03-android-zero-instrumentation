@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.ui.visualization.composables
+package de.amosproj3.ziofa.ui.visualization.composables.chart
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,10 +20,10 @@ import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.cartesianLayerPadding
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
+import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import com.patrykandpatrick.vico.compose.common.component.shapeComponent
@@ -32,20 +32,21 @@ import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
-import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
+import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
+import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
 import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.VICO_LINE_COLOR
-import de.amosproj3.ziofa.ui.visualization.utils.isDefaultSeries
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 @Composable
-fun VicoTimeSeries(
-    seriesData: ImmutableList<Pair<Float, Float>>,
+fun VicoBar(
     chartMetadata: ChartMetadata,
+    seriesData: ImmutableList<Pair<ULong, ULong>>,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -53,9 +54,13 @@ fun VicoTimeSeries(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val modelProducer = remember { CartesianChartModelProducer() }
-        if (seriesData.isNotEmpty() && !seriesData.isDefaultSeries()) {
-            modelProducer.SeriesUpdate(seriesData)
-            modelProducer.TimeSeriesChart(chartMetadata)
+        if (seriesData.isNotEmpty()) {
+            Timber.e("bar data $seriesData")
+            modelProducer.SeriesUpdate(seriesData.map { it.second.toInt() })
+            modelProducer.TimeSeriesChart(
+                chartMetadata = chartMetadata,
+                xLabels = seriesData.map { it.first.toString() }.toImmutableList(),
+            )
         }
     }
 }
@@ -63,16 +68,24 @@ fun VicoTimeSeries(
 @Composable
 private fun CartesianChartModelProducer.TimeSeriesChart(
     chartMetadata: ChartMetadata,
+    xLabels: ImmutableList<String>,
     modifier: Modifier = Modifier,
 ) {
     CartesianChartHost(
         chart =
             rememberCartesianChart(
-                rememberLineCartesianLayer(
-                    LineCartesianLayer.LineProvider.series(
-                        LineCartesianLayer.rememberLine(
-                            remember { LineCartesianLayer.LineFill.single(fill(VICO_LINE_COLOR)) }
-                        )
+                rememberColumnCartesianLayer(
+                    ColumnCartesianLayer.ColumnProvider.series(
+                        xLabels.map { _ ->
+                            rememberLineComponent(
+                                fill = fill(VICO_LINE_COLOR),
+                                shape =
+                                    CorneredShape.rounded(
+                                        bottomLeftPercent = 40,
+                                        bottomRightPercent = 40,
+                                    ),
+                            )
+                        }
                     )
                 ),
                 startAxis =
@@ -108,6 +121,9 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                         label = rememberTextComponent(),
                         guideline = null,
                         itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented() },
+                        valueFormatter = { _, value, _ ->
+                            xLabels.getOrNull(value.toInt()) ?: "UNKNOWN"
+                        },
                     ),
                 layerPadding = cartesianLayerPadding(scalableStart = 16.dp, scalableEnd = 16.dp),
             ),
@@ -118,11 +134,13 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
 }
 
 @Composable
-private fun CartesianChartModelProducer.SeriesUpdate(update: List<Pair<Float, Float>>) {
+private fun CartesianChartModelProducer.SeriesUpdate(update: List<Int>) {
     LaunchedEffect(update) {
         withContext(Dispatchers.Default) {
             this@SeriesUpdate.runTransaction {
-                lineSeries { series(update.map { (x, _) -> x }, update.map { (_, y) -> y }) }
+                this.extras {}
+                Timber.e(update.toString())
+                columnSeries { series(x = update.indices.toList().reversed(), y = update) }
             }
         }
     }

@@ -17,10 +17,10 @@ const val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 object RustClient : Client {
     private var configuration: Configuration =
         Configuration(
-            vfsWrite = VfsWriteConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
+            vfsWrite = VfsWriteConfig(mapOf(1u to 1u, 43124u to 20000u)),
             sysSendmsg = SysSendmsgConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
             uprobes = listOf(),
-            jniReferences = JniReferencesConfig(pids = listOf()),
+            jniReferences = JniReferencesConfig(pids = listOf(1u)),
             sysSigquit = SysSigquitConfig(pids = listOf()),
             gc = GcConfig,
             sysFdTracking = SysFdTrackingConfig(pids = listOf()),
@@ -64,14 +64,16 @@ object RustClient : Client {
     }
 
     private val processes =
-        alphabet.indices.map {
-            Process(
-                pid = Random.nextUInt(1000u),
-                ppid = Random.nextUInt(1000u),
-                state = "R",
-                cmd = Command.Comm("/bin/sh/${alphabet.substring(it, it + 1)}"),
-            )
-        }
+        alphabet.indices
+            .map {
+                Process(
+                    pid = Random.nextUInt(1000u),
+                    ppid = Random.nextUInt(1000u),
+                    state = "R",
+                    cmd = Command.Comm("/bin/sh/${alphabet.substring(it, it + 1)}"),
+                )
+            }
+            .plus(Process(pid = 1u, ppid = 1u, state = "R", cmd = Command.Comm("/bin/ziofatest")))
 
     override suspend fun listProcesses(): List<Process> {
         return processes
@@ -87,7 +89,7 @@ object RustClient : Client {
 
     override suspend fun initStream(): Flow<Event> = flow {
         while (true) {
-            delay(Random.nextUInt(500u).toLong())
+            delay(Random.nextUInt(2000u).toLong())
 
             configuration.vfsWrite?.entries?.keys?.forEach {
                 emit(
