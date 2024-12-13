@@ -124,7 +124,7 @@ impl Ziofa for ZiofaImpl {
         tokio::spawn(async move {
             let mut symbol_handler_guard = symbol_handler.lock().await;
             // TODO Error Handling
-            let odex_paths = match symbol_handler_guard.get_odex_paths(pid) {
+            let odex_paths = match symbol_handler_guard.get_paths(pid, ".odex") {
                 Ok(paths) => paths,
                 Err(e) => {
                     tx.send(Err(Status::from(e)))
@@ -161,7 +161,7 @@ impl Ziofa for ZiofaImpl {
         tokio::spawn(async move {
             let mut symbol_handler_guard = symbol_handler.lock().await;
             // TODO Error Handling
-            let odex_paths = match symbol_handler_guard.get_so_paths(pid) {
+            let odex_paths = match symbol_handler_guard.get_paths(pid, ".so") {
                 Ok(paths) => paths,
                 Err(e) => {
                     tx.send(Err(Status::from(e)))

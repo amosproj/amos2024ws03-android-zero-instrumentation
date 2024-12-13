@@ -93,16 +93,8 @@ impl SymbolHandler {
         // TODO: Remove old/long unused paths from cache
     }
 
-    pub fn get_odex_paths(&mut self, pid: u32) -> Result<&HashSet<PathBuf>, SymbolError> {
-        self.load_map_paths(pid, ".odex")?;
-
-        self.files
-            .get(&pid)
-            .ok_or(SymbolError::SymbolPathsNotLoaded { pid })
-    }
-
-    pub fn get_so_paths(&mut self, pid: u32) -> Result<&HashSet<PathBuf>, SymbolError> {
-        self.load_map_paths(pid, ".so")?;
+    pub fn get_paths(&mut self, pid: u32, extension: &str) -> Result<&HashSet<PathBuf>, SymbolError> {
+        self.load_map_paths(pid, extension)?;
 
         self.files
             .get(&pid)
