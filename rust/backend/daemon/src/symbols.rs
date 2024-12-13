@@ -26,6 +26,8 @@ pub enum SymbolError {
     ProcError(#[from] ProcError),
     #[error("Odex paths are not loaded for specified pid")]
     OdexPathsNotLoaded { pid: u32 },
+    #[error("SO paths are not loaded for specified pid")]
+    SoNotLoaded { pid: u32 },
     #[error("Symbols are not loaded for specified pid and odex path")]
     SymbolsNotLoaded { pid: u32, odex_path: PathBuf },
     #[error(transparent)]
@@ -63,7 +65,7 @@ impl SymbolHandler {
 
     /// load the paths to all odex files
     // TODO: blocking?
-    fn load_odex_paths(&mut self, pid: u32) -> Result<(), ProcError> {
+    fn load_map_paths(&mut self, pid: u32, extension: &str) -> Result<(), ProcError> {
         // if pid was already crawled, nothing it to do
         // TODO: Check for old/potentially outdated entries and reload them
         if self.odex_files.contains_key(&pid) {
@@ -81,7 +83,7 @@ impl SymbolHandler {
                 MMapPath::Path(path) => Some(path),
                 _ => None,
             })
-            .filter(|path: &PathBuf| path.to_str().unwrap().ends_with(".odex"))
+            .filter(|path: &PathBuf| path.to_str().unwrap().ends_with(extension))
         {
             odex_files.insert(odex.clone());
             self.symbols.insert(odex, HashMap::new());
@@ -92,11 +94,19 @@ impl SymbolHandler {
     }
 
     pub fn get_odex_paths(&mut self, pid: u32) -> Result<&HashSet<PathBuf>, SymbolError> {
-        self.load_odex_paths(pid)?;
+        self.load_map_paths(pid, ".odex")?;
 
         self.odex_files
             .get(&pid)
             .ok_or(SymbolError::OdexPathsNotLoaded { pid })
+    }
+
+    pub fn get_so_paths(&mut self, pid: u32) -> Result<&HashSet<PathBuf>, SymbolError> {
+        self.load_map_paths(pid, ".so")?;
+
+        self.odex_files
+            .get(&pid)
+            .ok_or(SymbolError::SoNotLoaded { pid })
     }
 
     async fn load_symbols(&mut self, odex_path: &PathBuf) -> Result<(), SymbolError> {

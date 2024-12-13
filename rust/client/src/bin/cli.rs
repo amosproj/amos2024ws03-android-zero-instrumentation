@@ -59,6 +59,17 @@ enum Commands {
         silent: bool,
     },
 
+    /// Get the paths of all .so files
+    So {
+        /// Pid for which to get the .odex files
+        #[arg(short, long)]
+        pid: u32,
+
+        /// Only output number of odex files
+        #[arg(short, long)]
+        silent: bool,
+    },
+
     /// Get all symbols with their offsets
     Symbols {
         /// Path to the .odex file which should be crawled
@@ -142,6 +153,25 @@ async fn get_odex_files(client: &mut Client, pid: u32, silent: bool) -> Result<(
     Ok(())
 }
 
+async fn get_so_files(client: &mut Client, pid: u32, silent: bool) -> Result<()> {
+    let mut stream = client.get_so_files(pid).await?;
+    let mut count: u32 = 0;
+
+    while let Some(Ok(next)) = stream.next().await {
+        if !silent {
+            println!("{}", next.name);
+        } else {
+            count += 1;
+        }
+    }
+
+    if silent {
+        println!("Number of .so files: {}", count);
+    }
+
+    Ok(())
+}
+
 async fn get_symbols(client: &mut Client, odex_file: String, silent: bool) -> Result<()> {
     let mut stream = client.get_symbols(odex_file).await?;
     let mut count: u32 = 0;
@@ -189,6 +219,9 @@ pub async fn main() -> anyhow::Result<()> {
         }
         Commands::Symbols { odex_file, silent } => {
             get_symbols(&mut client, odex_file, silent).await?;
+        }
+        Commands::So { pid, silent } => {
+            get_so_files(&mut client, pid, silent).await?;
         }
     }
 

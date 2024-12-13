@@ -21,6 +21,7 @@ service Ziofa {
     rpc InitStream(google.protobuf.Empty) returns (stream Event) {}      // all Responses genereated by the ebpf-programms are send via this stream
 
     rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
+    rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
 }
 

@@ -146,6 +146,43 @@ impl Ziofa for ZiofaImpl {
         Ok(Response::new(ReceiverStream::new(rx)))
     }
 
+    type GetSoFilesStream = ReceiverStream<Result<StringResponse, Status>>;
+
+    async fn get_so_files(
+        &self,
+        request: Request<PidMessage>,
+    ) -> Result<Response<Self::GetSoFilesStream>, Status> {
+        let pid = request.into_inner().pid;
+
+        let (tx, rx) = mpsc::channel(4);
+
+        let symbol_handler = self.symbol_handler.clone();
+
+        tokio::spawn(async move {
+            let mut symbol_handler_guard = symbol_handler.lock().await;
+            // TODO Error Handling
+            let odex_paths = match symbol_handler_guard.get_so_paths(pid) {
+                Ok(paths) => paths,
+                Err(e) => {
+                    tx.send(Err(Status::from(e)))
+                        .await
+                        .expect("Error sending Error to client ._.");
+                    return;
+                }
+            };
+
+            for path in odex_paths {
+                tx.send(Ok(StringResponse {
+                    name: path.to_str().unwrap().to_string(),
+                }))
+                .await
+                .expect("Error sending odex file to client");
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
     type GetSymbolsStream = ReceiverStream<Result<Symbol, Status>>;
 
     async fn get_symbols(
