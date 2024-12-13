@@ -10,7 +10,7 @@ use procfs::ProcError;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::Error;
+use std::io;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tokio::io::AsyncBufReadExt;
@@ -25,15 +25,15 @@ pub enum SymbolError {
     #[error(transparent)]
     ProcError(#[from] ProcError),
     #[error("Odex paths are not loaded for specified pid")]
-    OdexPathsNotLoaded { pid: u32 },
-    #[error("SO paths are not loaded for specified pid")]
-    SoNotLoaded { pid: u32 },
+    SymbolPathsNotLoaded { pid: u32 },
     #[error("Symbols are not loaded for specified pid and odex path")]
-    SymbolsNotLoaded { pid: u32, odex_path: PathBuf },
+    SymbolsNotLoaded { pid: u32, path: PathBuf },
     #[error(transparent)]
     SerdeError(#[from] serde_json::Error),
     #[error("The desired odex file isn't available. Did you call get_odex_files()?")]
-    OdexFileNotAvailable { odex_path: PathBuf },
+    SymbolFileNotAvailable { path: PathBuf },
+    #[error(transparent)]
+    ReadError(#[from] object::read::Error),
 }
 
 impl From<SymbolError> for tonic::Status {
@@ -50,7 +50,7 @@ struct JsonSymbol {
 
 pub struct SymbolHandler {
     /// maps pid to odex files
-    odex_files: HashMap<u32, HashSet<PathBuf>>,
+    files: HashMap<u32, HashSet<PathBuf>>,
     /// maps odex file path and symbol name to offset
     symbols: HashMap<PathBuf, HashMap<String, u64>>,
 }
@@ -58,7 +58,7 @@ pub struct SymbolHandler {
 impl SymbolHandler {
     pub fn new() -> Self {
         SymbolHandler {
-            odex_files: HashMap::new(),
+            files: HashMap::new(),
             symbols: HashMap::new(),
         }
     }
@@ -68,10 +68,10 @@ impl SymbolHandler {
     fn load_map_paths(&mut self, pid: u32, extension: &str) -> Result<(), ProcError> {
         // if pid was already crawled, nothing it to do
         // TODO: Check for old/potentially outdated entries and reload them
-        if self.odex_files.contains_key(&pid) {
+        if self.files.contains_key(&pid) {
             return Ok(());
         }
-        let odex_files = self.odex_files.entry(pid).or_default();
+        let odex_files = self.files.entry(pid).or_default();
 
         let process = Process::new(i32::try_from(pid).unwrap())?;
         let maps = process.maps()?;
@@ -96,24 +96,66 @@ impl SymbolHandler {
     pub fn get_odex_paths(&mut self, pid: u32) -> Result<&HashSet<PathBuf>, SymbolError> {
         self.load_map_paths(pid, ".odex")?;
 
-        self.odex_files
+        self.files
             .get(&pid)
-            .ok_or(SymbolError::OdexPathsNotLoaded { pid })
+            .ok_or(SymbolError::SymbolPathsNotLoaded { pid })
     }
 
     pub fn get_so_paths(&mut self, pid: u32) -> Result<&HashSet<PathBuf>, SymbolError> {
         self.load_map_paths(pid, ".so")?;
 
-        self.odex_files
+        self.files
             .get(&pid)
-            .ok_or(SymbolError::SoNotLoaded { pid })
+            .ok_or(SymbolError::SymbolPathsNotLoaded { pid })
     }
 
-    async fn load_symbols(&mut self, odex_path: &PathBuf) -> Result<(), SymbolError> {
+    async fn load_so_symbols(&mut self, so_path: &PathBuf) -> Result<(), SymbolError> {
+        if !self.symbols.contains_key(so_path) {
+            return Err(SymbolError::SymbolFileNotAvailable {
+                path: so_path.to_path_buf(),
+            });
+        }
+
+        // if the symbol map already contains entries, nothing needs to be done
+        if !self.symbols.get(so_path).unwrap().is_empty() {
+            return Ok(());
+        }
+
+        let map = tokio::task::spawn_blocking({
+            let path = so_path.to_path_buf();
+            move || {
+                let mut map = HashMap::new();
+
+                let file = File::open(path)?;
+                let file_cache = ReadCache::new(file);
+                let obj = object::File::parse(&file_cache).unwrap();
+
+                for symbol in obj.dynamic_symbols() {
+                    let name = symbol.name()?.to_string();
+                    let address = symbol.address();
+
+                    if address == 0 {
+                        continue;
+                    }
+
+                    map.insert(name, address);
+                }
+
+                Ok::<HashMap<String, u64>, SymbolError>(map)
+            }
+        })
+        .await??;
+
+        self.symbols.insert(so_path.clone(), map);
+
+        Ok(())
+    }
+
+    async fn load_oat_symbols(&mut self, odex_path: &PathBuf) -> Result<(), SymbolError> {
         // if the .odex file is not cached, throw error
         if !self.symbols.contains_key(odex_path) {
-            return Err(SymbolError::OdexFileNotAvailable {
-                odex_path: odex_path.to_path_buf(),
+            return Err(SymbolError::SymbolFileNotAvailable {
+                path: odex_path.to_path_buf(),
             });
         }
 
@@ -156,11 +198,19 @@ impl SymbolHandler {
 
     pub async fn get_symbols(
         &mut self,
-        odex_path: &PathBuf,
+        path: &PathBuf,
     ) -> Result<&HashMap<String, u64>, SymbolError> {
-        self.load_symbols(odex_path).await?;
+        if path.to_str().unwrap().ends_with(".odex") {
+            self.load_oat_symbols(path).await?;
+        } else if path.to_str().unwrap().ends_with(".so") {
+            self.load_so_symbols(path).await?;
+        }
 
-        Ok(self.symbols.get(odex_path).unwrap())
+        self.symbols
+            .get(path)
+            .ok_or(SymbolError::SymbolFileNotAvailable {
+                path: path.to_path_buf(),
+            })
     }
 
     async fn generate_json_oatdump(&self, path: &Path) -> Result<(), SymbolError> {
@@ -176,7 +226,7 @@ impl SymbolHandler {
         Ok(())
     }
 
-    async fn get_oatsection_address(&self, oat_path: &Path) -> Result<u64, Error> {
+    async fn get_oatsection_address(&self, oat_path: &Path) -> Result<u64, io::Error> {
         tokio::task::spawn_blocking({
             let path = oat_path.to_path_buf();
             move || {

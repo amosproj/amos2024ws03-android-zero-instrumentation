@@ -190,8 +190,8 @@ impl Ziofa for ZiofaImpl {
         request: Request<GetSymbolsRequest>,
     ) -> Result<Response<Self::GetSymbolsStream>, Status> {
         let process_request = request.into_inner();
-        let odex_file_path_string = process_request.odex_file_path;
-        let odex_file_path = PathBuf::from(odex_file_path_string);
+        let file_path_string = process_request.file_path;
+        let file_path = PathBuf::from(file_path_string);
 
         let (tx, rx) = mpsc::channel(4);
 
@@ -200,7 +200,7 @@ impl Ziofa for ZiofaImpl {
         tokio::spawn(async move {
             let mut symbol_handler_guard = symbol_handler.lock().await;
 
-            let symbol = match symbol_handler_guard.get_symbols(&odex_file_path).await {
+            let symbol = match symbol_handler_guard.get_symbols(&file_path).await {
                 Ok(symbol) => symbol,
                 Err(e) => {
                     tx.send(Err(Status::from(e)))

@@ -74,7 +74,7 @@ enum Commands {
     Symbols {
         /// Path to the .odex file which should be crawled
         #[arg(short, long)]
-        odex_file: String,
+        file: String,
 
         /// Only output number of symbols
         #[arg(short, long)]
@@ -172,8 +172,8 @@ async fn get_so_files(client: &mut Client, pid: u32, silent: bool) -> Result<()>
     Ok(())
 }
 
-async fn get_symbols(client: &mut Client, odex_file: String, silent: bool) -> Result<()> {
-    let mut stream = client.get_symbols(odex_file).await?;
+async fn get_symbols(client: &mut Client, file: String, silent: bool) -> Result<()> {
+    let mut stream = client.get_symbols(file).await?;
     let mut count: u32 = 0;
 
     while let Some(Ok(next)) = stream.next().await {
@@ -195,6 +195,7 @@ async fn get_symbols(client: &mut Client, odex_file: String, silent: bool) -> Re
 pub async fn main() -> anyhow::Result<()> {
     let args: Args = Args::parse();
 
+    println!("Trying to connect to {}", args.addr);
     let mut client = Client::connect(args.addr.to_owned()).await?;
 
     match args.cmd {
@@ -217,8 +218,8 @@ pub async fn main() -> anyhow::Result<()> {
         Commands::Odex { pid, silent } => {
             get_odex_files(&mut client, pid, silent).await?;
         }
-        Commands::Symbols { odex_file, silent } => {
-            get_symbols(&mut client, odex_file, silent).await?;
+        Commands::Symbols { file, silent } => {
+            get_symbols(&mut client, file, silent).await?;
         }
         Commands::So { pid, silent } => {
             get_so_files(&mut client, pid, silent).await?;

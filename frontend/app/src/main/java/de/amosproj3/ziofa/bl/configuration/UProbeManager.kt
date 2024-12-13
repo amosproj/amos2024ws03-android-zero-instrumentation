@@ -42,7 +42,7 @@ class UProbeManager(private val clientFactory: ClientFactory) : SymbolsAccess {
                                     .onEach { Timber.i("Requesting symbols for odex file $it") }
                                     .flatMapMerge { odexFile ->
                                         client
-                                            .getSymbols(odexFilePath = odexFile)
+                                            .getSymbols(filePath = odexFile)
                                             .filter {
                                                 it.method
                                                     .lowercase()
