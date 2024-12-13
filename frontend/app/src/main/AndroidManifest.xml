@@ -13,6 +13,9 @@ SPDX-License-Identifier: MIT
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+
     <application
         android:name=".ZiofaApplication"
         android:allowBackup="true"
@@ -26,7 +29,9 @@ SPDX-License-Identifier: MIT
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.ZIOFA">
+            android:supportsPictureInPicture="true"
+            android:theme="@style/Theme.AppCompat"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

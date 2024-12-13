@@ -102,7 +102,7 @@ fun BackendFeatureOptions.setInLocalConfiguration(
                             fnName = this.method,
                             target = this.odexFilePath,
                             offset = this.offset,
-                            pid = it.toInt(),
+                            pid = it,
                         )
                     },
             )
