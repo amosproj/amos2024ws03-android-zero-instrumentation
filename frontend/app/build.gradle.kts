@@ -106,6 +106,8 @@ dependencies {
     implementation(libs.vico.compose.m2)
     implementation(libs.vico.compose.m3)
     implementation(libs.vico.core)
+
+    detektPlugins(libs.detekt.compose.rules)
 }
 
 tasks.cyclonedxBom {
@@ -121,6 +123,7 @@ tasks.cyclonedxBom {
 }
 
 detekt {
+    config = files("detekt.yml")
     buildUponDefaultConfig = true
     parallel = true
     ignoreFailures = true

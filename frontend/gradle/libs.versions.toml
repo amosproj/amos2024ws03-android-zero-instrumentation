@@ -13,6 +13,7 @@ composeBom = "2024.11.00"
 coreKtx = "1.15.0"
 cyclonedx = "1.10.0"
 detekt = "1.23.7"
+detektRulesVersion = "0.0.26"
 espressoCore = "3.6.1"
 jna = "5.15.0"
 junit = "4.13.2"
@@ -42,6 +43,7 @@ androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+detekt-compose-rules = { module = "com.twitter.compose.rules:detekt", version.ref = "detektRulesVersion" }
 jackwharton-timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 junit = { module = "junit:junit", version.ref = "junit" }
