@@ -12,6 +12,7 @@ compose-navigation = "2.8.4"
 composeBom = "2024.11.00"
 coreKtx = "1.15.0"
 cyclonedx = "1.10.0"
+detekt = "1.23.7"
 espressoCore = "3.6.1"
 jna = "5.15.0"
 junit = "4.13.2"
@@ -61,6 +62,7 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 com-github-benmanes-versions = { id = "com.github.ben-manes.versions", version.ref = "benmanes-versions" }
 com-ncorti-ktfmt-gradle = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt"}
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 nl-littlerobots-versioncatalogueupdate = { id = "nl.littlerobots.version-catalog-update", version.ref = "versioncatalogueupdate" }
 org-cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }

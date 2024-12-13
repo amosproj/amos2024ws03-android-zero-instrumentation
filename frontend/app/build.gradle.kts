@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.org.cyclonedx.bom)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -117,4 +118,15 @@ tasks.cyclonedxBom {
     setIncludeBomSerialNumber(false)
     setIncludeLicenseText(true)
     setIncludeMetadataResolution(true)
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    parallel = true
+    ignoreFailures = true
+}
+
+tasks.detekt {
+    reports.xml.required.set(true)
+    reports.html.required.set(true)
 }
