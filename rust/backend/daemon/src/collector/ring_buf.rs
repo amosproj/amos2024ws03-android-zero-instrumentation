@@ -58,9 +58,9 @@ impl<T> TryFrom<RingBufCollectorArguments<T>> for RingBufCollectorState<T> {
 impl<T> Actor for RingBufCollector<T>
 where T: TryFromRaw + IntoEvent + Send + Sync + 'static
 {
-    type Arguments = RingBufCollectorArguments<T>;
     type Msg = ();
     type State = RingBufCollectorState<T>;
+    type Arguments = RingBufCollectorArguments<T>;
     
     async fn pre_start(
             &self,

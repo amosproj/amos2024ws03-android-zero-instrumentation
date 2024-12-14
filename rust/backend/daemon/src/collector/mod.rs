@@ -11,6 +11,8 @@ use shared::ziofa::jni_references_event::{JniMethodName};
 mod ring_buf;
 mod supervisor;
 mod event_dipatcher;
+mod aggregator;
+
 pub use supervisor::{CollectorSupervisor, CollectorSupervisorArguments};
 
 
