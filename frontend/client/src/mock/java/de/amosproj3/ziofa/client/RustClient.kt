@@ -135,7 +135,18 @@ object RustClient : Client {
         emit("/system_ext/framework/oat/x86_64/androidx.window.extensions.odex")
     }
 
-    override suspend fun getSymbols(odexFilePath: String): Flow<Symbol> = flow {
+    override suspend fun getSoFiles(pid: UInt): Flow<String> = flow {
+        emit("/system/lib64/liblog.so")
+        emit("/vendor/lib64/libdrm.so")
+        emit("/vendor/lib64/android.hardware.graphics.mapper@3.0.so")
+        emit("/system/lib64/android.hardware.power-V5-ndk.so")
+        emit("/system/lib64/android.hardware.graphics.mapper@2.0.so")
+        emit("/system/lib64/android.hardware.media.c2@1.2.so")
+
+        emit("/system/lib64/android.hardware.renderscript@1.0.so")
+    }
+
+    override suspend fun getSymbols(filePath: String): Flow<Symbol> = flow {
         emit(
             Symbol(
                 method =
