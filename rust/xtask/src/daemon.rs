@@ -38,6 +38,19 @@ pub fn run(opts: Options) -> Result<()> {
     let android_script = android_launch_path();
 
     if android {
+        // pkill any left backend-daemon process
+        let mut pkill = Command::new("adb");
+        pkill.args([
+            "shell",
+            "su",
+            "root",
+            "pkill",
+            "backend-daemon",
+        ]);
+        pkill
+            .status()
+            .with_context(|| format!("failed to run {pkill:?}"))?;
+
         let mut cmd = Command::new("cargo");
         cmd.env(AYA_BUILD_EBPF, "true");
         cmd.args([
