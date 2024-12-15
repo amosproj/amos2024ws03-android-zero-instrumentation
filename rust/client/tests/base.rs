@@ -9,7 +9,7 @@ use shared::ziofa::process::Cmd;
 
 // client tests assume daemon is running!
 async fn setup() -> Client {
-    Client::connect("http://127.0.0.1:50051".to_string())
+    Client::connect("http://[::1]:50051".to_string())
         .await
         .expect("Daemon must be reachable.")
 }
