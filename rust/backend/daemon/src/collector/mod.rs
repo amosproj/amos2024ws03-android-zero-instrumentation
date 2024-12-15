@@ -5,17 +5,17 @@
 // SPDX-License-Identifier: MIT
 
 use backend_common::{JNICall, JNIMethodName, SysSendmsgCall, VfsWriteCall};
-use shared::ziofa::{Event, JniReferencesEvent, SysSendmsgEvent, VfsWriteEvent};
-use shared::ziofa::event::{EventData};
-use shared::ziofa::jni_references_event::{JniMethodName};
+use shared::ziofa::event::EventType;
+use shared::ziofa::jni_references_event::JniMethodName;
+use shared::ziofa::log::EventData;
+use shared::ziofa::{Event, JniReferencesEvent, Log, SysSendmsgEvent, VfsWriteEvent};
+
+mod aggregator;
+mod event_dispatcher;
 mod ring_buf;
 mod supervisor;
-mod event_dipatcher;
-mod aggregator;
 
 pub use supervisor::{CollectorSupervisor, CollectorSupervisorArguments};
-
-
 
 pub trait IntoEvent {
     fn into_event(self) -> Event;
@@ -24,13 +24,15 @@ pub trait IntoEvent {
 impl IntoEvent for VfsWriteCall {
     fn into_event(self) -> Event {
         Event {
-            event_data: Some(EventData::VfsWrite(VfsWriteEvent {
-                pid: self.pid,
-                tid: self.tid,
-                begin_time_stamp: self.begin_time_stamp,
-                fp: self.fp,
-                bytes_written: self.bytes_written as u64
-            }))
+            event_type: Some(EventType::Log(Log {
+                event_data: Some(EventData::VfsWrite(VfsWriteEvent {
+                    pid: self.pid,
+                    tid: self.tid,
+                    begin_time_stamp: self.begin_time_stamp,
+                    fp: self.fp,
+                    bytes_written: self.bytes_written as u64,
+                })),
+            })),
         }
     }
 }
@@ -38,13 +40,15 @@ impl IntoEvent for VfsWriteCall {
 impl IntoEvent for SysSendmsgCall {
     fn into_event(self) -> Event {
         Event {
-            event_data: Some(EventData::SysSendmsg(SysSendmsgEvent {
-                pid: self.pid,
-                tid: self.tid,
-                begin_time_stamp: self.begin_time_stamp,
-                fd: self.fd,
-                duration_nano_sec: self.duration_nano_sec
-            }))
+            event_type: Some(EventType::Log(Log {
+                event_data: Some(EventData::SysSendmsg(SysSendmsgEvent {
+                    pid: self.pid,
+                    tid: self.tid,
+                    begin_time_stamp: self.begin_time_stamp,
+                    fd: self.fd,
+                    duration_nano_sec: self.duration_nano_sec,
+                })),
+            })),
         }
     }
 }
@@ -52,17 +56,20 @@ impl IntoEvent for SysSendmsgCall {
 impl IntoEvent for JNICall {
     fn into_event(self) -> Event {
         Event {
-            event_data: Some(EventData::JniReferences(JniReferencesEvent {
-                pid: self.pid,
-                tid: self.tid,
-                begin_time_stamp: self.begin_time_stamp,
-                jni_method_name: (match self.method_name {
-                    JNIMethodName::AddLocalRef => JniMethodName::AddLocalRef,
-                    JNIMethodName::DeleteLocalRef => JniMethodName::DeleteLocalRef,
-                    JNIMethodName::AddGlobalRef => JniMethodName::AddGlobalRef,
-                    JNIMethodName::DeleteGlobalRef => JniMethodName::DeleteGlobalRef,
-                }).into(),
-            }))
+            event_type: Some(EventType::Log(Log {
+                event_data: Some(EventData::JniReferences(JniReferencesEvent {
+                    pid: self.pid,
+                    tid: self.tid,
+                    begin_time_stamp: self.begin_time_stamp,
+                    jni_method_name: (match self.method_name {
+                        JNIMethodName::AddLocalRef => JniMethodName::AddLocalRef,
+                        JNIMethodName::DeleteLocalRef => JniMethodName::DeleteLocalRef,
+                        JNIMethodName::AddGlobalRef => JniMethodName::AddGlobalRef,
+                        JNIMethodName::DeleteGlobalRef => JniMethodName::DeleteGlobalRef,
+                    })
+                    .into(),
+                })),
+            })),
         }
     }
 }

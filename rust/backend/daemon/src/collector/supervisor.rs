@@ -12,7 +12,7 @@ use tracing::error;
 
 use crate::registry::{EbpfEventRegistry, RegistryItem, TypedRingBuffer};
 
-use super::{event_dipatcher::{EventDispatcher, EventDispatcherState}, ring_buf::{RingBufCollector, RingBufCollectorArguments}, IntoEvent};
+use super::{event_dispatcher::{EventDispatcher, EventDispatcherState}, ring_buf::{RingBufCollector, RingBufCollectorArguments}, IntoEvent};
 
 
 
@@ -80,15 +80,15 @@ impl CollectorSupervisorArguments {
 }
 
 impl Actor for CollectorSupervisor {
-    type Arguments = CollectorSupervisorArguments;
     type Msg = ();
     type State = CollectorSupervisorState;
+    type Arguments = CollectorSupervisorArguments;
     
     async fn pre_start(
             &self,
-            myself: ractor::ActorRef<Self::Msg>,
+            myself: ActorRef<Self::Msg>,
             args: Self::Arguments,
-        ) -> Result<Self::State, ractor::ActorProcessingErr> {
+        ) -> Result<Self::State, ActorProcessingErr> {
         
         let (events, _) = Actor::spawn_linked(None, EventDispatcher, EventDispatcherState::new(args.sender), myself.get_cell()).await?;
         let collectors = CollectorRefs::from_registry(args.registry.clone(), events.clone(), myself.get_cell()).await?;
@@ -103,7 +103,7 @@ impl Actor for CollectorSupervisor {
     async fn handle_supervisor_evt(
             &self,
             myself: ActorRef<Self::Msg>,
-            message: ractor::SupervisionEvent,
+            message: SupervisionEvent,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
         if let SupervisionEvent::ActorFailed(actor_cell, error) = message {

@@ -4,6 +4,11 @@
 //
 // SPDX-License-Identifier: MIT
 
+use crate::ziofa::event::EventType;
+use crate::ziofa::log::EventData;
+use crate::ziofa::metric::EventTypeEnum;
+use crate::ziofa::{Event, Log};
+
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
 
@@ -17,4 +22,32 @@ pub mod ziofa {
 
 pub mod config {
     tonic::include_proto!("config");
+}
+
+impl TryInto<EventTypeEnum> for Event {
+    type Error = ();
+
+    fn try_into(self) -> Result<EventTypeEnum, ()> {
+        match self {
+            Event {
+                event_type:
+                    Some(EventType::Log(Log {
+                        event_data: Some(EventData::VfsWrite(_)),
+                    })),
+            } => Ok(EventTypeEnum::VfsWriteEvent),
+            Event {
+                event_type:
+                    Some(EventType::Log(Log {
+                        event_data: Some(EventData::SysSendmsg(_)),
+                    })),
+            } => Ok(EventTypeEnum::JniReferencesEvent),
+            Event {
+                event_type:
+                    Some(EventType::Log(Log {
+                        event_data: Some(EventData::JniReferences(_)),
+                    })),
+            } => Ok(EventTypeEnum::SysSendmsgEvent),
+            _ => Err(()),
+        }
+    }
 }

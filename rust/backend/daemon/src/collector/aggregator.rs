@@ -1,78 +1,87 @@
-use crate::collector::IntoEvent;
-use crate::registry::{RegistryGuard, RegistryItem, TypedRingBuffer};
-use backend_common::TryFromRaw;
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+//
+// SPDX-License-Identifier: MIT
+
 use ractor::{cast, Actor, ActorProcessingErr, ActorRef};
-use shared::ziofa::Event;
-use std::io;
-use std::marker::PhantomData;
-use tokio::io::unix::AsyncFd;
+use shared::ziofa::event::EventType;
+use shared::ziofa::metric::EventTypeEnum;
+use shared::ziofa::{Event, Metric};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::time::{self};
 
-pub struct Aggregator<T>(PhantomData<T>);
+pub struct Aggregator;
 
-impl<T> Default for Aggregator<T> {
-    fn default() -> Self {Self(PhantomData)}
+pub struct AggregatorState {
+    event_type: EventTypeEnum,
+    event_count: Arc<Mutex<u32>>,
 }
 
-
-pub struct AggregatorState<T> {
-    map: AsyncFd<RegistryGuard<TypedRingBuffer<T>>>,
+pub struct AggregatorArguments {
     event_actor: ActorRef<Event>,
+    timeframe: time::Duration,
+    event_type: Event,
 }
 
-pub struct AggregatorArguments<T> {
-    item: RegistryItem<TypedRingBuffer<T>>,
-    event_actor: ActorRef<Event>,
-}
-
-impl<T> AggregatorArguments<T> {
-    pub fn new(item: RegistryItem<TypedRingBuffer<T>>, event_actor: ActorRef<Event>) -> Self {
-        Self { item, event_actor }
-    }
-}
-
-impl<T> TryFrom<AggregatorArguments<T>> for AggregatorState<T> {
-    type Error = io::Error;
-
-    fn try_from(value: AggregatorArguments<T>) -> Result<Self, Self::Error> {
-        Ok(Self {
-            map: AsyncFd::new(value.item.take())?,
-            event_actor: value.event_actor,
-        })
-    }
-}
-
-impl<T> Actor for Aggregator<T>
-where
-    T: TryFromRaw + IntoEvent + Send + Sync + 'static,
-{
-    type Msg = ();
-    type State = AggregatorState<T>;
-    type Arguments = AggregatorState<T>;
+impl Actor for Aggregator {
+    type Msg = Event;
+    type State = AggregatorState;
+    type Arguments = AggregatorArguments;
 
     async fn pre_start(
         &self,
-        myself: ActorRef<Self::Msg>,
+        _: ActorRef<Self::Msg>,
         args: Self::Arguments,
-    ) -> Result<Self::State, ActorProcessingErr>{
-        cast!(myself, ())?;
-        Ok(args.try_into()?)
+    ) -> Result<Self::State, ActorProcessingErr> {
+        let count = Arc::new(Mutex::new(0));
+        let l_count = count.clone();
+        let event_type_enum: EventTypeEnum = args.event_type.try_into().expect("invalid event type (you are probably trying to aggregate an already aggregated event)");
+            tokio::task::spawn(async move {
+            loop {
+                tokio::time::sleep(args.timeframe).await;
+                let c_val = l_count.lock().await;
+
+                let metric = Metric {
+                    timeframe_ms: args.timeframe.clone().as_millis() as u32,
+                    event_count: *c_val,
+                    event_type_enum: event_type_enum.into(),
+                };
+                cast!(
+                    args.event_actor,
+                    Event {
+                        event_type: Some(EventType::Metric(metric))
+                    }
+                )
+                    .expect("Event couldn't be send to next actor");
+            }
+        });
+        Ok(Self::State {
+            event_type: event_type_enum,
+            event_count: count,
+        })
     }
 
     async fn handle(
         &self,
-        myself: ActorRef<Self::Msg>,
-        message: Self::Msg,
-        state: &mut Self::State,
-    ) -> Result<(), ActorProcessingErr>{
-        let mut guard = state.map.readable_mut().await?;
-        let inner = guard.get_inner_mut();
+        _: ActorRef<Self::Msg>,
+        msg: Self::Msg,
+        state: &mut AggregatorState,
+    ) -> Result<(), ActorProcessingErr> {
+        let AggregatorState {
+            event_type: state_event_type,
+            event_count: state_event_count,
+        } = state;
 
-        while let Some(item) = inner.next().map(T::into_event) {
-            cast!(state.event_actor, item)?;
+        let msg_event_type: EventTypeEnum = msg.try_into().expect("Invalid event type in my stream (The event type during initialization was correct, but i got a mismatching item at runtime)");
+
+        if *state_event_type != msg_event_type {
+            return Err(ActorProcessingErr::from(
+                "[Aggregator] Received event type does not match the type i was initialized with",
+            ));
         }
 
-        guard.clear_ready();
-
-        Ok(cast!(myself, ())?)
+        let mut event_count_mut = state_event_count.lock().await;
+        *event_count_mut += 1;
+        Ok(())
     }
 }

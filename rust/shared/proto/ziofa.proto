@@ -65,6 +65,13 @@ message CmdlineData {
 }
 
 message Event {
+    oneof event_type{
+        Metric metric = 1;
+        Log log = 2;
+    }
+}
+
+message Log{
     oneof event_data {
         VfsWriteEvent vfs_write = 1;
         SysSendmsgEvent sys_sendmsg = 2;
@@ -102,3 +109,13 @@ message JniReferencesEvent {
     JniMethodName jni_method_name = 4;
 }
 
+message Metric{
+    enum EventTypeEnum{
+        VfsWriteEvent = 0;
+        SysSendmsgEvent = 1;
+        JniReferencesEvent = 2;
+    }
+    uint32 timeframe_ms = 1;
+    uint32 event_count = 2;
+    EventTypeEnum event_type_enum = 3;
+}
