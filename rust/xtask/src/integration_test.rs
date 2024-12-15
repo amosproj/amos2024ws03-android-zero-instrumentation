@@ -2,81 +2,46 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{process::{Child, Command}, thread, time};
+use std::{thread, time};
+use clap::Parser;
+use crate::{client, daemon};
 
-use anyhow::{bail, Context as _};
-use xtask::{android_launch_path, AYA_BUILD_EBPF};
+#[derive(Debug, Parser)]
+pub struct Options {
+    /// Build and run the release target.
+    #[clap(long)]
+    release: bool,
+}
 
-/// Build, push and run the daemon.
-fn run_daemon() -> Child {
-    let android_script = android_launch_path();
-
-    // pkill any left backend-daemon process
-    let mut pkill = Command::new("adb");
-    pkill.args(["shell", "su", "root", "pkill", "backend-daemon"]);
-    pkill
-        .status()
-        .with_context(|| format!("failed to run {pkill:?}"))
-        .unwrap();
-
-    let mut cmd = Command::new("cargo");
-    cmd.env(AYA_BUILD_EBPF, "true");
-    cmd.args([
-        "ndk",
-        "-t",
-        "x86_64",
-        "run",
-        "--package",
-        "backend-daemon",
-        "--bin",
-        "backend-daemon",
-        "--config",
-    ]);
-    cmd.arg(format!(
-        "target.\"cfg(all())\".runner=\"{}\"",
-        android_script.display(),
-    ));
-    let child = cmd.spawn().expect("Spawning process should work.");
+pub fn test(opts: Options) {
+    // spawn daemon
+    let mut daemon = daemon::run(
+        daemon::Options {
+            release: opts.release,
+            run_args: vec![],
+            android: true,
+            runner: "sudo -E".to_string(),
+        },
+        false,
+    )
+    .expect("Should work")
+    .expect("Should return child handle");
 
     println!("Waiting two seconds for daemon to start.");
     thread::sleep(time::Duration::from_secs(2));
-
-    child
-}
-
-/// build, push and test client
-fn run_client() -> Result<(), anyhow::Error> {
-    let android_script = android_launch_path();
-
-    let mut cmd = Command::new("cargo");
-    cmd.args([
-        "ndk",
-        "-t",
-        "x86_64",
-        "test",
-        "--package",
-        "client",
-        "--config",
-    ]);
-    cmd.arg(format!(
-        "target.\"cfg(all())\".runner=\"{}\"",
-        android_script.display(),
-    ));
-    let status = cmd
-        .status()
-        .with_context(|| format!("failed to run {cmd:?}"))?;
-
-    if status.code() != Some(0) {
-        bail!(format!("failed to run {cmd:?}"));
+    if daemon.try_wait().unwrap().is_some() {
+        println!("Spawning daemon failed.");
+        return;
     }
+    // spawn client
+    client::run(client::Options {
+        release: opts.release,
+        run_args: vec![],
+        android: true,
+        test: true,
+    })
+    .expect("Client should run");
 
-    Ok(())
-}
-
-pub fn test() {
-    let mut child = run_daemon();
-
-    run_client().ok();
-
-    child.kill().unwrap();
+    // kill daemon
+    daemon.kill().unwrap();
 }

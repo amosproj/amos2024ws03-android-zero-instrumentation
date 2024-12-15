@@ -68,8 +68,3 @@ async fn set_get_configuration() {
 
     assert_eq!(res_config, default_config);
 }
-
-// TODO sendmsg
-// TODO get odex files
-// TODO get so files
-// TODO get symbols
