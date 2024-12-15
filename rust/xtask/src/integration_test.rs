@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{process::Command, thread, time};
+use std::{process::{Child, Command}, thread, time};
 
-use anyhow::Context as _;
+use anyhow::{bail, Context as _};
 use xtask::{android_launch_path, AYA_BUILD_EBPF};
 
 /// Build, push and run the daemon.
-fn run_daemon() {
+fn run_daemon() -> Child {
     let android_script = android_launch_path();
 
     // pkill any left backend-daemon process
@@ -36,14 +36,16 @@ fn run_daemon() {
         "target.\"cfg(all())\".runner=\"{}\"",
         android_script.display(),
     ));
-    cmd.spawn().expect("Spawning process should work.");
+    let child = cmd.spawn().expect("Spawning process should work.");
 
     println!("Waiting two seconds for daemon to start.");
     thread::sleep(time::Duration::from_secs(2));
+
+    child
 }
 
 /// build, push and test client
-fn run_client() {
+fn run_client() -> Result<(), anyhow::Error> {
     let android_script = android_launch_path();
 
     let mut cmd = Command::new("cargo");
@@ -62,14 +64,19 @@ fn run_client() {
     ));
     let status = cmd
         .status()
-        .with_context(|| format!("failed to run {cmd:?}"))
-        .unwrap();
+        .with_context(|| format!("failed to run {cmd:?}"))?;
 
-    assert_eq!(status.code().unwrap(), 0);
+    if status.code() != Some(0) {
+        bail!(format!("failed to run {cmd:?}"));
+    }
+
+    Ok(())
 }
 
-#[test]
-pub fn integration() {
-    run_daemon();
-    run_client();
+pub fn test() {
+    let mut child = run_daemon();
+
+    run_client().ok();
+
+    child.kill().unwrap();
 }

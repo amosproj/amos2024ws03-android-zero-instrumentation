@@ -16,7 +16,3 @@ edition.workspace = true
 anyhow = { workspace = true, default-features = true }
 cargo_metadata = { workspace = true }
 clap = { workspace = true, default-features = true, features = ["derive"] }
-
-[[test]]
-name = "integration"
-path = "./tests/integration.rs"
