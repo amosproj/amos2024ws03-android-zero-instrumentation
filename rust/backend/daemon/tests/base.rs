@@ -28,13 +28,19 @@ async fn setup() -> ZiofaClient<Channel> {
 }
 
 #[tokio::test]
+async fn check_server() {
+    let mut client = setup().await;
+    client.check_server(()).await.expect("server should be available");
+}
+
+#[tokio::test]
 async fn list_processes() {
     let mut client = setup().await;
 
     let processes = client
         .list_processes(())
         .await
-        .expect("should work")
+        .expect("processes should be available")
         .into_inner()
         .processes;
 
@@ -52,14 +58,10 @@ async fn list_processes() {
     assert!(server_process.is_some());
 }
 
-#[tokio::test]
-async fn check_server() {
-    let mut client = setup().await;
-    client.check_server(()).await.expect("should work");
-}
+
 
 #[tokio::test]
-async fn set_get_configuration() {
+async fn set_get_empty_config() {
     let mut client = setup().await;
     let default_config = Configuration {
         uprobes: vec![],
@@ -74,13 +76,20 @@ async fn set_get_configuration() {
     client
         .set_configuration(default_config.clone())
         .await
-        .expect("should work");
+        .expect("set_config should work for a config with empty fields");
 
     let res_config = client
         .get_configuration(())
         .await
-        .expect("should work")
+        .expect("get_config should work when config was set")
         .into_inner();
 
     assert_eq!(res_config, default_config);
+}
+
+#[tokio::test]
+async fn init_stream() {
+    let mut client = setup().await;
+
+    let stream = client.init_stream(()).await.expect("init_stream should return a stream").into_inner();
 }
