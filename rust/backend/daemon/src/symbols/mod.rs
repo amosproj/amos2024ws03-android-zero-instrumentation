@@ -16,6 +16,9 @@ use thiserror::Error;
 use tokio::io::AsyncBufReadExt;
 use tokio::process::Command;
 
+pub mod walking;
+pub mod symbolizer;
+
 #[derive(Debug, Error)]
 pub enum SymbolError {
     #[error(transparent)]
