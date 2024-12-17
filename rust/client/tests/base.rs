@@ -18,7 +18,7 @@ async fn setup() -> Client {
 async fn list_processes() {
     let mut client = setup().await;
 
-    let processes = client.list_processes().await.expect("should work");
+    let processes = client.list_processes().await.expect("processes should be available");
 
     let server_process = processes.iter().find(|process| match &process.cmd {
         Some(Cmd::Cmdline(d)) => {
@@ -41,7 +41,7 @@ async fn check_server() {
 }
 
 #[tokio::test]
-async fn set_get_configuration() {
+async fn set_get_empty_config() {
     let mut client = setup().await;
 
     let default_config = Configuration {
@@ -59,12 +59,21 @@ async fn set_get_configuration() {
     client
         .set_configuration(default_config.clone())
         .await
-        .expect("should work");
+        .expect("set_config should work for a config with empty fields");
 
     let res_config = client
         .get_configuration()
         .await
-        .expect("should work");
+        .expect("get_config should work when config was set");
 
     assert_eq!(res_config, default_config);
+}
+
+
+
+#[tokio::test]
+async fn init_stream() {
+    let mut client = setup().await;
+
+    let _ = client.init_stream().await.expect("init_stream should return a stream");
 }
