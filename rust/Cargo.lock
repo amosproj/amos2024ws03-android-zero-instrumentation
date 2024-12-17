@@ -436,6 +436,7 @@ dependencies = [
  "aya-ebpf",
  "aya-log-ebpf",
  "backend-common",
+ "libc",
  "which",
  "xtask",
 ]
