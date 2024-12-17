@@ -45,7 +45,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -106,7 +106,8 @@ dependencies {
     implementation(libs.vico.compose.m2)
     implementation(libs.vico.compose.m3)
     implementation(libs.vico.core)
-
+    implementation(libs.arrow.core)
+    implementation(libs.arrow.fx.coroutines)
     detektPlugins(libs.detekt.compose.rules)
 }
 

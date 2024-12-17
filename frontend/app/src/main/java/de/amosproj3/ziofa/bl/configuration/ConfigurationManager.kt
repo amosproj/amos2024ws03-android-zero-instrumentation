@@ -40,6 +40,11 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
 
     override val localConfiguration =
         _localConfiguration
+            .map {
+                if (it is ConfigurationUpdate.Valid) {
+                    it.copy(it.configuration.copy(jniReferences = null))
+                } else it
+            } // TODO remove this once the backend has integrated setting this feature
             .onEach { Timber.i("local configuration updated $it") }
             .map { it ?: ConfigurationUpdate.Unknown }
 
