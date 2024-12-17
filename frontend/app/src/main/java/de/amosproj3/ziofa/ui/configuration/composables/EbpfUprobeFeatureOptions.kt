@@ -28,8 +28,9 @@ fun EbpfUprobeFeatureOptions(
     options: List<BackendFeatureOptions.UprobeOption>,
     onOptionDeleted: (BackendFeatureOptions.UprobeOption) -> Unit,
     onAddUprobeSelected: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp, vertical = 15.dp).fillMaxSize()) {
+    LazyColumn(modifier = modifier.padding(horizontal = 20.dp, vertical = 15.dp).fillMaxSize()) {
         items(options) { option ->
             Row(
                 modifier = Modifier.fillMaxWidth(),

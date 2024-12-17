@@ -16,6 +16,7 @@ import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
+import de.amosproj3.ziofa.ui.shared.merge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +44,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
             .map { it ?: ConfigurationUpdate.Unknown }
 
     init {
+        @Suppress("TooGenericExceptionCaught") // we want to display all exceptions
         coroutineScope.launch {
             try {
                 client = clientFactory.connect()
@@ -63,7 +65,9 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
         _localConfiguration.update { prev ->
             Timber.e("changeFeatureConfigurationForPIDs.prev $prev")
             Timber.e(
-                "changeFeatureConfigurationForPIDs() $vfsWriteFeature, $sendMessageFeature, $uprobesFeature, $jniReferencesFeature"
+                "changeFeatureConfigurationForPIDs() " +
+                    "vfs=$vfsWriteFeature, sendMsg=$sendMessageFeature, " +
+                    "uprobes=$uprobesFeature, jni=$jniReferencesFeature"
             )
             // the configuration shall not be changed from the UI if there is none received from
             // backend
@@ -71,40 +75,10 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                 val previousConfiguration = prev.configuration
                 previousConfiguration
                     .copy(
-                        vfsWrite =
-                            vfsWriteFeature?.let { requestedChanges ->
-                                previousConfiguration.vfsWrite.updatePIDs(
-                                    pidsToAdd =
-                                        if (enable) requestedChanges.entries.entries else setOf(),
-                                    pidsToRemove =
-                                        if (!enable) requestedChanges.entries.entries else setOf(),
-                                )
-                            } ?: previousConfiguration.vfsWrite,
-                        sysSendmsg =
-                            sendMessageFeature?.let { requestedChanges ->
-                                previousConfiguration.sysSendmsg.updatePIDs(
-                                    pidsToAdd =
-                                        if (enable) requestedChanges.entries.entries else setOf(),
-                                    pidsToRemove =
-                                        if (!enable) requestedChanges.entries.entries else setOf(),
-                                )
-                            } ?: previousConfiguration.sysSendmsg,
-                        uprobes =
-                            uprobesFeature.let { requestedChanges ->
-                                if (requestedChanges == null)
-                                    return@let previousConfiguration.uprobes
-                                previousConfiguration.uprobes.updateUProbes(
-                                    pidsToAdd = if (enable) requestedChanges else listOf(),
-                                    pidsToRemove = if (!enable) requestedChanges else listOf(),
-                                )
-                            },
-                        jniReferences =
-                            jniReferencesFeature?.let { requestedChanges ->
-                                previousConfiguration.jniReferences.updatePIDs(
-                                    pidsToAdd = if (enable) requestedChanges.pids else listOf(),
-                                    pidsToRemove = if (!enable) requestedChanges.pids else listOf(),
-                                )
-                            } ?: previousConfiguration.jniReferences,
+                        vfsWrite = previousConfiguration.merge(vfsWriteFeature, enable),
+                        sysSendmsg = previousConfiguration.merge(sendMessageFeature, enable),
+                        uprobes = previousConfiguration.merge(uprobesFeature, enable),
+                        jniReferences = previousConfiguration.merge(jniReferencesFeature, enable),
                     )
                     .also { Timber.i("new local configuration = $it") }
                     .let { ConfigurationUpdate.Valid(it) }
@@ -128,6 +102,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
         }
     }
 
+    @Suppress("TooGenericExceptionCaught", "SwallowedException") // initialization mechanism
     private suspend fun initializeConfigurations() {
         val initializedConfiguration =
             try {
@@ -139,6 +114,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
     }
 
     // TODO this should be handled on the backend
+    @Suppress("TooGenericExceptionCaught") // we want to display all exceptions
     private suspend fun getOrCreateInitialConfiguration(): ConfigurationUpdate {
         return try {
             // the config may not be initialized, we should try initializing it
@@ -162,6 +138,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
         } ?: Timber.e("unsubmittedConfiguration == null -> this should never happen")
     }
 
+    @Suppress("TooGenericExceptionCaught") // we want to display all exceptions
     private suspend fun getFromBackend(): ConfigurationUpdate {
         return try {
             (client?.getConfiguration()?.let { ConfigurationUpdate.Valid(it) }
