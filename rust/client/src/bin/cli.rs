@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 //
 // SPDX-License-Identifier: MIT
 
@@ -97,10 +98,10 @@ async fn set_config(client: &mut Client) -> Result<()> {
         .set_configuration(Configuration {
             uprobes: vec![],
             vfs_write: Some(VfsWriteConfig {
-                entries: std::collections::HashMap::new(),
+                entries: HashMap::new(),
             }),
             sys_sendmsg: Some(SysSendmsgConfig {
-                entries: std::collections::HashMap::new(),
+                entries: HashMap::new(),
             }),
             jni_references: Some(JniReferencesConfig { pids: vec![] }),
         })

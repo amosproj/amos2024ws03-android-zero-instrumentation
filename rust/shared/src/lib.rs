@@ -51,3 +51,21 @@ impl TryInto<EventTypeEnum> for Event {
         }
     }
 }
+
+impl From<Log> for EventTypeEnum {
+
+    fn from(value: Log) -> Self {
+        match value {
+            Log {
+                event_data: Some(EventData::VfsWrite(_)),
+            } => EventTypeEnum::VfsWriteEvent,
+            Log {
+                event_data: Some(EventData::SysSendmsg(_)),
+            } => EventTypeEnum::SysSendmsgEvent,
+            Log {
+                event_data: Some(EventData::JniReferences(_)),
+            } => EventTypeEnum::JniReferencesEvent,
+            _ => panic!()
+        }
+    }
+}

@@ -2,25 +2,27 @@
 //
 // SPDX-License-Identifier: MIT
 
+use ractor::concurrency::{Duration, JoinHandle};
 use ractor::{cast, Actor, ActorProcessingErr, ActorRef};
 use shared::ziofa::event::EventType;
 use shared::ziofa::metric::EventTypeEnum;
 use shared::ziofa::{Event, Metric};
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use tokio::time::{self};
+use tokio::time;
 
 pub struct Aggregator;
 
 pub struct AggregatorState {
     event_type: EventTypeEnum,
-    event_count: Arc<Mutex<u32>>,
+    event_count: u32,
+    timeframe: Duration,
+    event_actor: ActorRef<Event>,
+    timer: Option<JoinHandle<()>>,
 }
 
 pub struct AggregatorArguments {
     event_actor: ActorRef<Event>,
     timeframe: time::Duration,
-    event_type: Event,
+    event_type: EventTypeEnum,
 }
 
 impl Actor for Aggregator {
@@ -33,32 +35,33 @@ impl Actor for Aggregator {
         _: ActorRef<Self::Msg>,
         args: Self::Arguments,
     ) -> Result<Self::State, ActorProcessingErr> {
-        let count = Arc::new(Mutex::new(0));
-        let l_count = count.clone();
-        let event_type_enum: EventTypeEnum = args.event_type.try_into().expect("invalid event type (you are probably trying to aggregate an already aggregated event)");
-            tokio::task::spawn(async move {
-            loop {
-                tokio::time::sleep(args.timeframe).await;
-                let c_val = l_count.lock().await;
-
-                let metric = Metric {
-                    timeframe_ms: args.timeframe.clone().as_millis() as u32,
-                    event_count: *c_val,
-                    event_type_enum: event_type_enum.into(),
-                };
-                cast!(
-                    args.event_actor,
-                    Event {
-                        event_type: Some(EventType::Metric(metric))
-                    }
-                )
-                    .expect("Event couldn't be send to next actor");
-            }
-        });
         Ok(Self::State {
-            event_type: event_type_enum,
-            event_count: count,
+            event_type: args.event_type,
+            event_count: 0,
+            timeframe: args.timeframe.into(),
+            event_actor: args.event_actor,
+            timer: None,
         })
+    }
+
+    async fn post_start(
+        &self,
+        myself: ActorRef<Self::Msg>,
+        state: &mut Self::State,
+    ) -> Result<(), ActorProcessingErr> {
+        state.timer = Some(myself.send_interval(state.timeframe, || Event { event_type: None }));
+        Ok(())
+    }
+
+    async fn post_stop(
+        &self,
+        _: ActorRef<Self::Msg>,
+        state: &mut AggregatorState,
+    ) -> Result<(), ActorProcessingErr> {
+        if let Some(timer) = state.timer.take() {
+            timer.abort();
+        }
+        Ok(())
     }
 
     async fn handle(
@@ -67,21 +70,35 @@ impl Actor for Aggregator {
         msg: Self::Msg,
         state: &mut AggregatorState,
     ) -> Result<(), ActorProcessingErr> {
-        let AggregatorState {
-            event_type: state_event_type,
-            event_count: state_event_count,
-        } = state;
+        match msg.event_type {
+            Some(EventType::Log(event)) => {
+                let msg_event_type = EventTypeEnum::try_from(event).unwrap();
 
-        let msg_event_type: EventTypeEnum = msg.try_into().expect("Invalid event type in my stream (The event type during initialization was correct, but i got a mismatching item at runtime)");
-
-        if *state_event_type != msg_event_type {
-            return Err(ActorProcessingErr::from(
-                "[Aggregator] Received event type does not match the type i was initialized with",
-            ));
+                if msg_event_type != state.event_type {
+                    panic!(
+                        "event type mismatch -> I was initialized with {:?}, but was send an {:?}",
+                        state.event_type, msg_event_type
+                    );
+                }
+                state.event_count +=1;
+            }
+            _ => {
+                // event type is none -> timer was triggered -> send the metric
+                let metric = Metric {
+                    timeframe_ms: state.timeframe.as_millis() as u32,
+                    event_count: state.event_count,
+                    event_type_enum: state.event_type.into(),
+                };
+                cast!(
+                    state.event_actor,
+                    Event {
+                        event_type: Some(EventType::Metric(metric))
+                    }
+                )
+                .map_err(|_| ActorProcessingErr::from("Failed to send metric to event actor"))?;
+                state.event_count = 0;
+            }
         }
-
-        let mut event_count_mut = state_event_count.lock().await;
-        *event_count_mut += 1;
         Ok(())
     }
 }
