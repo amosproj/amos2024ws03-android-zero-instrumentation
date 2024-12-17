@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
