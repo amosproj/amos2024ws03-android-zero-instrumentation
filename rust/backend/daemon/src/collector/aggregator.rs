@@ -25,6 +25,21 @@ pub struct AggregatorArguments {
     event_type: EventTypeEnum,
 }
 
+
+impl TryFrom<AggregatorArguments> for AggregatorState {
+    type Error = ActorProcessingErr;
+    fn try_from(args: AggregatorArguments) -> Result<AggregatorState, Self::Error> {
+        Ok(AggregatorState {
+            event_type: args.event_type,
+            event_count: 0,
+            timeframe: args.timeframe,
+            event_actor: args.event_actor,
+            timer: None,
+        })
+    }
+}
+
+
 impl Actor for Aggregator {
     type Msg = Event;
     type State = AggregatorState;
@@ -35,13 +50,7 @@ impl Actor for Aggregator {
         _: ActorRef<Self::Msg>,
         args: Self::Arguments,
     ) -> Result<Self::State, ActorProcessingErr> {
-        Ok(Self::State {
-            event_type: args.event_type,
-            event_count: 0,
-            timeframe: args.timeframe.into(),
-            event_actor: args.event_actor,
-            timer: None,
-        })
+        Self::State::try_from(args)
     }
 
     async fn post_start(
@@ -80,7 +89,7 @@ impl Actor for Aggregator {
                         state.event_type, msg_event_type
                     );
                 }
-                state.event_count +=1;
+                state.event_count += 1;
             }
             _ => {
                 // event type is none -> timer was triggered -> send the metric
@@ -95,7 +104,7 @@ impl Actor for Aggregator {
                         event_type: Some(EventType::Metric(metric))
                     }
                 )
-                .map_err(|_| ActorProcessingErr::from("Failed to send metric to event actor"))?;
+                    .map_err(|_| ActorProcessingErr::from("Failed to send metric to event actor"))?;
                 state.event_count = 0;
             }
         }
