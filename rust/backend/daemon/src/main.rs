@@ -7,12 +7,12 @@
 use std::{borrow::BorrowMut, hash::BuildHasherDefault, sync::Arc};
 
 use clap::builder;
-use futures::stream::FuturesUnordered;
+use futures::{stream::FuturesUnordered, StreamExt};
 use object::write;
-use symbols::{symbolizer::{oat_symbols, so_symbols}, walking::{self, all_symbol_files, SymbolFilePath}};
+use symbols::{symbolizer::{oat_symbols, so_symbols, symbols}, walking::{self, all_symbol_files, SymbolFilePath}};
 use tantivy::{aggregation::bucket, collector::{DocSetCollector, TopDocs}, directory::MmapDirectory, doc, query::{AllQuery, PhraseQuery, Query, QueryParser}, schema::{Facet, FacetOptions, IndexRecordOption, SchemaBuilder, TextFieldIndexing, TextOptions, FAST, INDEXED, STORED, TEXT}, store::{Compressor, ZstdCompressor}, tokenizer::{LowerCaser, SimpleTokenizer, TextAnalyzer, TextAnalyzerBuilder, Token, TokenFilter, TokenStream, Tokenizer, TokenizerManager}, Index, IndexSettings, Searcher, TantivyDocument, Term};
-use tokio::{fs, spawn, task::spawn_blocking};
-use tokio_stream::StreamExt;
+use tokio::{fs, runtime::{Builder, Runtime}, spawn, sync::mpsc, task::{spawn_blocking, JoinSet}};
+use tokio_stream::{wrappers::ReceiverStream};
 use tracing_subscriber::EnvFilter;
 mod constants;
 mod ebpf_utils;
@@ -168,54 +168,23 @@ async fn create_index() {
     let symbol_name = index.schema().get_field("symbol_name").unwrap();
     let symbol_offset = index.schema().get_field("symbol_offset").unwrap();
     
-    let writer = Arc::new(index.writer(50_000_000).unwrap());
+    let mut writer = index.writer(50_000_000).unwrap();
     
-    let mut all_symbols = all_symbol_files();
+    let mut tasks = JoinSet::new();
+    
+    all_symbol_files().flat_map_unordered(Some(2), |symbol_file| {
+        let (tx, rx) = flume::bounded(0);
+        tasks.spawn(symbols(symbol_file, tx));
+        rx.into_stream()
+    }).map(|symbol| {
+        writer.add_document(doc!(
+            symbol_name => symbol.name,
+            symbol_offset => symbol.offset
+        )).unwrap();
+    }).collect::<()>().await;
+    
+    tasks.join_all().await.into_iter().collect::<Result<(), _>>().unwrap();
 
-    let mut tasks: FuturesUnordered<tokio::task::JoinHandle<()>> = FuturesUnordered::new();
-    while let Some(path) = all_symbols.next().await {
-        let writer = writer.clone();
-        if tasks.len() == 4 {
-            tasks.next().await.unwrap().unwrap();
-        }
-        match path {
-            SymbolFilePath::Odex(path) | SymbolFilePath::Oat(path) => {
-                tasks.push(spawn(async move {
-                    println!("indexing {path:?}");
-                    let mut oat_symbols = oat_symbols(path).await.unwrap();
-                    while let Some(symbol) = oat_symbols.next().await {
-                        let writer = writer.clone();
-                        spawn_blocking(move || {
-                            writer.add_document(doc!(
-                                symbol_name => symbol.name,
-                                symbol_offset => symbol.offset,
-                            )).unwrap();
-                        }).await.unwrap();
-                    }
-                }));
-            }
-            SymbolFilePath::So(path) =>  {
-                tasks.push(spawn(async move {
-                    println!("indexing {path:?}");
-                    let mut so_symbols = so_symbols(path);
-                    while let Some(symbol) = so_symbols.next().await {
-                        let writer = writer.clone();
-                        spawn_blocking(move || {
-                            writer.add_document(doc!(
-                                symbol_name => symbol.name,
-                                symbol_offset => symbol.offset,
-                            )).unwrap();
-                        }).await.unwrap();
-                    }
-                }));
-            }
-            _ => {},
-        }
-    }
-    while let Some(x) = tasks.next().await {
-        x.unwrap();
-    }
-    let mut writer = Arc::into_inner(writer).unwrap();
     writer.commit().unwrap();
 }
 
