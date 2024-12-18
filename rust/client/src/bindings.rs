@@ -196,6 +196,14 @@ impl Client {
 
         Ok(SymbolStream(Mutex::new(Box::pin(stream))))
     }
+    
+    pub async fn index_symbols(&self) -> Result<()> {
+        Ok(self.0.lock().await.index_symbols().await?)
+    }
+    
+    pub async fn search_symbols(&self, query: String, limit: u64) -> Result<Vec<Symbol>> {
+        Ok(self.0.lock().await.search_symbols(query, limit).await?)
+    }
 }
 
 #[uniffi::export]

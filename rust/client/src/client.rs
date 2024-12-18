@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use shared::ziofa::Event;
+use shared::ziofa::{Event, SearchSymbolsRequest};
 use shared::{
     config::Configuration,
     counter::{counter_client::CounterClient, IfaceMessage},
@@ -156,5 +156,13 @@ impl Client {
     ) -> Result<()> {
         self.ziofa.index_symbols(()).await?;
         Ok(())
+    }
+    
+    pub async fn search_symbols(
+        &mut self,
+        query: String,
+        limit: u64,
+    ) -> Result<Vec<Symbol>> {
+        Ok(self.ziofa.search_symbols(SearchSymbolsRequest { query, limit }).await?.into_inner().symbols)
     }
 }

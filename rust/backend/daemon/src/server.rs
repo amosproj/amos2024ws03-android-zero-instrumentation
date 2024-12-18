@@ -8,7 +8,7 @@
 use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
 use crate::filesystem::{Filesystem, NormalFilesystem};
 use crate::registry;
-use crate::symbols::actors::{SymbolActor, SymbolActorMsg};
+use crate::symbols::actors::{SearchReq, SymbolActor, SymbolActorMsg};
 use crate::symbols::SymbolHandler;
 use crate::{
     constants,
@@ -18,7 +18,7 @@ use crate::{
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use ractor::{call, Actor, ActorRef};
-use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
+use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, SearchSymbolsRequest, SearchSymbolsResponse, StringResponse, Symbol};
 use shared::{
     config::Configuration,
     ziofa::{
@@ -236,6 +236,13 @@ where F: Filesystem {
     async fn index_symbols(&self, request: Request<()>) -> Result<Response<()>, Status> {
         call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex).map_err(|e| Status::from_error(Box::new(e)))?;
         Ok(Response::new(()))
+    }
+    
+    async fn search_symbols(&self, request: Request<SearchSymbolsRequest>) -> Result<Response<SearchSymbolsResponse>, Status> {
+        let SearchSymbolsRequest { query, limit } = request.into_inner();
+        let symbols = call!(self.symbol_actor_ref, SymbolActorMsg::Search, SearchReq { query, limit }).map_err(|e| Status::from_error(Box::new(e)))??;
+        
+        Ok(Response::new(SearchSymbolsResponse { symbols }))
     }
 }
 
