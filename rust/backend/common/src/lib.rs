@@ -32,6 +32,12 @@ impl TryFromRaw for JNICall {
     }
 }
 
+impl TryFromRaw for SysSigquitCall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::try_from_bytes(raw)?)
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone, AnyBitPattern)]
 pub struct VfsWriteCall {
@@ -94,6 +100,31 @@ pub struct JNICall {
     pub method_name: JNIMethodName,
 }
 
+// ---------------------------------------
+// SysSigquit: detect SIGQUIT signals
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, AnyBitPattern)]
+pub struct SysSigquitCall {
+    pub pid: u32,
+    pub tid: u32,
+    pub time_stamp: u64,
+    pub target_pid: u64, // the pid, that gets the SIGQUIT signal
+}
+
+impl SysSigquitCall {
+    pub fn new(pid: u32, tid: u32, time_stamp: u64, target_pid: u64) -> Self {
+        Self {
+            pid,
+            tid,
+            time_stamp,
+            target_pid,
+        }
+    }
+}
+
+// ----------------------------------
+// generate a unique id from pid and tid
 #[inline(always)]
 pub fn generate_id(pid: u32, tgid: u32) -> u64 {
     let pid_u64 = pid as u64;

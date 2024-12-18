@@ -127,13 +127,25 @@ impl Client {
             .map(|s| Ok(s?)))
     }
 
+    pub async fn get_so_files(
+        &mut self,
+        pid: u32,
+    ) -> Result<impl Stream<Item = Result<StringResponse>>> {
+        Ok(self
+            .ziofa
+            .get_so_files(PidMessage { pid })
+            .await?
+            .into_inner()
+            .map(|s| Ok(s?)))
+    }
+
     pub async fn get_symbols(
         &mut self,
-        odex_file_path: String,
+        file_path: String,
     ) -> Result<impl Stream<Item = Result<Symbol>>> {
         Ok(self
             .ziofa
-            .get_symbols(GetSymbolsRequest { odex_file_path })
+            .get_symbols(GetSymbolsRequest { file_path })
             .await?
             .into_inner()
             .map(|s| Ok(s?)))
