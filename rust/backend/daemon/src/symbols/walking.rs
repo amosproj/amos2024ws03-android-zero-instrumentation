@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, path::PathBuf};
+use std::{ffi::OsStr, path::{Path, PathBuf}};
 
 use async_walkdir::{DirEntry, Error, Filtering, WalkDir};
 use tokio_stream::{adapters::Merge, Stream, StreamExt};
@@ -22,6 +22,17 @@ impl TryFrom<PathBuf> for SymbolFilePath {
             Some("art") => Ok(SymbolFilePath::Art(value)),
             Some("so") => Ok(SymbolFilePath::So(value)),
             _ => Err(value)
+        }
+    }
+}
+
+impl SymbolFilePath {
+    pub fn path(&self) -> &Path {
+        match self {
+            SymbolFilePath::Odex(path_buf) => path_buf,
+            SymbolFilePath::Oat(path_buf) => path_buf,
+            SymbolFilePath::Art(path_buf) => path_buf,
+            SymbolFilePath::So(path_buf) => path_buf,
         }
     }
 }

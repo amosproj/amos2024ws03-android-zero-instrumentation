@@ -53,8 +53,10 @@ async fn main() {
     let searcher = reader.searcher();
     let query = QueryParser::for_index(&index, vec![symbol_name]).parse_query(r#"*"#).unwrap();
     
-    let count = searcher.search(&query, &Count).unwrap();
-    println!("{count}");
+    let (score, address) = searcher.search(&query, &TopDocs::with_limit(1)).unwrap().pop().unwrap();
+    let doc = searcher.doc::<TantivyDocument>(address).unwrap();
+
+    println!("{doc:?}");
     
     
     
