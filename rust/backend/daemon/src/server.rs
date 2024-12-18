@@ -16,7 +16,7 @@ use crate::{
     features::Features,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
-use ractor::{Actor, ActorRef};
+use ractor::{call, Actor, ActorRef};
 use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
 use shared::{
     config::Configuration,
@@ -224,6 +224,11 @@ impl Ziofa for ZiofaImpl {
         });
 
         Ok(Response::new(ReceiverStream::new(rx)))
+    }
+    
+    async fn index_symbols(&self, request: Request<()>) -> Result<Response<()>, Status> {
+        call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex).map_err(|e| Status::from_error(Box::new(e)))?;
+        Ok(Response::new(()))
     }
 }
 

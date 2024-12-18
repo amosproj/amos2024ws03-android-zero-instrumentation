@@ -150,4 +150,11 @@ impl Client {
             .into_inner()
             .map(|s| Ok(s?)))
     }
+    
+    pub async fn index_symbols(
+        &mut self,
+    ) -> Result<()> {
+        self.ziofa.index_symbols(()).await?;
+        Ok(())
+    }
 }

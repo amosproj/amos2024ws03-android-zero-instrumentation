@@ -23,6 +23,8 @@ service Ziofa {
     rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
+    
+    rpc IndexSymbols(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }
 
 message StringResponse {
