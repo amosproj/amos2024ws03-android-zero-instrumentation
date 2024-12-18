@@ -11,7 +11,7 @@ use clap::builder;
 use futures::{stream::FuturesUnordered, StreamExt};
 use object::write;
 use ractor::{call, Actor, ActorStatus};
-use tantivy::{aggregation::bucket, collector::{Count, DocSetCollector, TopDocs}, directory::MmapDirectory, doc, query::{AllQuery, PhraseQuery, Query, QueryParser}, schema::{Facet, FacetOptions, IndexRecordOption, SchemaBuilder, TextFieldIndexing, TextOptions, FAST, INDEXED, STORED, TEXT}, store::{Compressor, ZstdCompressor}, tokenizer::{LowerCaser, SimpleTokenizer, TextAnalyzer, TextAnalyzerBuilder, Token, TokenFilter, TokenStream, Tokenizer, TokenizerManager}, Index, IndexSettings, Searcher, TantivyDocument, Term};
+use tantivy::{aggregation::bucket, collector::{Count, DocSetCollector, TopDocs}, directory::MmapDirectory, doc, query::{AllQuery, PhraseQuery, Query, QueryParser}, schema::{Facet, FacetOptions, IndexRecordOption, SchemaBuilder, TextFieldIndexing, TextOptions, FAST, INDEXED, STORED, STRING, TEXT}, store::{Compressor, ZstdCompressor}, tokenizer::{LowerCaser, SimpleTokenizer, TextAnalyzer, TextAnalyzerBuilder, Token, TokenFilter, TokenStream, Tokenizer, TokenizerManager}, Index, IndexSettings, Searcher, TantivyDocument, Term};
 use tokio::{fs, runtime::{Builder, Runtime}, spawn, sync::mpsc, task::{spawn_blocking, JoinSet}, time::interval};
 use tokio_stream::{wrappers::ReceiverStream};
 use tracing_subscriber::EnvFilter;
@@ -133,6 +133,7 @@ pub fn index() -> Result<Index, io::Error> {
                 .set_fast(Some("raw"))
                 );
         builder.add_u64_field("symbol_offset", STORED | FAST | INDEXED);
+        builder.add_text_field("library_path", STRING | STORED);
         builder.build()
     };
     

@@ -17,7 +17,7 @@ use super::walking::SymbolFilePath;
 #[derive(Debug)]
 pub struct Symbol {
     pub name: String,
-    pub offset: u64
+    pub offset: u64,
 }
 
 #[derive(Deserialize)]
