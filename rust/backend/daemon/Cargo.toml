@@ -37,7 +37,3 @@ ractor = { workspace = true, features = ["tokio_runtime"] }
 [build-dependencies]
 cargo_metadata = { workspace = true }
 xtask = { workspace = true }
-
-[[test]]
-name = "base"
-path = "./tests/base.rs"

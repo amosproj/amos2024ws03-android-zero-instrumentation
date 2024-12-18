@@ -6,6 +6,7 @@
 
 mod client;
 mod daemon;
+mod integration_test;
 
 use anyhow::Result;
 use clap::Parser;
@@ -20,13 +21,21 @@ pub struct Options {
 enum Command {
     Daemon(daemon::Options),
     Client(client::Options),
+    IntegrationTest(integration_test::Options),
 }
 
 fn main() -> Result<()> {
     let Options { command } = Parser::parse();
 
     match command {
-        Command::Daemon(opts) => daemon::run(opts),
+        Command::Daemon(opts) => {
+            daemon::run(opts, true)?;
+            Ok(())
+        }
         Command::Client(opts) => client::run(opts),
+        Command::IntegrationTest(opts) => {
+            integration_test::test(opts);
+            Ok(())
+        }
     }
 }
