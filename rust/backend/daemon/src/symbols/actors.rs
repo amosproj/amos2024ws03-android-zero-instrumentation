@@ -1,115 +1,31 @@
-use std::{fs::File, marker::PhantomData, path::PathBuf, pin::Pin, sync::Arc};
+use std::{default, marker::PhantomData, sync::{Arc, RwLock}, time::Duration};
 
-use futures::Stream;
-use object::{write::elf::Sym, Object, ObjectSymbol, ReadCache};
-use ractor::{cast, concurrency::JoinHandle, factory::{job::JobBuilder, queues::DefaultQueue, routing::QueuerRouting, Factory, FactoryArguments, FactoryMessage, Job, JobOptions, WorkerBuilder, WorkerMessage, WorkerStartContext}, Actor, ActorProcessingErr, ActorRef};
-use symbolic_common::Name;
-use symbolic_demangle::{Demangle, DemangleOptions};
-use tantivy::{doc, schema::Field, TantivyDocument};
-use tokio::task::spawn_blocking;
-use tokio_stream::StreamExt;
+use futures::FutureExt;
+use libc::stat;
+use serde::de;
+use tantivy::{doc, schema::Field, Index, IndexWriter, TantivyDocument};
+use tokio_stream::{Stream, StreamExt};
+use ractor::{cast, concurrency::{interval, sleep, spawn, JoinHandle}, factory::{queues::{DefaultQueue, Queue}, routing::QueuerRouting, Factory, FactoryArguments, FactoryLifecycleHooks, FactoryMessage, Job, JobOptions, WorkerBuilder, WorkerMessage, WorkerStartContext}, Actor, ActorCell, ActorProcessingErr, ActorRef, RpcReplyPort, SpawnErr, State, SupervisionEvent};
 
-use super::{symbolizer::{oat_symbols, Symbol}, walking::{all_symbol_files, SymbolFilePath}};
+use super::{index::index, symbolizer::{symbols, Symbol}, walking::{all_symbol_files, SymbolFilePath}};
 
+struct SymbolFilePathCollector<S>(PhantomData<S>);
 
-pub struct FileWalker;
+// SAFETY: `S` is only present as PhantomData, so it doesn't actually affect the Actor itself.
+unsafe impl<S> Sync for SymbolFilePathCollector<S> where S: Stream + State {}
 
-impl Actor for FileWalker {
-    type Arguments = ActorRef<SymbolFilePath>;
-    type State = (Pin<Box<dyn Stream<Item = SymbolFilePath> + Send>>, ActorRef<SymbolFilePath>);
+impl<S> Actor for SymbolFilePathCollector<S>
+where S: Stream<Item = SymbolFilePath> + State + Unpin {
+    type Arguments = (S, ActorRef<SymbolFilePath>);
+    type State = (S, ActorRef<SymbolFilePath>);
     type Msg = ();
-    
-    async fn pre_start(
-            &self,
-            myself: ractor::ActorRef<Self::Msg>,
-            args: Self::Arguments,
-        ) -> Result<Self::State, ractor::ActorProcessingErr> {
-        let s = Box::pin(all_symbol_files());
-        cast!(myself, ())?;
-        Ok((s, args))
-    }
-    
-    async fn handle(
-            &self,
-            myself: ActorRef<Self::Msg>,
-            _: Self::Msg,
-            state: &mut Self::State,
-        ) -> Result<(), ractor::ActorProcessingErr> {
-        let (s, r) = state;
-        
-        if let Some(p) = s.next().await {
-            cast!(r, p)?;
-            cast!(myself, ())?;
-        } else {
-            myself.stop(None);
-        }
-        
-        
-        Ok(())
-    }
-}
-
-pub struct SoParserWorker;
-
-impl Actor for SoParserWorker {
-    type Arguments = WorkerStartContext<(), PathBuf, ActorRef<Symbol>>;
-    type State = WorkerStartContext<(), PathBuf, ActorRef<Symbol>>;
-    type Msg = WorkerMessage<(), PathBuf>;
-
-    async fn pre_start(
-            &self,
-            myself: ActorRef<Self::Msg>,
-            args: Self::Arguments,
-        ) -> Result<Self::State, ractor::ActorProcessingErr> {
-        Ok(args)
-    }
-    
-    async fn handle(
-            &self,
-            myself: ActorRef<Self::Msg>,
-            message: Self::Msg,
-            state: &mut Self::State,
-        ) -> Result<(), ActorProcessingErr> {
-        match message {
-            WorkerMessage::FactoryPing(time) => {
-                cast!(state.factory, FactoryMessage::WorkerPong(state.wid, time.elapsed()))?;
-            }
-            WorkerMessage::Dispatch(job) => {
-                let rx = state.custom_start.clone();
-                spawn_blocking(move || {
-                    let file = File::open(job.msg)?;
-                    let file_cache = ReadCache::new(file);
-                    let obj = object::File::parse(&file_cache)?;
-
-                    for symbol in obj.dynamic_symbols() {
-                        let name = if let Some(name) = symbol.name().ok() { name } else { continue };
-                        let name = Name::from(name);
-                        let demangled = name.try_demangle(DemangleOptions::complete());
-                        cast!(rx, Symbol { name: demangled.into(), offset: symbol.address() })?
-                    }
-                    
-                    Ok::<_, ActorProcessingErr>(())
-                }).await??;
-               
-                cast!(state.factory, FactoryMessage::Finished(state.wid, job.key))?;
-            }
-        }
-        Ok(())
-    }
-}
-
-pub struct OdexParserWorker;
-
-impl Actor for OdexParserWorker {
-    type Msg = WorkerMessage<(), PathBuf>;
-    type State = WorkerStartContext<(), PathBuf, ActorRef<Symbol>>;
-    type Arguments = WorkerStartContext<(), PathBuf, ActorRef<Symbol>>;
     
     async fn pre_start(
             &self,
             myself: ActorRef<Self::Msg>,
             args: Self::Arguments,
         ) -> Result<Self::State, ActorProcessingErr> {
+        cast!(myself, ())?;
         Ok(args)
     }
     
@@ -119,76 +35,21 @@ impl Actor for OdexParserWorker {
             message: Self::Msg,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
-        match message {
-            WorkerMessage::FactoryPing(time) => {
-                cast!(state.factory, FactoryMessage::WorkerPong(state.wid, time.elapsed()))?;
-            }
-            WorkerMessage::Dispatch(job) => {
-                let mut symbols = oat_symbols(job.msg).await?;
-                
-                while let Some(symbol) = symbols.next().await {
-                    cast!(state.custom_start, symbol)?;
-                }
-                
-                cast!(state.factory, FactoryMessage::Finished(state.wid, job.key))?;
-            }
+        if let Some(next) = state.0.next().await {
+            cast!(state.1, next)?;
+            cast!(myself, ())?;
+        } else {
+            myself.stop(None);
         }
         Ok(())
     }
 }
 
-pub struct SoParserWorkerBuilder(ActorRef<Symbol>);
+struct SymbolFileParserProxy;
 
-impl WorkerBuilder<SoParserWorker, ActorRef<Symbol>> for SoParserWorkerBuilder {
-    fn build(&mut self, wid: ractor::factory::WorkerId) -> (SoParserWorker, ActorRef<Symbol>) {
-        (SoParserWorker, self.0.clone())
-    }
-}
-
-pub type SoParserFactory = Factory::<(), PathBuf, ActorRef<Symbol>, SoParserWorker, QueuerRouting<(), PathBuf>, DefaultQueue<(), PathBuf>>;
-
-pub struct OdexParserWorkerBuilder(ActorRef<Symbol>);
-
-impl WorkerBuilder<OdexParserWorker, ActorRef<Symbol>> for OdexParserWorkerBuilder {
-    fn build(&mut self, wid: ractor::factory::WorkerId) -> (OdexParserWorker, ActorRef<Symbol>) {
-        (OdexParserWorker, self.0.clone())
-    }
-}
-
-pub type OdexParserFactory = Factory::<(), PathBuf, ActorRef<Symbol>, OdexParserWorker, QueuerRouting<(), PathBuf>, DefaultQueue<(), PathBuf>>;
-
-
-pub async fn spawn_odex_parser_factory(actor: ActorRef<Symbol>) -> (ActorRef<FactoryMessage<(), PathBuf>>, JoinHandle<()>) {
-    let factory_args = FactoryArguments::builder()
-        .worker_builder(Box::new(OdexParserWorkerBuilder(actor)))
-        .queue(Default::default())
-        .router(Default::default())
-        .num_initial_workers(16)
-        .build();
-    
-    let (factory, handle) = Actor::spawn(None, OdexParserFactory::default(), factory_args).await.unwrap();
-    
-    (factory, handle)
-}
-
-pub async fn spawn_so_parser_factory(actor: ActorRef<Symbol>) -> (ActorRef<FactoryMessage<(), PathBuf>>, JoinHandle<()>) {
-    let factory_args = FactoryArguments::builder()
-        .worker_builder(Box::new(SoParserWorkerBuilder(actor)))
-        .queue(Default::default())
-        .router(Default::default())
-        .num_initial_workers(16)
-        .build();
-    
-    let (factory, handle) = Actor::spawn(None, SoParserFactory::default(), factory_args).await.unwrap();
-    
-    (factory, handle)
-}
-
-pub struct SymbolPathHandler;
-
-impl Actor for SymbolPathHandler {
-    type Arguments = (ActorRef<FactoryMessage<(), PathBuf>>, ActorRef<FactoryMessage<(), PathBuf>>);
-    type State = (ActorRef<FactoryMessage<(), PathBuf>>, ActorRef<FactoryMessage<(), PathBuf>>);
+impl Actor for SymbolFileParserProxy {
+    type Arguments = (usize, ActorCell, ActorRef<Symbol>);
+    type State = ActorRef<FactoryMessage<(), SymbolFilePath>>;
     type Msg = SymbolFilePath;
     
     async fn pre_start(
@@ -196,7 +57,17 @@ impl Actor for SymbolPathHandler {
             myself: ActorRef<Self::Msg>,
             args: Self::Arguments,
         ) -> Result<Self::State, ActorProcessingErr> {
-        Ok(args)
+        let factory_def = Factory::<(), SymbolFilePath, ActorRef<Symbol>, SymbolFileParser, QueuerRouting<(), SymbolFilePath>, DefaultQueue::<(), SymbolFilePath>>::default();
+        let factory_args = FactoryArguments::builder()
+            .num_initial_workers(args.0)
+            .worker_builder(Box::new(SymbolFileParserBuilder(args.2.clone())))
+            .queue(DefaultQueue::default())
+            .router(QueuerRouting::default())
+            .build();
+            
+        let (actor_ref, _) = Actor::spawn_linked(Some("symbol-file-parser-factory".to_owned()), factory_def, factory_args, args.2.get_cell()).await?;
+
+        Ok(actor_ref)
     }
     
     async fn handle(
@@ -205,54 +76,211 @@ impl Actor for SymbolPathHandler {
             message: Self::Msg,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
+        Ok(cast!(state, FactoryMessage::Dispatch(Job { key: (), accepted: None, msg: message, options: JobOptions::default() }))?)
+    }
+    
+    async fn post_stop(
+            &self,
+            myself: ActorRef<Self::Msg>,
+            state: &mut Self::State,
+        ) -> Result<(), ActorProcessingErr> {
+        Ok(cast!(state, FactoryMessage::DrainRequests)?)
+    }
+
+    async fn handle_supervisor_evt(
+            &self,
+            myself: ActorRef<Self::Msg>,
+            message: SupervisionEvent,
+            state: &mut Self::State,
+        ) -> Result<(), ActorProcessingErr> {
         match message {
-            SymbolFilePath::Art(_) => Ok(()),
-            SymbolFilePath::Oat(path) | SymbolFilePath::Odex(path) => Ok(cast!(state.0, FactoryMessage::Dispatch(Job {
-                key: (),
-                msg: path,
-                options: JobOptions::default(),
-                accepted: None,
-            }))?),
-            SymbolFilePath::So(path) => Ok(cast!(state.1, FactoryMessage::Dispatch(Job {
-                key: (),
-                msg: path,
-                options: JobOptions::default(),
-                accepted: None,
-            }))?),
+            SupervisionEvent::ActorFailed(_,  reason) => {
+                myself.stop(Some(reason.to_string()));
+            }
+            SupervisionEvent::ActorTerminated(cell, _, _) => {
+                myself.drain()?;
+            }
+            _ => {}
         }
+        Ok(())
     }
 }
 
-pub struct SymbolHandler;
+struct SymbolFileParserBuilder(ActorRef<Symbol>);
+impl WorkerBuilder<SymbolFileParser, ActorRef<Symbol>> for SymbolFileParserBuilder {
+    fn build(&mut self, wid: ractor::factory::WorkerId) -> (SymbolFileParser, ActorRef<Symbol>) {
+        (SymbolFileParser, self.0.clone())
+    }
+}
 
-impl Actor for SymbolHandler {
-    type Arguments = Arc<tantivy::IndexWriter<TantivyDocument>>;
-    type State = (Field, Field, Arc<tantivy::IndexWriter<TantivyDocument>>);
-    type Msg = Symbol;
+struct SymbolFileParser;
+
+impl Actor for SymbolFileParser {
+    type Arguments = WorkerStartContext<(), SymbolFilePath, ActorRef<Symbol>>;
+    type State = WorkerStartContext<(), SymbolFilePath, ActorRef<Symbol>>;
+    type Msg = WorkerMessage<(), SymbolFilePath>;
     
     async fn pre_start(
             &self,
             myself: ActorRef<Self::Msg>,
             args: Self::Arguments,
         ) -> Result<Self::State, ActorProcessingErr> {
-        let symbol_name = args.index().schema().get_field("symbol_name").unwrap();
-        let symbol_offset = args.index().schema().get_field("symbol_offset").unwrap();
+        Ok(args)
+    }
+    
+    async fn handle(
+            &self,
+            _: ActorRef<Self::Msg>,
+            message: Self::Msg,
+            state: &mut Self::State,
+        ) -> Result<(), ActorProcessingErr> {
+        match message {
+            WorkerMessage::FactoryPing(instant) =>
+                Ok(cast!(state.factory, FactoryMessage::WorkerPong(state.wid, instant.elapsed()))?),
+            WorkerMessage::Dispatch(job) => {
+                let (tx, rx) = flume::bounded(0);
+                let handle = spawn(symbols(job.msg, tx));
+                
+                let mut stream = rx.into_stream();
+                
+                while let Some(symbol) = stream.next().await {
+                    cast!(state.custom_start, symbol)?;
+                }
+                
+                handle.await??;
+                
+                cast!(state.factory, FactoryMessage::Finished(state.wid, ()))?;
+                
+                Ok(())
+            }
+        }
+    }   
+}
+
+struct SymbolIndexer;
+
+impl Actor for SymbolIndexer {
+    type Arguments = Arc<IndexWriter>;
+    type State = (Field, Field, Arc<IndexWriter>);
+    type Msg = Symbol;
+    
+    async fn pre_start(
+            &self,
+            _: ActorRef<Self::Msg>,
+            args: Self::Arguments,
+        ) -> Result<Self::State, ActorProcessingErr> {
+        let symbol_name = args.index().schema().get_field("symbol_name")?;
+        let symbol_offset = args.index().schema().get_field("symbol_offset")?;
         Ok((symbol_name, symbol_offset, args))
     }
+    
+    async fn handle(
+            &self,
+            _: ActorRef<Self::Msg>,
+            message: Self::Msg,
+            state: &mut Self::State,
+        ) -> Result<(), ActorProcessingErr> {
+        state.2.add_document(doc!{
+            state.0 => message.name,
+            state.1 => message.offset,
+        })?;
+        
+        Ok(())
+    }
+    
+    async fn handle_supervisor_evt(
+            &self,
+            myself: ActorRef<Self::Msg>,
+            message: SupervisionEvent,
+            state: &mut Self::State,
+        ) -> Result<(), ActorProcessingErr> {
+        match message {
+            SupervisionEvent::ActorFailed(_,  reason) => {
+                myself.stop(Some(reason.to_string()));
+            }
+            SupervisionEvent::ActorTerminated(_, _, _) => {
+                myself.drain()?;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
 
+pub struct SymbolActor;
+
+impl SymbolActor {
+    pub async fn spawn() -> Result<ActorRef<SymbolActorMsg>, SpawnErr> {
+        let (myself, _) = Actor::spawn(None, SymbolActor, ()).await?;
+        Ok(myself)
+    }
+}
+
+pub enum SymbolActorMsg {
+    ReIndex(RpcReplyPort<()>),
+}
+
+impl Actor for SymbolActor {
+    type Msg = SymbolActorMsg;
+    type Arguments = ();
+    type State = Index;
+    
+    async fn pre_start(
+            &self,
+            myself: ActorRef<Self::Msg>,
+            args: Self::Arguments,
+        ) -> Result<Self::State, ActorProcessingErr> {
+        let index = index()?;
+        Ok(index)
+    }
+    
     async fn handle(
             &self,
             myself: ActorRef<Self::Msg>,
             message: Self::Msg,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
-        let (symbol_name, symbol_offset, writer) = state;
-
-        writer.add_document(doc!(
-            *symbol_name => message.name,
-            *symbol_offset => message.offset,
-        ))?;
-
+        
+        match message {
+            SymbolActorMsg::ReIndex(reply) => {
+                let writer = Arc::new(state.writer::<TantivyDocument>(50_000_000)?);
+                let (symbol_indexer, handle) = spawn_symbol_indexer(writer.clone()).await?;
+                let symbol_parser = spawn_symbol_file_parser(symbol_indexer, 4, None).await?;
+                let _ = spawn_symbol_file_path_collector(symbol_parser, None).await?;
+                
+                handle.await?;
+                
+                Arc::into_inner(writer).expect("strong count should be 1").commit()?;
+                
+                reply.send(())?;
+            }
+        }
+        
         Ok(())
+
+
     }
+}
+
+
+async fn spawn_symbol_file_path_collector(destination: ActorRef<SymbolFilePath>, supervisor: Option<ActorCell>) -> Result<ActorCell, SpawnErr> {
+    let sup = supervisor.unwrap_or_else(|| destination.get_cell());
+    let symbol_files = Box::pin(all_symbol_files());
+    let (actor_ref, _) = Actor::spawn_linked(Some("symbol-file-path-collector".to_owned()), SymbolFilePathCollector(PhantomData), (symbol_files, destination), sup).await?;
+    
+    Ok(actor_ref.get_cell())
+}
+
+async fn spawn_symbol_file_parser(destination: ActorRef<Symbol>, num: usize, supervisor: Option<ActorCell>) -> Result<ActorRef<SymbolFilePath>, SpawnErr> {
+    let sup = supervisor.unwrap_or_else(|| destination.get_cell());
+    
+    let (actor_ref, _) = Actor::spawn(Some("symbol-file-parser-supervisor".to_owned()), SymbolFileParserProxy, (num, sup, destination)).await?;
+    
+    Ok(actor_ref)
+}
+
+async fn spawn_symbol_indexer(writer: Arc<IndexWriter>) -> Result<(ActorRef<Symbol>, JoinHandle<()>), SpawnErr> {
+    let (actor_ref, handle) = Actor::spawn(Some("symbol-inderer".to_owned()), SymbolIndexer, writer).await?;
+    
+    Ok((actor_ref, handle))
 }

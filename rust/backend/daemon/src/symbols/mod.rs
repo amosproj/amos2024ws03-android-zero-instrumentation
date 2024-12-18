@@ -18,6 +18,8 @@ use tokio::process::Command;
 
 pub mod walking;
 pub mod symbolizer;
+pub mod actors;
+pub mod index;
 
 #[derive(Debug, Error)]
 pub enum SymbolError {
