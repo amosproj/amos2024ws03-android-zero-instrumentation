@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use std::{ffi::OsStr, path::{Path, PathBuf}};
 
 use async_walkdir::{DirEntry, Error, WalkDir};

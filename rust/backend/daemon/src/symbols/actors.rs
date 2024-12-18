@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use std::{io, marker::PhantomData, sync::Arc};
 
 use tantivy::{collector::TopDocs, doc, query::QueryParser, schema::{Field, Value}, Index, IndexWriter, TantivyDocument};
