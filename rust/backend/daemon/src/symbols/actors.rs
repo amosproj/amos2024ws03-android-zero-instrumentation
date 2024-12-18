@@ -1,9 +1,10 @@
-use std::{default, marker::PhantomData, sync::{Arc, RwLock}, time::Duration};
+use std::{default, io, marker::PhantomData, sync::{Arc, RwLock}, time::Duration};
 
 use futures::FutureExt;
 use libc::stat;
 use serde::de;
-use tantivy::{doc, schema::Field, Index, IndexWriter, TantivyDocument};
+use shared::ziofa;
+use tantivy::{collector::TopDocs, doc, query::QueryParser, schema::{Field, OwnedValue, Value}, Index, IndexWriter, TantivyDocument};
 use tokio_stream::{Stream, StreamExt};
 use ractor::{cast, concurrency::{interval, sleep, spawn, JoinHandle}, factory::{queues::{DefaultQueue, Queue}, routing::QueuerRouting, Factory, FactoryArguments, FactoryLifecycleHooks, FactoryMessage, Job, JobOptions, WorkerBuilder, WorkerMessage, WorkerStartContext}, Actor, ActorCell, ActorProcessingErr, ActorRef, RpcReplyPort, SpawnErr, State, SupervisionEvent};
 
@@ -224,8 +225,12 @@ impl SymbolActor {
     }
 }
 
+pub struct SearchReq { pub query: String, pub limit: u64 }
+pub type SearchRes = Result<Vec<shared::ziofa::Symbol>, io::Error>;
+
 pub enum SymbolActorMsg {
     ReIndex(RpcReplyPort<()>),
+    Search(SearchReq, RpcReplyPort<SearchRes>)
 }
 
 impl Actor for SymbolActor {
@@ -261,6 +266,29 @@ impl Actor for SymbolActor {
                 Arc::into_inner(writer).expect("strong count should be 1").commit()?;
                 
                 reply.send(())?;
+            }
+            SymbolActorMsg::Search(SearchReq { query, limit }, reply) => {
+                let reader = state.reader()?;
+                let searcher = reader.searcher();
+                let symbol_name = state.schema().get_field("symbol_name")?;
+                let symbol_offset = state.schema().get_field("symbol_offset")?;
+
+                let query = match QueryParser::for_index(state, vec![symbol_name]).parse_query(&query) {
+                    Ok(query) => query,
+                    Err(e) => {
+                        return Ok(reply.send(Err(e).map_err(io::Error::other))?);
+                    },
+                };
+                
+                let results = searcher.search(&query, &TopDocs::with_limit(limit as usize))?.into_iter().map(|(_, address)| {
+                    let doc : TantivyDocument = searcher.doc(address).map_err(io::Error::other)?;
+                    let name = doc.get_first(symbol_name).and_then(|x| x.as_str()).ok_or_else(|| io::Error::other("expected str"))?;
+                    let offset = doc.get_first(symbol_offset).and_then(|x| x.as_u64()).ok_or_else(|| io::Error::other("expected u64"))?;
+                    
+                    Ok::<_, io::Error>(shared::ziofa::Symbol { method: name.to_owned(), offset })
+                }).collect::<Result<Vec<_>, _>>();
+                
+                reply.send(results)?;
             }
         }
         
