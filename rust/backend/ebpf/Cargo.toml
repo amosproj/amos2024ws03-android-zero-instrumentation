@@ -16,7 +16,6 @@ backend-common = { workspace = true }
 
 aya-ebpf = { workspace = true }
 aya-log-ebpf = { workspace = true }
-libc = "0.2.168"
 
 [build-dependencies]
 which = { workspace = true }
