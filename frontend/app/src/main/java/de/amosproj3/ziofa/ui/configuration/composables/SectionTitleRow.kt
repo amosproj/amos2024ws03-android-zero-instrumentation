@@ -19,5 +19,5 @@ fun SectionTitleRow(title: String) {
     Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.padding(bottom = 10.dp)) {
         Text(title, fontWeight = FontWeight.Bold)
     }
-    HorizontalDivider(thickness = 5.dp)
+    HorizontalDivider(thickness = 3.dp)
 }

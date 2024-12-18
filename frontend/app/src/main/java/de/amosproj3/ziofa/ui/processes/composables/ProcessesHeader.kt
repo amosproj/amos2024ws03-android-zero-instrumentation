@@ -23,5 +23,5 @@ fun ProcessesHeader() {
         Text(text = "Parent PID", modifier = Modifier.weight(1f))
         Text(text = "", modifier = Modifier.weight(1f))
     }
-    HorizontalDivider(Modifier.height(15.dp).background(MaterialTheme.colorScheme.primary))
+    HorizontalDivider(Modifier.height(3.dp).background(MaterialTheme.colorScheme.primary))
 }

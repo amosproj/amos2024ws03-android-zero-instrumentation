@@ -27,7 +27,7 @@ interface LocalConfigurationAccess {
      *   changed.
      * @param sendMessageFeature A [SysSendmsgConfig] update to apply or null if this should not be
      *   changed.
-     * @param uprobesFeature TODO
+     * @param uprobesFeature The Uprobe config to apply or null if this should not be changed.
      */
     fun changeFeatureConfiguration(
         enable: Boolean,

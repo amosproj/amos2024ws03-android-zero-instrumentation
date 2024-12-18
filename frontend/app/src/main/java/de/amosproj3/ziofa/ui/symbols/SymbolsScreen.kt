@@ -22,8 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
 import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
-import de.amosproj3.ziofa.ui.symbols.composables.SearchBar
 import de.amosproj3.ziofa.ui.symbols.composables.SearchResultList
+import de.amosproj3.ziofa.ui.symbols.composables.SymbolsSearchBar
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsScreenState
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -37,7 +37,7 @@ fun SymbolsScreen(pids: List<UInt>, modifier: Modifier = Modifier, onSymbolsSubm
 
     Box(modifier = modifier) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            SearchBar(
+            SymbolsSearchBar(
                 value = searchQuery,
                 onValueChanged = { searchQuery = it },
                 onStartSearch = { viewModel.startSearch(it) },
