@@ -233,7 +233,7 @@ where F: Filesystem {
         Ok(Response::new(ReceiverStream::new(rx)))
     }
     
-    async fn index_symbols(&self, request: Request<()>) -> Result<Response<()>, Status> {
+    async fn index_symbols(&self, _: Request<()>) -> Result<Response<()>, Status> {
         call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex).map_err(|e| Status::from_error(Box::new(e)))?;
         Ok(Response::new(()))
     }

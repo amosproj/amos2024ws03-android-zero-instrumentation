@@ -1,14 +1,13 @@
-use std::{fs::File, io, path::Path, sync::Arc};
+use std::{io, path::Path};
 
 use fmmap::tokio::{AsyncMmapFile, AsyncMmapFileExt};
-use object::{Object, ObjectSymbol, ReadCache, ReadRef};
-use ractor::{concurrency::oneshot, Actor};
-use serde::{de, Deserialize, Deserializer};
+use object::{Object, ObjectSymbol};
+use serde::{Deserialize, Deserializer};
 use symbolic_common::Name;
-use symbolic_demangle::{demangle, Demangle, DemangleOptions};
-use tokio::{fs, process::Command, sync::{mpsc, oneshot}, task::spawn_blocking};
+use symbolic_demangle::{Demangle, DemangleOptions};
+use tokio::process::Command;
 use tokio_process_stream::{Item, ProcessLineStream};
-use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
+use tokio_stream::StreamExt;
 use serde::de::Error;
 use tracing::{error, warn};
 
@@ -27,9 +26,9 @@ struct OatSymbol {
     offset: u64,
 }
 
-impl Into<Symbol> for OatSymbol {
-    fn into(self) -> Symbol {
-        Symbol { name: self.method, offset: self.offset }
+impl From<OatSymbol> for Symbol {
+    fn from(symbol: OatSymbol) -> Symbol {
+        Symbol { name: symbol.method, offset: symbol.offset }
     }
 }
 
@@ -94,7 +93,7 @@ async fn oatdata_offset<P: AsRef<Path>>(path: P) -> Result<u64, io::Error> {
 pub async fn oat_symbols<P: AsRef<Path>>(path: P, tx: flume::Sender<Symbol>) -> Result<(), io::Error> {
     let oatdata_offset = oatdata_offset(&path).await?;
     let mut cmd = Command::new("oatdump");
-    cmd.arg(&format!("--oat-file={}", path.as_ref().display()));
+    cmd.arg(format!("--oat-file={}", path.as_ref().display()));
     cmd.arg("--dump-method-and-offset-as-json");
     cmd.arg("--no-disassemble");
     
@@ -116,7 +115,7 @@ pub async fn so_symbols<P: AsRef<Path>>(path: P, tx: flume::Sender<Symbol>) -> R
     let obj = object::File::parse(file.as_slice()).map_err(io::Error::other)?;
         
     for symbol in obj.dynamic_symbols() {
-        let name = if let Some(name) = symbol.name().ok() { name } else { continue };
+        let name = if let Ok(name) = symbol.name() { name } else { continue };
         let name = Name::from(name);
         let demangled = name.try_demangle(DemangleOptions::complete());
         tx.send_async(Symbol { name: demangled.into(), offset: symbol.address() }).await.map_err(io::Error::other)?;

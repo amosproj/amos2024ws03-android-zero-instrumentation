@@ -1,8 +1,7 @@
 use std::{ffi::OsStr, path::{Path, PathBuf}};
 
-use async_walkdir::{DirEntry, Error, Filtering, WalkDir};
-use tokio_stream::{adapters::Merge, Stream, StreamExt};
-use tracing::warn;
+use async_walkdir::{DirEntry, Error, WalkDir};
+use tokio_stream::{Stream, StreamExt};
 
 #[derive(Debug)]
 pub enum SymbolFilePath {
