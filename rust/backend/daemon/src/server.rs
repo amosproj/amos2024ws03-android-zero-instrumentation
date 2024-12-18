@@ -8,6 +8,7 @@
 use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
 use crate::filesystem::{Filesystem, NormalFilesystem};
 use crate::registry;
+use crate::symbols::actors::{SymbolActor, SymbolActorMsg};
 use crate::symbols::SymbolHandler;
 use crate::{
     constants,
@@ -16,7 +17,7 @@ use crate::{
     features::Features,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
-use ractor::Actor;
+use ractor::{Actor, ActorRef};
 use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
 use shared::{
     config::Configuration,
@@ -37,6 +38,7 @@ where F: Filesystem {
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
     filesystem: F,
+    symbol_actor_ref: ActorRef<SymbolActorMsg>,
 }
 
 impl<F> ZiofaImpl<F> 
@@ -46,12 +48,14 @@ where F: Filesystem {
         channel: Arc<Channel>,
         symbol_handler: Arc<Mutex<SymbolHandler>>,
         filesystem: F,
+        symbol_actor_ref: ActorRef<SymbolActorMsg>,
     ) -> ZiofaImpl<F> {
         ZiofaImpl {
             features,
             channel,
             symbol_handler,
-            filesystem
+            filesystem,
+            symbol_actor_ref,
         }
     }
 }
@@ -234,6 +238,8 @@ where F: Filesystem {
 
 pub async fn serve_forever() {
     let registry = registry::load_and_pin().unwrap();
+    
+    let symbol_actor_ref = SymbolActor::spawn().await.unwrap();
 
     let channel = Channel::new();
     let (collector_ref, _) = Actor::spawn(
@@ -252,7 +258,7 @@ pub async fn serve_forever() {
 
     let filesystem = NormalFilesystem;
 
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem, symbol_actor_ref));
 
     Server::builder()
         .add_service(ziofa_server)
