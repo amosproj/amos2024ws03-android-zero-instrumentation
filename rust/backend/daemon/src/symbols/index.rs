@@ -5,16 +5,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{borrow::BorrowMut, hash::BuildHasherDefault, io, sync::{Arc, RwLock}, time::Duration};
+use std::io;
 
-use clap::builder;
-use futures::{stream::FuturesUnordered, StreamExt};
-use object::write;
-use ractor::{call, Actor, ActorStatus};
-use tantivy::{aggregation::bucket, collector::{Count, DocSetCollector, TopDocs}, directory::MmapDirectory, doc, query::{AllQuery, PhraseQuery, Query, QueryParser}, schema::{Facet, FacetOptions, IndexRecordOption, SchemaBuilder, TextFieldIndexing, TextOptions, FAST, INDEXED, STORED, STRING, TEXT}, store::{Compressor, ZstdCompressor}, tokenizer::{LowerCaser, SimpleTokenizer, TextAnalyzer, TextAnalyzerBuilder, Token, TokenFilter, TokenStream, Tokenizer, TokenizerManager}, Index, IndexSettings, Searcher, TantivyDocument, Term};
-use tokio::{fs, runtime::{Builder, Runtime}, spawn, sync::mpsc, task::{spawn_blocking, JoinSet}, time::interval};
-use tokio_stream::{wrappers::ReceiverStream};
-use tracing_subscriber::EnvFilter;
+use tantivy::{directory::MmapDirectory, schema::{IndexRecordOption, SchemaBuilder, TextFieldIndexing, TextOptions, FAST, INDEXED, STORED, STRING}, store::{Compressor, ZstdCompressor}, tokenizer::{LowerCaser, SimpleTokenizer, TextAnalyzer, Token, TokenFilter, TokenStream, Tokenizer, TokenizerManager}, Index, IndexSettings};
 
 use crate::constants::INDEX_PATH;
 
@@ -60,7 +53,7 @@ impl<T: Tokenizer> Tokenizer for SplitCamelCaseFilter<T> {
     }
 }
 
-impl<'a, T: TokenStream> SplitCamelCaseTokenStream<'a, T> {
+impl<T: TokenStream> SplitCamelCaseTokenStream<'_, T> {
     fn split(&mut self) {
         let token = self.tail.token();
         let mut text = token.text.as_str();
@@ -86,7 +79,7 @@ impl<'a, T: TokenStream> SplitCamelCaseTokenStream<'a, T> {
     }
 }
 
-impl<'a, T: TokenStream> TokenStream for SplitCamelCaseTokenStream<'a, T> {
+impl<T: TokenStream> TokenStream for SplitCamelCaseTokenStream<'_, T> {
     fn advance(&mut self) -> bool {
         self.parts.pop();
         

@@ -1,12 +1,8 @@
-use std::{default, io, marker::PhantomData, sync::{Arc, RwLock}, time::Duration};
+use std::{io, marker::PhantomData, sync::Arc};
 
-use futures::FutureExt;
-use libc::stat;
-use serde::de;
-use shared::ziofa;
-use tantivy::{collector::TopDocs, doc, query::QueryParser, schema::{Field, OwnedValue, Value}, Index, IndexWriter, TantivyDocument};
+use tantivy::{collector::TopDocs, doc, query::QueryParser, schema::{Field, Value}, Index, IndexWriter, TantivyDocument};
 use tokio_stream::{Stream, StreamExt};
-use ractor::{cast, concurrency::{interval, sleep, spawn, JoinHandle}, factory::{queues::{DefaultQueue, Queue}, routing::QueuerRouting, Factory, FactoryArguments, FactoryLifecycleHooks, FactoryMessage, Job, JobOptions, WorkerBuilder, WorkerMessage, WorkerStartContext}, Actor, ActorCell, ActorProcessingErr, ActorRef, RpcReplyPort, SpawnErr, State, SupervisionEvent};
+use ractor::{cast, concurrency::{spawn, JoinHandle}, factory::{queues::DefaultQueue, routing::QueuerRouting, Factory, FactoryArguments, FactoryMessage, Job, JobOptions, WorkerBuilder, WorkerMessage, WorkerStartContext}, Actor, ActorCell, ActorProcessingErr, ActorRef, RpcReplyPort, SpawnErr, State, SupervisionEvent};
 
 use super::{index::index, symbolizer::{symbols, Symbol}, walking::{all_symbol_files, SymbolFilePath}};
 
@@ -38,7 +34,7 @@ where S: Stream<Item = SymbolFilePath> + State + Unpin {
     async fn handle(
             &self,
             myself: ActorRef<Self::Msg>,
-            message: Self::Msg,
+            _: Self::Msg,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
         if let Some(next) = state.0.next().await {
@@ -60,7 +56,7 @@ impl Actor for SymbolFileParserProxy {
     
     async fn pre_start(
             &self,
-            myself: ActorRef<Self::Msg>,
+            _: ActorRef<Self::Msg>,
             args: Self::Arguments,
         ) -> Result<Self::State, ActorProcessingErr> {
         let factory_def = Factory::<(), SymbolFilePath, ActorRef<SymbolWithPath>, SymbolFileParser, QueuerRouting<(), SymbolFilePath>, DefaultQueue::<(), SymbolFilePath>>::default();
@@ -78,7 +74,7 @@ impl Actor for SymbolFileParserProxy {
     
     async fn handle(
             &self,
-            myself: ActorRef<Self::Msg>,
+            _: ActorRef<Self::Msg>,
             message: Self::Msg,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
@@ -87,7 +83,7 @@ impl Actor for SymbolFileParserProxy {
     
     async fn post_stop(
             &self,
-            myself: ActorRef<Self::Msg>,
+            _: ActorRef<Self::Msg>,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
         Ok(cast!(state, FactoryMessage::DrainRequests)?)
@@ -97,13 +93,13 @@ impl Actor for SymbolFileParserProxy {
             &self,
             myself: ActorRef<Self::Msg>,
             message: SupervisionEvent,
-            state: &mut Self::State,
+            _: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
         match message {
             SupervisionEvent::ActorFailed(_,  reason) => {
                 myself.stop(Some(reason.to_string()));
             }
-            SupervisionEvent::ActorTerminated(cell, _, _) => {
+            SupervisionEvent::ActorTerminated(_, _, _) => {
                 myself.drain()?;
             }
             _ => {}
@@ -114,7 +110,7 @@ impl Actor for SymbolFileParserProxy {
 
 struct SymbolFileParserBuilder(ActorRef<SymbolWithPath>);
 impl WorkerBuilder<SymbolFileParser, ActorRef<SymbolWithPath>> for SymbolFileParserBuilder {
-    fn build(&mut self, wid: ractor::factory::WorkerId) -> (SymbolFileParser, ActorRef<SymbolWithPath>) {
+    fn build(&mut self, _: ractor::factory::WorkerId) -> (SymbolFileParser, ActorRef<SymbolWithPath>) {
         (SymbolFileParser, self.0.clone())
     }
 }
@@ -128,7 +124,7 @@ impl Actor for SymbolFileParser {
     
     async fn pre_start(
             &self,
-            myself: ActorRef<Self::Msg>,
+            _: ActorRef<Self::Msg>,
             args: Self::Arguments,
         ) -> Result<Self::State, ActorProcessingErr> {
         Ok(args)
@@ -201,7 +197,7 @@ impl Actor for SymbolIndexer {
             &self,
             myself: ActorRef<Self::Msg>,
             message: SupervisionEvent,
-            state: &mut Self::State,
+            _: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
         match message {
             SupervisionEvent::ActorFailed(_,  reason) => {
@@ -240,8 +236,8 @@ impl Actor for SymbolActor {
     
     async fn pre_start(
             &self,
-            myself: ActorRef<Self::Msg>,
-            args: Self::Arguments,
+            _: ActorRef<Self::Msg>,
+            _: Self::Arguments,
         ) -> Result<Self::State, ActorProcessingErr> {
         let index = index()?;
         Ok(index)
@@ -249,7 +245,7 @@ impl Actor for SymbolActor {
     
     async fn handle(
             &self,
-            myself: ActorRef<Self::Msg>,
+            _: ActorRef<Self::Msg>,
             message: Self::Msg,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
@@ -276,7 +272,7 @@ impl Actor for SymbolActor {
                 let query = match QueryParser::for_index(state, vec![symbol_name]).parse_query(&query) {
                     Ok(query) => query,
                     Err(e) => {
-                        return Ok(reply.send(Err(e).map_err(io::Error::other))?);
+                        return Ok(reply.send(Err(io::Error::other(e)))?);
                     },
                 };
                 
