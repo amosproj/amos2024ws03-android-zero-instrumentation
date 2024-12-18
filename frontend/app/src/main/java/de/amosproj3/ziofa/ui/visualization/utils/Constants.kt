@@ -4,6 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.utils
 
+import androidx.compose.ui.graphics.Color
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
@@ -12,11 +13,7 @@ import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
 import kotlin.time.DurationUnit
 import timber.log.Timber
 
-enum class VisualizationDisplayMode {
-    CHART,
-    EVENTS,
-}
-
+@Suppress("MagicNumber") // these are constants already
 val DEFAULT_TIMEFRAME_OPTIONS =
     listOf(
         DropdownOption.TimeframeOption(500, DurationUnit.MILLISECONDS),
@@ -58,3 +55,6 @@ fun DropdownOption.MetricOption.getChartMetadata(): VisualizationMetaData {
         }
     }
 }
+
+const val LIGHT_PURPLE = 0xffa485e0
+val VICO_LINE_COLOR = Color(LIGHT_PURPLE)

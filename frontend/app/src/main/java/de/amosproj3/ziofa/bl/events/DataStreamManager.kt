@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.shareIn
-import timber.log.Timber
 
 class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope: CoroutineScope) :
     DataStreamProvider {
@@ -26,23 +25,7 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
         flow { clientFactory.connect().initStream().collect { emit(it) } }
             .shareIn(coroutineScope, SharingStarted.Lazily)
 
-    override suspend fun counter(ebpfProgramName: String): Flow<UInt> {
-        return clientFactory
-            .connect()
-            .also {
-                try {
-                    it.load()
-                    // default wifi interface on android, now configurable
-                    it.attach("wlan0")
-                    it.startCollecting()
-                } catch (e: Exception) {
-                    Timber.e(e.stackTraceToString())
-                }
-            }
-            .serverCount()
-    }
-
-    override suspend fun vfsWriteEvents(pids: List<UInt>?): Flow<BackendEvent.VfsWriteEvent> =
+    override fun vfsWriteEvents(pids: List<UInt>?): Flow<BackendEvent.VfsWriteEvent> =
         dataFlow
             .mapNotNull { it as? Event.VfsWrite }
             .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
@@ -55,7 +38,7 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
                 )
             }
 
-    override suspend fun sendMessageEvents(pids: List<UInt>?): Flow<BackendEvent.SendMessageEvent> =
+    override fun sendMessageEvents(pids: List<UInt>?): Flow<BackendEvent.SendMessageEvent> =
         dataFlow
             .mapNotNull { it as? Event.SysSendmsg }
             .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsEntry
 
+@Suppress("MagicNumber") // does not improve readability
 @Composable
 fun SearchResultList(
     symbols: Map<SymbolsEntry, Boolean>,

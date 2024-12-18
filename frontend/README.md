@@ -27,3 +27,13 @@ To automatically update all dependencies, run
 ### Format and check formatting
 Format `./gradlew combinedFormat` <br/>
 Check: `./gradlew ktfmtCheck`
+
+## Troubleshooting
+### The frontend crashes
+Make sure the backend is running or that you are running a mocked version.
+If you are running a release, check for MethodNotFoundException etc., these errors are most likely
+caused by R8/ProGuard removing used classes.  
+Quickfix: Use the debug build type.
+
+### The backend and frontend crashes
+Delete the local configuration to make sure it does not contain outdated entries.

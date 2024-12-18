@@ -6,12 +6,15 @@
 [versions]
 accompanistDrawablepainter = "0.36.0"
 activityCompose = "1.9.3"
-agp = "8.7.2"
+agp = "8.7.3"
+arrow = "1.2.4"
 benmanes-versions = "0.51.0"
-compose-navigation = "2.8.4"
-composeBom = "2024.11.00"
+compose-navigation = "2.8.5"
+composeBom = "2024.12.01"
 coreKtx = "1.15.0"
 cyclonedx = "1.10.0"
+detekt = "1.23.7"
+detektRulesVersion = "0.0.26"
 espressoCore = "3.6.1"
 jna = "5.15.0"
 junit = "4.13.2"
@@ -41,6 +44,9 @@ androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
+arrow-fx-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version.ref = "arrow" }
+detekt-compose-rules = { module = "com.twitter.compose.rules:detekt", version.ref = "detektRulesVersion" }
 jackwharton-timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -61,6 +67,7 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 com-github-benmanes-versions = { id = "com.github.ben-manes.versions", version.ref = "benmanes-versions" }
 com-ncorti-ktfmt-gradle = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt"}
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 nl-littlerobots-versioncatalogueupdate = { id = "nl.littlerobots.version-catalog-update", version.ref = "versioncatalogueupdate" }
 org-cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }

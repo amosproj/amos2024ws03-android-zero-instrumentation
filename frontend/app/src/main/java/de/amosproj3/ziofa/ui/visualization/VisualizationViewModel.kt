@@ -15,13 +15,14 @@ import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
+import de.amosproj3.ziofa.ui.visualization.data.VisualizationDisplayMode
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_SELECTION_DATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_TIMEFRAME_OPTIONS
-import de.amosproj3.ziofa.ui.visualization.utils.VisualizationDisplayMode
 import de.amosproj3.ziofa.ui.visualization.utils.getChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
+import de.amosproj3.ziofa.ui.visualization.utils.isValidSelection
 import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
 import de.amosproj3.ziofa.ui.visualization.utils.toEventList
 import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
@@ -96,12 +97,7 @@ class VisualizationViewModel(
         combine(selectionData, displayMode) { a, b -> a to b }
             .flatMapLatest { (selection, mode) ->
                 Timber.i("Data flow changed!")
-                if (
-                    selection.selectedMetric != null &&
-                        selection.selectedMetric is DropdownOption.MetricOption &&
-                        selection.selectedTimeframe != null &&
-                        selection.selectedTimeframe is DropdownOption.TimeframeOption
-                ) {
+                if (isValidSelection(selection.selectedMetric, selection.selectedTimeframe)) {
                     getDisplayedData(
                             selectedComponent = selection.selectedComponent,
                             selectedMetric = selection.selectedMetric,
@@ -131,21 +127,15 @@ class VisualizationViewModel(
     /** Called when a metric is selected */
     fun metricSelected(metricOption: DropdownOption) {
         Timber.i("metricSelected()")
-        if (metricOption is DropdownOption.MetricOption) {
-            selectedMetric.value = metricOption
-        } else {
-            throw IllegalArgumentException("Wrong usage of this method")
-        }
+        require(metricOption is DropdownOption.MetricOption)
+        selectedMetric.value = metricOption
     }
 
     /** Called when a timeframe is selected */
     fun timeframeSelected(timeframeOption: DropdownOption) {
         Timber.i("timeframeSelected()")
-        if (timeframeOption is DropdownOption.TimeframeOption) {
-            selectedTimeframe.value = timeframeOption
-        } else {
-            throw IllegalArgumentException("Wrong usage of this method")
-        }
+        require(timeframeOption is DropdownOption.TimeframeOption)
+        selectedTimeframe.value = timeframeOption
     }
 
     fun switchMode() {

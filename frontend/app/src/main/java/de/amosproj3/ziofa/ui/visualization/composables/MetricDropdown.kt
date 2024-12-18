@@ -28,7 +28,7 @@ import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MetricDropdown(
-    options: List<DropdownOption>, // TODO replace with data class
+    options: List<DropdownOption>,
     title: String,
     modifier: Modifier = Modifier,
     optionSelected: (DropdownOption) -> Unit,
@@ -37,11 +37,7 @@ fun MetricDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = modifier,
-        ) {
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
             TextField(
                 value = selectedOption,
                 onValueChange = {},

@@ -27,18 +27,21 @@ const val RESET_WARNING =
     This will set all features to disabled for all processes!
 """
 
+const val CONFIRM_BUTTON_TEXT_SIZE = 20f
+const val WARNING_TEXT_SIZE = 40f
+
 @Composable
 fun ResetScreen(
-    modifier: Modifier,
-    viewModel: ResetViewModel = koinViewModel(),
     afterResetConfirmed: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: ResetViewModel = koinViewModel(),
 ) {
 
     Box(modifier = modifier.fillMaxSize()) {
         Text(
             RESET_WARNING,
             modifier = Modifier.align(Alignment.Center),
-            fontSize = TextUnit(40f, TextUnitType.Sp),
+            fontSize = TextUnit(WARNING_TEXT_SIZE, TextUnitType.Sp),
             fontWeight = FontWeight.Bold,
         )
         Button(
@@ -48,7 +51,10 @@ fun ResetScreen(
                 afterResetConfirmed()
             },
         ) {
-            Text("Reset configuration", fontSize = TextUnit(40f, TextUnitType.Sp))
+            Text(
+                "Reset configuration",
+                fontSize = TextUnit(CONFIRM_BUTTON_TEXT_SIZE, TextUnitType.Sp),
+            )
         }
     }
 }

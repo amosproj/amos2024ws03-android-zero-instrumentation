@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import kotlin.system.exitProcess
 
+const val TITLE_TEXT_SIZE = 25f
+
 @Preview(device = Devices.AUTOMOTIVE_1024p)
 @Composable
 fun ErrorScreen(error: String = "No error message available") {
@@ -36,7 +38,7 @@ fun ErrorScreen(error: String = "No error message available") {
             Text(
                 text = "Error while communicating with backend",
                 color = Color.Red,
-                fontSize = TextUnit(25f, TextUnitType.Sp),
+                fontSize = TextUnit(TITLE_TEXT_SIZE, TextUnitType.Sp),
             )
             Text(text = error)
         }

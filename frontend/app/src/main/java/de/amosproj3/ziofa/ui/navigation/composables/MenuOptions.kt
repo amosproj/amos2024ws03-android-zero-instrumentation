@@ -22,11 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import de.amosproj3.ziofa.ui.navigation.data.MenuOptionData
 
-data class MenuOptionData(val title: String, val logoEmoji: String, val onClick: () -> Unit)
+private const val CARD_EMOJI_SIZE = 120f
+private const val CARD_TITLE_TEXT_SIZE = 40f
 
 @Composable
-fun MenuOptions(modifier: Modifier = Modifier, menuOptions: List<MenuOptionData>) {
+fun MenuOptions(menuOptions: List<MenuOptionData>, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -65,10 +67,10 @@ fun MenuCardWithIcon(
         ) {
             Text(
                 emoji,
-                fontSize = TextUnit(120f, TextUnitType.Sp),
+                fontSize = TextUnit(CARD_EMOJI_SIZE, TextUnitType.Sp),
                 modifier = Modifier.padding(bottom = 20.dp),
             )
-            Text(text, fontSize = TextUnit(40f, TextUnitType.Sp))
+            Text(text, fontSize = TextUnit(CARD_TITLE_TEXT_SIZE, TextUnitType.Sp))
         }
     }
 }

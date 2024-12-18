@@ -35,7 +35,6 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun ConfigurationScreen(
     modifier: Modifier = Modifier,
-    onBack: () -> Unit = {},
     onAddUprobeSelected: () -> Unit = {},
     pids: List<UInt>? = listOf(),
 ) {
@@ -62,9 +61,7 @@ fun ConfigurationScreen(
                     SectionTitleRow("Uprobes")
                     EbpfUprobeFeatureOptions(
                         options =
-                            state.options.mapNotNull {
-                                if (it is BackendFeatureOptions.UprobeOption) it else null
-                            },
+                            state.options.mapNotNull { it as? BackendFeatureOptions.UprobeOption },
                         onOptionDeleted = { option ->
                             viewModel.optionChanged(option, active = false)
                         },

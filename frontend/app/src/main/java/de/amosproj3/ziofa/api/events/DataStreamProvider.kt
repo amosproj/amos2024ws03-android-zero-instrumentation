@@ -7,9 +7,8 @@ package de.amosproj3.ziofa.api.events
 import kotlinx.coroutines.flow.Flow
 
 interface DataStreamProvider {
-    suspend fun counter(ebpfProgramName: String): Flow<UInt>
 
-    suspend fun vfsWriteEvents(pids: List<UInt>?): Flow<BackendEvent.VfsWriteEvent>
+    fun vfsWriteEvents(pids: List<UInt>?): Flow<BackendEvent.VfsWriteEvent>
 
-    suspend fun sendMessageEvents(pids: List<UInt>?): Flow<BackendEvent.SendMessageEvent>
+    fun sendMessageEvents(pids: List<UInt>?): Flow<BackendEvent.SendMessageEvent>
 }

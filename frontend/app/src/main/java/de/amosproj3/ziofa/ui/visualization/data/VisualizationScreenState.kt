@@ -4,8 +4,6 @@
 
 package de.amosproj3.ziofa.ui.visualization.data
 
-import de.amosproj3.ziofa.ui.visualization.utils.VisualizationDisplayMode
-
 sealed class VisualizationScreenState {
     data class MetricSelectionValid(
         val graphedData: GraphedData,

@@ -15,8 +15,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SectionTitleRow(title: String) {
-    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.padding(bottom = 10.dp)) {
+fun SectionTitleRow(title: String, modifier: Modifier = Modifier) {
+    Row(horizontalArrangement = Arrangement.Center, modifier = modifier.padding(bottom = 10.dp)) {
         Text(title, fontWeight = FontWeight.Bold)
     }
     HorizontalDivider(thickness = 3.dp)

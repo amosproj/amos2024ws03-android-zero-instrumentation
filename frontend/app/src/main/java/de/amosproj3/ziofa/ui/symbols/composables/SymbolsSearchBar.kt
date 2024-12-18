@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+@Suppress("MagicNumber") // does not improve readability
 @Composable
 fun SymbolsSearchBar(
     value: String,

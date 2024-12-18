@@ -13,13 +13,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import de.amosproj3.ziofa.ui.visualization.utils.VisualizationDisplayMode
+import de.amosproj3.ziofa.ui.visualization.data.VisualizationDisplayMode
 
 @Composable
 fun SwitchModeFab(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
     activeDisplayMode: VisualizationDisplayMode,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     ExtendedFloatingActionButton(
         modifier = modifier.padding(end = 25.dp, bottom = 25.dp),
