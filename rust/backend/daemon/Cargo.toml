@@ -33,14 +33,13 @@ serde = { workspace = true }
 crossbeam = { workspace = true }
 bytemuck = { workspace = true }
 ractor = { workspace = true, features = ["tokio_runtime"] }
-async-walkdir = "2.0.0"
-tokio-process-stream = "0.4.0"
-symbolic-demangle = { version = "12.12.3", default-features = false, features = ["cpp", "rust"] }
-symbolic-common = "12.12.3"
-futures = "0.3.31"
-tantivy = { version = "0.22.0", features = ["mmap", "zstd-compression"], default-features = false }
-fmmap = { version = "0.3.3", default-features = false, features = ["tokio-async"] }
-flume = { version = "0.11.1", default-features = false, features = ["async"] }
+async-walkdir = { workspace = true }
+tokio-process-stream = { workspace = true }
+symbolic-demangle = { workspace = true }
+symbolic-common = { workspace = true }
+tantivy = { workspace = true }
+fmmap = { workspace = true }
+flume = { workspace = true }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }

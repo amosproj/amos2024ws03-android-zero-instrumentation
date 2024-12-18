@@ -473,7 +473,6 @@ dependencies = [
  "crossbeam",
  "flume",
  "fmmap",
- "futures",
  "libc",
  "object",
  "procfs",
