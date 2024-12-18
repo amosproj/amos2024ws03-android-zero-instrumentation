@@ -14,13 +14,16 @@ use xtask::{android_launch_path, AYA_BUILD_EBPF};
 pub struct Options {
     /// Build and run the release target.
     #[clap(long)]
-    release: bool,
+    pub release: bool,
     /// Arguments to pass to your application.
     #[clap(global = true, last = true)]
-    run_args: Vec<String>,
+    pub run_args: Vec<String>,
     /// Whether to run on Android
     #[clap(long)]
-    android: bool,
+    pub android: bool,
+    /// Run the client tests
+    #[clap(long)]
+    pub test: bool,
 }
 
 /// Build and run the project.
@@ -29,6 +32,7 @@ pub fn run(opts: Options) -> Result<()> {
         release,
         run_args,
         android,
+        test,
     } = opts;
 
     let android_script = android_launch_path();
@@ -36,24 +40,22 @@ pub fn run(opts: Options) -> Result<()> {
     if android {
         let mut cmd = Command::new("cargo");
         cmd.env(AYA_BUILD_EBPF, "true");
+        cmd.args(["ndk", "-t", "x86_64"]);
+        if test {
+            cmd.arg("test");
+        } else {
+            cmd.args(["run", "--bin", "client", "--features", "cli"]);
+        }
         cmd.args([
-            "ndk",
-            "-t",
-            "x86_64",
-            "run",
             "--package",
             "client",
-            "--bin",
-            "client",
-            "--features",
-            "cli",
             "--config",
+            &format!(
+                "target.\"cfg(all())\".runner=\"{} {}\"",
+                android_script.display(),
+                run_args.join(" ")
+            ),
         ]);
-        cmd.arg(format!(
-            "target.\"cfg(all())\".runner=\"{} {}\"",
-            android_script.display(),
-            run_args.join(" ")
-        ));
         let status = cmd
             .status()
             .with_context(|| format!("failed to run {cmd:?}"))?;
@@ -63,15 +65,19 @@ pub fn run(opts: Options) -> Result<()> {
     } else {
         let mut cmd = Command::new("cargo");
         cmd.env(AYA_BUILD_EBPF, "true");
-        cmd.args([
-            "run",
-            "--package",
-            "client",
-            "--bin",
-            "client",
-            "--features",
-            "cli",
-        ]);
+        if test {
+            cmd.arg("test");
+        } else {
+            cmd.args([
+                "run",
+                "--package",
+                "client",
+                "--bin",
+                "client",
+                "--features",
+                "cli",
+            ]);
+        }
         if release {
             cmd.arg("--release");
         }
