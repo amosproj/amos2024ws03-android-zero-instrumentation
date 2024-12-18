@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use std::{io, path::Path};
 
 use fmmap::tokio::{AsyncMmapFile, AsyncMmapFileExt};
