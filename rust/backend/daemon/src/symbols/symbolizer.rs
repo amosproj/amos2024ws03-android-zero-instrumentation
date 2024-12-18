@@ -1,5 +1,6 @@
 use std::{fs::File, io, path::Path, sync::Arc};
 
+use fmmap::tokio::{AsyncMmapFile, AsyncMmapFileExt};
 use object::{Object, ObjectSymbol, ReadCache, ReadRef};
 use ractor::{concurrency::oneshot, Actor};
 use serde::{de, Deserialize, Deserializer};
@@ -79,61 +80,55 @@ fn filter_log_empty(symbol: &Symbol) -> bool {
 }
 
 async fn oatdata_offset<P: AsRef<Path>>(path: P) -> Result<u64, io::Error> {
-    let path = path.as_ref().to_owned();
-    match spawn_blocking(move || {
-        let file = File::open(path)?;
-        let file_cache = ReadCache::new(file);
-        let obj = object::File::parse(&file_cache).map_err(io::Error::other)?;
+    let file = AsyncMmapFile::open(path).await.map_err(io::Error::other)?;
+    let obj = object::File::parse(file.as_slice()).map_err(io::Error::other)?;
 
-        let section = obj
-            .dynamic_symbols()
-            .find(|s| s.name() == Ok("oatdata"))
-            .ok_or(io::Error::other("oatdata not found"))?;
+    let section = obj
+        .dynamic_symbols()
+        .find(|s| s.name() == Ok("oatdata"))
+        .ok_or(io::Error::other("oatdata not found"))?;
 
-        Ok(section.address())
-    }).await {
-        Ok(v) => v,
-        Err(e) => {
-            Err(io::Error::other(e))
-        },
-    }
-    
+    Ok(section.address())
 }
 
-pub async fn oat_symbols<P: AsRef<Path>>(path: P) -> Result<impl Stream<Item = Symbol>, io::Error> {
-    let path = path.as_ref();
-    let oatdata_offset = oatdata_offset(path).await?;
+pub async fn oat_symbols<P: AsRef<Path>>(path: P, tx: flume::Sender<Symbol>) -> Result<(), io::Error> {
+    let oatdata_offset = oatdata_offset(&path).await?;
     let mut cmd = Command::new("oatdump");
-    cmd.arg(&format!("--oat-file={}", path.display()));
+    cmd.arg(&format!("--oat-file={}", path.as_ref().display()));
     cmd.arg("--dump-method-and-offset-as-json");
     cmd.arg("--no-disassemble");
     
-    Ok(ProcessLineStream::try_from(cmd)?
+    let mut stream = ProcessLineStream::try_from(cmd)?
         .filter_map(log_map_item)
         .filter_map(parse_oatdump_line)
         .filter(filter_log_empty)
-        .map(move |symbol| Symbol { name: symbol.name, offset: symbol.offset + oatdata_offset }))
+        .map(move |symbol| Symbol { name: symbol.name, offset: symbol.offset + oatdata_offset });
+    
+    while let Some(symbol) = stream.next().await {
+        tx.send_async(symbol).await.map_err(io::Error::other)?;
+    }
+    
+    Ok(())
 }
 
-pub fn so_symbols<P: AsRef<Path>>(path: P) -> impl Stream<Item = Symbol> {
-    let path = path.as_ref().to_owned();
-
-    let (tx, rx) = mpsc::channel(128);
-
-    spawn_blocking(move || {
-        let file = File::open(path)?;
-        let file_cache = ReadCache::new(file);
-        let obj = object::File::parse(&file_cache).map_err(io::Error::other)?;
+pub async fn so_symbols<P: AsRef<Path>>(path: P, tx: flume::Sender<Symbol>) -> Result<(), io::Error> {
+    let file = AsyncMmapFile::open(path).await.map_err(io::Error::other)?;
+    let obj = object::File::parse(file.as_slice()).map_err(io::Error::other)?;
         
-        for symbol in obj.dynamic_symbols() {
-            let name = if let Some(name) = symbol.name().ok() { name } else { continue };
-            let name = Name::from(name);
-            let demangled = name.try_demangle(DemangleOptions::complete());
-            tx.blocking_send(Symbol { name: demangled.into(), offset: symbol.address() }).map_err(io::Error::other)?;
-        }
+    for symbol in obj.dynamic_symbols() {
+        let name = if let Some(name) = symbol.name().ok() { name } else { continue };
+        let name = Name::from(name);
+        let demangled = name.try_demangle(DemangleOptions::complete());
+        tx.send_async(Symbol { name: demangled.into(), offset: symbol.address() }).await.map_err(io::Error::other)?;
+    }
+    
+    Ok(())
+}
 
-        Ok::<(), io::Error>(())
-    });
-
-    ReceiverStream::new(rx)
+pub async fn symbols(path: SymbolFilePath, tx: flume::Sender<Symbol>) -> Result<(), io::Error> {
+    match path {
+        SymbolFilePath::Odex(path_buf) | SymbolFilePath::Oat(path_buf) => oat_symbols(path_buf, tx).await,
+        SymbolFilePath::So(path_buf) => so_symbols(path_buf, tx).await,
+        _ => Ok(())
+    }
 }
