@@ -80,6 +80,18 @@ enum Commands {
         #[arg(short, long)]
         silent: bool,
     },
+    
+    /// Create an Index for all Symbols on the System
+    IndexSymbols,
+
+    /// Search via query for symbols
+    SearchSymbols {
+        /// The query string
+        query: String,
+        
+        /// The limit of symbols sent by the server
+        limit: u64
+    }
 }
 
 async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
@@ -191,6 +203,26 @@ async fn get_symbols(client: &mut Client, file: String, silent: bool) -> Result<
     Ok(())
 }
 
+async fn index_symbols(client: &mut Client) -> Result<()> {
+    println!("Indexing Symbols, this can take a while...");
+    client.index_symbols().await?;
+    println!("SUCCESS");
+    Ok(())
+}
+
+async fn search_symbols(client: &mut Client, query: String, limit: u64) -> Result<()> {
+    let symbols = client.search_symbols(query, limit).await?;
+    
+    let mut count = 0;
+    for symbol in symbols {
+        println!("method: {} | offset: {}", symbol.method, symbol.offset);
+        count += 1;
+    }
+    println!("Total number of symbols: {count}");
+    
+    Ok(())
+}
+
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
     let args: Args = Args::parse();
@@ -223,6 +255,12 @@ pub async fn main() -> anyhow::Result<()> {
         }
         Commands::So { pid, silent } => {
             get_so_files(&mut client, pid, silent).await?;
+        }
+        Commands::IndexSymbols => {
+            index_symbols(&mut client).await?;
+        }
+        Commands::SearchSymbols { query, limit } => {
+            search_symbols(&mut client, query, limit).await?;
         }
     }
 

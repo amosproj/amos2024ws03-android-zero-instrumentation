@@ -13,3 +13,4 @@ pub fn sock_addr() -> SocketAddr {
 
 pub const OATDUMP_PATH: &str = "/data/local/tmp/dump.json";
 pub const ZIOFA_EBPF_PATH: &str = "/sys/fs/bpf/ziofa";
+pub const INDEX_PATH: &str = "/data/local/tmp/index";

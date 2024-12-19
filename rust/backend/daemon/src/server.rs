@@ -7,6 +7,7 @@
 
 use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
 use crate::registry;
+use crate::symbols::actors::{SearchReq, SymbolActor, SymbolActorMsg};
 use crate::symbols::SymbolHandler;
 use crate::{
     configuration, constants,
@@ -15,8 +16,8 @@ use crate::{
     features::Features,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
-use ractor::Actor;
-use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
+use ractor::{call, Actor, ActorRef};
+use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, SearchSymbolsRequest, SearchSymbolsResponse, StringResponse, Symbol};
 use shared::{
     config::Configuration,
     ziofa::{
@@ -34,6 +35,7 @@ pub struct ZiofaImpl {
     features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
+    symbol_actor_ref: ActorRef<SymbolActorMsg>,
 }
 
 impl ZiofaImpl {
@@ -41,11 +43,13 @@ impl ZiofaImpl {
         features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
         symbol_handler: Arc<Mutex<SymbolHandler>>,
+        symbol_actor_ref: ActorRef<SymbolActorMsg>,
     ) -> ZiofaImpl {
         ZiofaImpl {
             features,
             channel,
             symbol_handler,
+            symbol_actor_ref,
         }
     }
 }
@@ -221,12 +225,26 @@ impl Ziofa for ZiofaImpl {
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
+    
+    async fn index_symbols(&self, _: Request<()>) -> Result<Response<()>, Status> {
+        call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex).map_err(|e| Status::from_error(Box::new(e)))?;
+        Ok(Response::new(()))
+    }
+    
+    async fn search_symbols(&self, request: Request<SearchSymbolsRequest>) -> Result<Response<SearchSymbolsResponse>, Status> {
+        let SearchSymbolsRequest { query, limit } = request.into_inner();
+        let symbols = call!(self.symbol_actor_ref, SymbolActorMsg::Search, SearchReq { query, limit }).map_err(|e| Status::from_error(Box::new(e)))??;
+        
+        Ok(Response::new(SearchSymbolsResponse { symbols }))
+    }
 }
 
 
 
 pub async fn serve_forever() {
     let registry = registry::load_and_pin().unwrap();
+    
+    let symbol_actor_ref = SymbolActor::spawn().await.unwrap();
 
     let channel = Channel::new();
     let (collector_ref, _) = Actor::spawn(
@@ -242,7 +260,7 @@ pub async fn serve_forever() {
     let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
 
     let features = Arc::new(Mutex::new(features));
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, symbol_actor_ref));
 
     Server::builder()
         .add_service(ziofa_server)

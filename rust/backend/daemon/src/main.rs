@@ -4,6 +4,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 use tracing_subscriber::EnvFilter;
 mod configuration;
 mod constants;
