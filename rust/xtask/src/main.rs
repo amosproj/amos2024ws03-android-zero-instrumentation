@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -29,7 +30,7 @@ fn main() -> Result<()> {
 
     match command {
         Command::Daemon(opts) => {
-            daemon::run(opts, true)?;
+            daemon::run(opts)?;
             Ok(())
         }
         Command::Client(opts) => client::run(opts),

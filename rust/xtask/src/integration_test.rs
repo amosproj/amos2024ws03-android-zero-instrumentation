@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{thread, time};
-use clap::Parser;
 use crate::{client, daemon};
+use clap::Parser;
+use std::{thread, time};
 
 #[derive(Debug, Parser)]
 pub struct Options {
@@ -15,24 +15,18 @@ pub struct Options {
 
 pub fn test(opts: Options) {
     // spawn daemon
-    let mut daemon = daemon::run(
-        daemon::Options {
-            release: opts.release,
-            run_args: vec![],
-            android: true,
-            runner: "sudo -E".to_string(),
-        },
-        false,
-    )
-    .expect("Should work")
-    .expect("Should return child handle");
+    daemon::run(daemon::Options {
+        release: opts.release,
+        android: true,
+        runner: "sudo -E".to_string(),
+        background: false,
+        kill: true,
+    })
+    .expect("Daemon should run");
 
-    println!("Waiting two seconds for daemon to start.");
-    thread::sleep(time::Duration::from_secs(2));
-    if daemon.try_wait().unwrap().is_some() {
-        println!("Spawning daemon failed.");
-        return;
-    }
+    println!("Waiting one second for daemon to start.");
+    thread::sleep(time::Duration::from_secs(1));
+
     // spawn client
     client::run(client::Options {
         release: opts.release,
@@ -43,5 +37,5 @@ pub fn test(opts: Options) {
     .expect("Client should run");
 
     // kill daemon
-    daemon.kill().unwrap();
+    // daemon::pkill(true).expect("Daemon should be killed");
 }
