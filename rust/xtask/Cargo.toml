@@ -13,6 +13,8 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
+adb_client = {workspace = true}
 anyhow = { workspace = true, default-features = true }
 cargo_metadata = { workspace = true }
 clap = { workspace = true, default-features = true, features = ["derive"] }
+ctrlc.workspace = true
