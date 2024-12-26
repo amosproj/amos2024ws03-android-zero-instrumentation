@@ -8,12 +8,14 @@
 mod jni_reference_feature;
 mod vfs_write_feature;
 mod sys_sendmsg_feature;
+mod sys_sigquit_feature;
 
 use std::collections::BTreeSet;
 use aya::EbpfError;
 use jni_reference_feature::JNIReferencesFeature;
 use shared::config::Configuration;
 use sys_sendmsg_feature::SysSendmsgFeature;
+use sys_sigquit_feature::SysSigquitFeature;
 use vfs_write_feature::VfsWriteFeature;
 
 use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
@@ -29,6 +31,7 @@ pub trait Feature {
 
 pub struct Features {
     sys_sendmsg_feature: SysSendmsgFeature,
+    sys_sigquit_feature: SysSigquitFeature;
     vfs_write_feature: VfsWriteFeature,
     jni_reference_feature: JNIReferencesFeature,
 }
@@ -39,11 +42,13 @@ impl Features {
         let sys_sendmsg_feature = SysSendmsgFeature::init(registry);
         let vfs_write_feature = VfsWriteFeature::init(registry);
         let jni_reference_feature = JNIReferencesFeature::init(registry);
+        let sys_sigquit_feature = SysSigquitFeature::init(registry);
 
         Self {
             sys_sendmsg_feature,
             vfs_write_feature,
             jni_reference_feature,
+            sys_sigquit_feature,
         }
     }
 
@@ -56,6 +61,7 @@ impl Features {
         self.vfs_write_feature.apply(&config.vfs_write)?;
         self.sys_sendmsg_feature.apply(&config.sys_sendmsg)?;
         self.jni_reference_feature.apply( &config.jni_references)?;
+        self.sys_sigquit_feature.apply( &config.sys_sigquit)?;
 
         Ok(())
     }
