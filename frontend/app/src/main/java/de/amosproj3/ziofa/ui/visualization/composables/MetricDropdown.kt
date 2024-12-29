@@ -55,7 +55,7 @@ fun MetricDropdown(
                     DropdownMenuItem(
                         text = { Text(option.displayName) },
                         trailingIcon = {
-                            if (option is DropdownOption.AppOption) {
+                            if (option is DropdownOption.App) {
                                 val painter = rememberDrawablePainter(option.icon)
                                 Icon(painter = painter, contentDescription = "")
                             }

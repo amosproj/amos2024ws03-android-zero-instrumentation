@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.map
 
 fun Flow<BackendEvent.VfsWriteEvent>.toBucketedHistogram(
     visualizationMetaData: VisualizationMetaData,
-    timeframe: DropdownOption.TimeframeOption,
+    timeframe: DropdownOption.Timeframe,
 ) =
     this.toBucketedData(timeframe.amount.toDuration(timeframe.unit).inWholeMilliseconds.toULong())
         .sortAndClip(HISTOGRAM_BUCKETS)
@@ -24,7 +24,7 @@ fun Flow<BackendEvent.VfsWriteEvent>.toBucketedHistogram(
 
 fun Flow<BackendEvent.SendMessageEvent>.toMovingAverage(
     visualizationMetaData: VisualizationMetaData,
-    timeframe: DropdownOption.TimeframeOption,
+    timeframe: DropdownOption.Timeframe,
 ) =
     this.toAveragedDurationOverTimeframe(
             TIME_SERIES_SIZE,

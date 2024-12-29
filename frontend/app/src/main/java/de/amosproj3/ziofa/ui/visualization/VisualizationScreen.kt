@@ -43,7 +43,7 @@ fun VisualizationScreen(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         val visualizationScreenState by
-            remember { viewModel.visualizationScreenState }.collectAsState()
+        remember { viewModel.visualizationScreenState }.collectAsState()
         val state = visualizationScreenState
         Timber.i("Updating UI based on $state")
 
@@ -52,9 +52,7 @@ fun VisualizationScreen(
                 is VisualizationScreenState.MetricSelectionValid -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        filterSelected = { viewModel.componentSelected(it) },
-                        metricSelected = { viewModel.metricSelected(it) },
-                        timeframeSelected = { viewModel.timeframeSelected(it) },
+                        optionSelected = { viewModel.optionSelected(it) }
                     )
                     DataViewer(state.graphedData)
                 }
@@ -62,9 +60,7 @@ fun VisualizationScreen(
                 is VisualizationScreenState.WaitingForMetricSelection -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        filterSelected = { viewModel.componentSelected(it) },
-                        metricSelected = { viewModel.metricSelected(it) },
-                        timeframeSelected = { viewModel.timeframeSelected(it) },
+                        optionSelected = { viewModel.optionSelected(it) }
                     )
                     SelectMetricPrompt()
                 }
@@ -112,17 +108,17 @@ fun DataViewer(data: GraphedData) {
 @Composable
 fun MetricSelection(
     selectionData: SelectionData,
-    filterSelected: (DropdownOption) -> Unit,
-    metricSelected: (DropdownOption) -> Unit,
-    timeframeSelected: (DropdownOption) -> Unit,
+    optionSelected: (DropdownOption) -> Unit
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth()) {
         MetricDropdown(
             selectionData.componentOptions,
             "Select a package",
-            modifier = Modifier.weight(1f).padding(end = 0.dp),
-            optionSelected = { filterSelected(it) },
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 0.dp),
+            optionSelected = { optionSelected(it) },
             selectedOption = selectionData.selectedComponent.displayName,
         )
         selectionData.metricOptions
@@ -131,9 +127,12 @@ fun MetricSelection(
                 MetricDropdown(
                     metricOptions,
                     "Select a metric",
-                    modifier = Modifier.weight(1f).padding(end = 0.dp),
-                    optionSelected = { metricSelected(it) },
-                    selectedOption = selectionData.selectedMetric?.displayName ?: "Please select...",
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 0.dp),
+                    optionSelected = { optionSelected(it) },
+                    selectedOption = selectionData.selectedMetric?.displayName
+                        ?: "Please select...",
                 )
             } ?: Spacer(Modifier.weight(1f))
         selectionData.timeframeOptions
@@ -142,10 +141,11 @@ fun MetricSelection(
                 MetricDropdown(
                     timeframeOptions,
                     "Select an interval for aggregation",
-                    modifier = Modifier.weight(1f).padding(end = 0.dp),
-                    optionSelected = { timeframeSelected(it) },
-                    selectedOption =
-                        selectionData.selectedTimeframe?.displayName ?: "Please select...",
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 0.dp),
+                    optionSelected = { optionSelected(it) },
+                    selectedOption = selectionData.selectedTimeframe?.displayName ?: "Please select...",
                 )
             } ?: Spacer(Modifier.weight(1f))
     }

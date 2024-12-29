@@ -6,10 +6,11 @@ package de.amosproj3.ziofa.ui.visualization
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
+import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.ConfigurationState
 import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
+import de.amosproj3.ziofa.client.Configuration
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
@@ -43,7 +44,7 @@ import kotlinx.coroutines.flow.update
 import timber.log.Timber
 
 class VisualizationViewModel(
-    backendConfigurationAccess: BackendConfigurationAccess,
+    configurationAccess: ConfigurationAccess,
     runningComponentsAccess: RunningComponentsAccess,
     dataStreamProviderFactory: (CoroutineScope) -> DataStreamProvider,
 ) : ViewModel() {
@@ -52,8 +53,8 @@ class VisualizationViewModel(
 
     // Mutable state
     private val selectedComponent = MutableStateFlow<DropdownOption>(DropdownOption.Global)
-    private val selectedMetric = MutableStateFlow<DropdownOption.MetricOption?>(null)
-    private val selectedTimeframe = MutableStateFlow<DropdownOption.TimeframeOption?>(null)
+    private val selectedMetric = MutableStateFlow<DropdownOption.Metric?>(null)
+    private val selectedTimeframe = MutableStateFlow<DropdownOption.Timeframe?>(null)
     private val displayMode = MutableStateFlow(VisualizationDisplayMode.EVENTS)
 
     // Derived selection data
@@ -61,30 +62,31 @@ class VisualizationViewModel(
     // update and get flickering on the UI
     private val selectionData =
         combine(
-                selectedComponent,
-                selectedMetric,
-                selectedTimeframe,
-                runningComponentsAccess.runningComponentsList,
-                backendConfigurationAccess.backendConfiguration,
-            ) { activeComponent, activeMetric, activeTimeframe, runningComponents, backendConfig ->
-                if (backendConfig !is ConfigurationUpdate.Valid)
-                    return@combine DEFAULT_SELECTION_DATA
-                val configuredComponents =
-                    runningComponents.filter { runningComponent ->
-                        backendConfig.toUIOptionsForPids(runningComponent.pids).any { it.active }
-                    }
-                SelectionData(
-                    selectedComponent = activeComponent,
-                    selectedMetric = activeMetric,
-                    selectedTimeframe = activeTimeframe,
-                    componentOptions = configuredComponents.toUIOptions(),
-                    metricOptions =
-                        backendConfig.getActiveMetricsForPids(
-                            pids = activeComponent.getPIDsOrNull()
-                        ),
-                    timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
-                )
+            selectedComponent,
+            selectedMetric,
+            selectedTimeframe,
+            runningComponentsAccess.runningComponentsList,
+            configurationAccess.configurationState
+        ) { activeComponent, activeMetric, activeTimeframe, runningComponents, configState ->
+            val config = when (configState) {
+                is ConfigurationState.Synchronized -> configState.configuration
+                is ConfigurationState.Different -> configState.backendConfiguration
+                else -> return@combine DEFAULT_SELECTION_DATA
             }
+            val configuredComponents =
+                runningComponents.filter { runningComponent ->
+                    config.toUIOptionsForPids(runningComponent.pids).any { it.active }
+                }
+            SelectionData(
+                selectedComponent = activeComponent,
+                selectedMetric = activeMetric,
+                selectedTimeframe = activeTimeframe,
+                componentOptions = configuredComponents.toUIOptions(),
+                metricOptions =
+                config.getActiveMetricsForPids(pids = activeComponent.getPIDsOrNull()),
+                timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
+            )
+        }
             .stateIn(viewModelScope, SharingStarted.Lazily, DEFAULT_SELECTION_DATA)
 
     /**
@@ -99,12 +101,12 @@ class VisualizationViewModel(
                 Timber.i("Data flow changed!")
                 if (isValidSelection(selection.selectedMetric, selection.selectedTimeframe)) {
                     getDisplayedData(
-                            selectedComponent = selection.selectedComponent,
-                            selectedMetric = selection.selectedMetric,
-                            selectedTimeframe = selection.selectedTimeframe,
-                            visualizationMetaData = selection.selectedMetric.getChartMetadata(),
-                            mode = mode,
-                        )
+                        selectedComponent = selection.selectedComponent,
+                        selectedMetric = selection.selectedMetric,
+                        selectedTimeframe = selection.selectedTimeframe,
+                        visualizationMetaData = selection.selectedMetric.getChartMetadata(),
+                        mode = mode,
+                    )
                         .onStart { Timber.i("Subscribed to displayed data") }
                         .onCompletion { Timber.i("Displayed data completed") }
                         .map { VisualizationScreenState.MetricSelectionValid(it, selection, mode) }
@@ -118,24 +120,15 @@ class VisualizationViewModel(
                 VisualizationScreenState.Loading,
             )
 
-    /** Called when a filter is selected */
-    fun componentSelected(componentOption: DropdownOption) {
-        Timber.i("filterSelected()")
-        selectedComponent.value = componentOption
-    }
+    fun optionSelected(option: DropdownOption) {
+        when (option) {
+            is DropdownOption.App,
+            is DropdownOption.Process -> selectedComponent.value = option
 
-    /** Called when a metric is selected */
-    fun metricSelected(metricOption: DropdownOption) {
-        Timber.i("metricSelected()")
-        require(metricOption is DropdownOption.MetricOption)
-        selectedMetric.value = metricOption
-    }
-
-    /** Called when a timeframe is selected */
-    fun timeframeSelected(timeframeOption: DropdownOption) {
-        Timber.i("timeframeSelected()")
-        require(timeframeOption is DropdownOption.TimeframeOption)
-        selectedTimeframe.value = timeframeOption
+            is DropdownOption.Metric -> selectedMetric.value = option
+            is DropdownOption.Timeframe -> selectedTimeframe.value = option
+            else -> throw NotImplementedError("unsupported selection")
+        }
     }
 
     fun switchMode() {
@@ -147,11 +140,11 @@ class VisualizationViewModel(
         }
     }
 
-    /** This needs improvement. Creates [Flow] of [GraphedData] based on the selection. */
+    /** Creates [Flow] of [GraphedData] based on the selection. */
     private suspend fun getDisplayedData(
         selectedComponent: DropdownOption,
-        selectedMetric: DropdownOption.MetricOption,
-        selectedTimeframe: DropdownOption.TimeframeOption,
+        selectedMetric: DropdownOption.Metric,
+        selectedTimeframe: DropdownOption.Timeframe,
         mode: VisualizationDisplayMode,
         visualizationMetaData: VisualizationMetaData,
     ): Flow<GraphedData> {
@@ -159,33 +152,38 @@ class VisualizationViewModel(
         val pids = selectedComponent.getPIDsOrNull()
         val metric = selectedMetric.backendFeature
 
-        return if (mode == VisualizationDisplayMode.CHART) {
-            when (metric) {
-                is BackendFeatureOptions.VfsWriteOption ->
-                    dataStreamProvider
-                        .vfsWriteEvents(pids = pids)
-                        .toBucketedHistogram(visualizationMetaData, selectedTimeframe)
+        return when (mode) {
+            VisualizationDisplayMode.CHART ->
+                when (metric) {
+                    is BackendFeatureOptions.VfsWriteOption ->
+                        dataStreamProvider
+                            .vfsWriteEvents(pids = pids)
+                            .toBucketedHistogram(visualizationMetaData, selectedTimeframe)
 
-                is BackendFeatureOptions.SendMessageOption ->
-                    dataStreamProvider
-                        .sendMessageEvents(pids = pids)
-                        .toMovingAverage(visualizationMetaData, selectedTimeframe)
+                    is BackendFeatureOptions.SendMessageOption ->
+                        dataStreamProvider
+                            .sendMessageEvents(pids = pids)
+                            .toMovingAverage(visualizationMetaData, selectedTimeframe)
 
-                else -> throw NotImplementedError("NOT IMPLEMENTED YET")
-            }
-        } else {
-            when (metric) {
-                is BackendFeatureOptions.VfsWriteOption ->
-                    dataStreamProvider.vfsWriteEvents(pids = pids).toEventList()
+                    else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+                }
 
-                is BackendFeatureOptions.SendMessageOption ->
-                    dataStreamProvider.sendMessageEvents(pids = pids).toEventList()
+            VisualizationDisplayMode.EVENTS ->
+                when (metric) {
+                    is BackendFeatureOptions.VfsWriteOption ->
+                        dataStreamProvider.vfsWriteEvents(pids = pids)
+                            .toEventList()
 
-                else -> throw NotImplementedError("NOT IMPLEMENTED YET")
-            }
+                    is BackendFeatureOptions.SendMessageOption ->
+                        dataStreamProvider.sendMessageEvents(pids = pids)
+                            .toEventList()
+
+                    else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+                }
         }
     }
 
-    private fun ConfigurationUpdate.Valid.getActiveMetricsForPids(pids: List<UInt>?) =
-        this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.MetricOption(it) }
+
+    private fun Configuration.getActiveMetricsForPids(pids: List<UInt>?) =
+        this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.Metric(it) }
 }

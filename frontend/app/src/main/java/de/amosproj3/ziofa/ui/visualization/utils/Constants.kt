@@ -16,13 +16,13 @@ import timber.log.Timber
 @Suppress("MagicNumber") // these are constants already
 val DEFAULT_TIMEFRAME_OPTIONS =
     listOf(
-        DropdownOption.TimeframeOption(500, DurationUnit.MILLISECONDS),
-        DropdownOption.TimeframeOption(1, DurationUnit.SECONDS),
-        DropdownOption.TimeframeOption(2, DurationUnit.SECONDS),
-        DropdownOption.TimeframeOption(5, DurationUnit.SECONDS),
-        DropdownOption.TimeframeOption(10, DurationUnit.SECONDS),
-        DropdownOption.TimeframeOption(20, DurationUnit.SECONDS),
-        DropdownOption.TimeframeOption(30, DurationUnit.SECONDS),
+        DropdownOption.Timeframe(500, DurationUnit.MILLISECONDS),
+        DropdownOption.Timeframe(1, DurationUnit.SECONDS),
+        DropdownOption.Timeframe(2, DurationUnit.SECONDS),
+        DropdownOption.Timeframe(5, DurationUnit.SECONDS),
+        DropdownOption.Timeframe(10, DurationUnit.SECONDS),
+        DropdownOption.Timeframe(20, DurationUnit.SECONDS),
+        DropdownOption.Timeframe(30, DurationUnit.SECONDS),
     )
 
 val DEFAULT_TIMESERIES_DATA = listOf(-1f to -1f) // TODO replace with reasonable defaults
@@ -41,7 +41,7 @@ val DEFAULT_SELECTION_DATA =
 val DEFAULT_CHART_METADATA = // TODO replace with reasonable defaults
     VisualizationMetaData(xLabel = "x", yLabel = "y")
 
-fun DropdownOption.MetricOption.getChartMetadata(): VisualizationMetaData {
+fun DropdownOption.Metric.getChartMetadata(): VisualizationMetaData {
     return when (this.backendFeature) {
         is BackendFeatureOptions.VfsWriteOption ->
             VisualizationMetaData("Top file descriptors", "File Descriptor Name")

@@ -5,12 +5,15 @@
 package de.amosproj3.ziofa.ui.reset
 
 import androidx.lifecycle.ViewModel
-import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
+import androidx.lifecycle.viewModelScope
+import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.ConfigurationAction
+import kotlinx.coroutines.launch
 
 // For consistency ;)
-class ResetViewModel(private val backendConfigurationAccess: BackendConfigurationAccess) :
+class ResetViewModel(private val configurationAccess: ConfigurationAccess) :
     ViewModel() {
     fun reset() {
-        backendConfigurationAccess.reset()
+        viewModelScope.launch { configurationAccess.performAction(ConfigurationAction.Reset) }
     }
 }

@@ -93,6 +93,11 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.accompanist.drawablepainter)
+    implementation(libs.flowredux.jvm)
+    implementation(libs.flowredux.compose)
+
+    implementation(libs.arrow.core)
+    implementation(libs.arrow.fx.coroutines)
 
     implementation(project(":client"))
 

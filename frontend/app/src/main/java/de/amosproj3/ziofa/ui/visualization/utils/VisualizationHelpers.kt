@@ -14,7 +14,7 @@ fun DropdownOption.getPIDsOrNull(): List<UInt>? {
     return when (this) {
         is DropdownOption.Global -> null
         is DropdownOption.Process -> listOf(this.pid)
-        is DropdownOption.AppOption -> this.pids
+        is DropdownOption.App -> this.pids
         else -> error("Invalid filter")
     }
 }
@@ -23,7 +23,7 @@ fun List<RunningComponent>.toUIOptions() =
     this.map {
         when (it) {
             is RunningComponent.Application ->
-                DropdownOption.AppOption(
+                DropdownOption.App(
                     appName = it.packageInfo.displayName,
                     packageName = it.packageInfo.displayName,
                     icon = it.packageInfo.icon,

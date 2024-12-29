@@ -27,6 +27,8 @@ timber = "5.0.1"
 versioncatalogueupdate = "0.8.5"
 vico = "2.0.0-beta.3"
 coroutines = "1.9.0"
+flowredux="1.2.2"
+arrow = "1.2.4"
 
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanistDrawablepainter" }
@@ -60,6 +62,11 @@ vico-compose-m3 = { module = "com.patrykandpatrick.vico:compose-m3", version.ref
 vico-core = { module = "com.patrykandpatrick.vico:core", version.ref = "vico" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+
+flowredux-jvm = { module = 'com.freeletics.flowredux:flowredux-jvm', version.ref="flowredux" }
+flowredux-compose = { module = 'com.freeletics.flowredux:compose' ,version.ref ="flowredux"}
+arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
+arrow-fx-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version.ref = "arrow" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

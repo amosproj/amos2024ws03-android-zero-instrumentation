@@ -7,8 +7,7 @@ package de.amosproj3.ziofa
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
-import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.SymbolsAccess
 import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
@@ -31,7 +30,6 @@ import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.parameter.parametersOf
-import org.koin.dsl.binds
 import org.koin.dsl.module
 import timber.log.Timber
 
@@ -64,8 +62,9 @@ class ZiofaApplication : Application() {
         single<RunningComponentsAccess> {
             RunningComponentsProvider(clientFactory = get(), packageInformationProvider = get())
         }
-        single { ConfigurationManager(clientFactory = get()) } binds
-            arrayOf(BackendConfigurationAccess::class, LocalConfigurationAccess::class)
+        single<ConfigurationAccess>{
+            ConfigurationManager(clientFactory = get())
+        }
         factory<DataStreamProvider> { (scope: CoroutineScope) -> DataStreamManager(get(), scope) }
         single<SymbolsAccess> { UProbeManager(get()) }
     }
@@ -73,8 +72,7 @@ class ZiofaApplication : Application() {
     private fun Module.createViewModelFactories() {
         viewModel { (pids: List<UInt>) ->
             ConfigurationViewModel(
-                backendConfigurationAccess = get(),
-                localConfigurationAccess = get(),
+                configurationAccess = get(),
                 pids = pids,
             )
         }
@@ -82,9 +80,9 @@ class ZiofaApplication : Application() {
         viewModel { ProcessesViewModel(runningComponentsProvider = get()) }
         viewModel {
             VisualizationViewModel(
-                backendConfigurationAccess = get(),
-                dataStreamProviderFactory = { get { parametersOf(it) } },
+                configurationAccess = get(),
                 runningComponentsAccess = get(),
+                dataStreamProviderFactory = { get { parametersOf(it) } },
             )
         }
 

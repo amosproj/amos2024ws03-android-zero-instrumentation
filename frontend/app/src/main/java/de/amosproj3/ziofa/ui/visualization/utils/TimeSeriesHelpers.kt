@@ -17,14 +17,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.scan
 
-fun Flow<UInt>.countPerTimeframe(timeframeOption: DropdownOption.TimeframeOption): Flow<UInt> =
+fun Flow<UInt>.countPerTimeframe(timeframe: DropdownOption.Timeframe): Flow<UInt> =
     flow {
         var previousCount: UInt = 0u
         this@countPerTimeframe.collect { currentCount ->
             val countedLastTimeframe = currentCount - previousCount
             emit(countedLastTimeframe)
             previousCount = currentCount
-            delay(timeframeOption.amount.toDuration(timeframeOption.unit))
+            delay(timeframe.amount.toDuration(timeframe.unit))
         }
     }
 
@@ -101,7 +101,7 @@ fun Flow<BackendEvent>.toBucketedData(millisTimeframeDuration: ULong) = flow {
 fun Flow<List<Pair<ULong, ULong>>>.sortAndClip(limit: Int) =
     this.map { it.sortedBy { (fd, size) -> size }.reversed().take(limit) }.conflate().sample(2500)
 
-fun DropdownOption.TimeframeOption.toSeconds(): Float {
+fun DropdownOption.Timeframe.toSeconds(): Float {
     return this.amount.toDuration(this.unit).inWholeMilliseconds / 1000.0f
 }
 
