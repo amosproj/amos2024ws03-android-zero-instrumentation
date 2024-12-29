@@ -20,20 +20,20 @@ fun DropdownOption.getPIDsOrNull(): List<UInt>? {
 }
 
 fun List<RunningComponent>.toUIOptions() =
-    this.map {
-        when (it) {
+    this.map { component ->
+        when (component) {
             is RunningComponent.Application ->
                 DropdownOption.App(
-                    appName = it.packageInfo.displayName,
-                    packageName = it.packageInfo.displayName,
-                    icon = it.packageInfo.icon,
-                    pids = it.processList.map { it.pid.toUInt() },
+                    appName = component.packageInfo.displayName,
+                    packageName = component.packageInfo.displayName,
+                    icon = component.packageInfo.icon,
+                    pids = component.processList.map { it.pid },
                 )
 
             is RunningComponent.StandaloneProcess ->
                 DropdownOption.Process(
-                    it.process.cmd.toReadableString(),
-                    pid = it.process.pid.toUInt(),
+                    component.process.cmd.toReadableString(),
+                    pid = component.process.pid,
                 )
         }
     }
@@ -42,12 +42,12 @@ fun List<RunningComponent>.toUIOptions() =
 fun isValidSelection(selectedMetric: DropdownOption?, selectedTimeframe: DropdownOption?): Boolean {
     contract {
         returns(true) implies
-            (selectedMetric is DropdownOption.MetricOption &&
-                selectedTimeframe is DropdownOption.TimeframeOption)
+            (selectedMetric is DropdownOption.Metric &&
+                selectedTimeframe is DropdownOption.Timeframe)
     }
 
     return selectedMetric != null &&
-        selectedMetric is DropdownOption.MetricOption &&
+        selectedMetric is DropdownOption.Metric &&
         selectedTimeframe != null &&
-        selectedTimeframe is DropdownOption.TimeframeOption
+        selectedTimeframe is DropdownOption.Timeframe
 }

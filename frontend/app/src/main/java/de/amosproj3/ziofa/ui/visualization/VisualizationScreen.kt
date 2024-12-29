@@ -108,7 +108,7 @@ fun DataViewer(data: GraphedData) {
 @Composable
 fun MetricSelection(
     selectionData: SelectionData,
-    optionSelected: (DropdownOption) -> Unit
+    optionSelected: (DropdownOption) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth()) {

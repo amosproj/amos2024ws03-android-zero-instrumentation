@@ -7,7 +7,6 @@
 accompanistDrawablepainter = "0.36.0"
 activityCompose = "1.9.3"
 agp = "8.7.3"
-arrow = "1.2.4"
 benmanes-versions = "0.51.0"
 compose-navigation = "2.8.5"
 composeBom = "2024.12.01"
@@ -46,8 +45,6 @@ androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
-arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
-arrow-fx-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version.ref = "arrow" }
 detekt-compose-rules = { module = "com.twitter.compose.rules:detekt", version.ref = "detektRulesVersion" }
 jackwharton-timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
