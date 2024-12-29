@@ -8,8 +8,8 @@ import de.amosproj3.ziofa.client.Process
 
 sealed class RunningComponent(val pids: List<UInt>) {
     data class StandaloneProcess(val process: Process) :
-        RunningComponent(pids = listOf(process.pid.toUInt()))
+        RunningComponent(pids = listOf(process.pid))
 
     data class Application(val packageInfo: InstalledPackageInfo, val processList: List<Process>) :
-        RunningComponent(pids = processList.map { it.pid.toUInt() })
+        RunningComponent(pids = processList.map { it.pid })
 }
