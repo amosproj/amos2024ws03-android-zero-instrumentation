@@ -1,18 +1,15 @@
 package de.amosproj3.ziofa.api.configuration
 
-import de.amosproj3.ziofa.client.JniReferencesConfig
-import de.amosproj3.ziofa.client.SysSendmsgConfig
-import de.amosproj3.ziofa.client.UprobeConfig
-import de.amosproj3.ziofa.client.VfsWriteConfig
+import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 
 sealed class ConfigurationAction {
     data object Synchronize : ConfigurationAction()
-    data class Change(
+
+    data class ChangeFeature(
+        val backendFeature: BackendFeatureOptions,
         val enable: Boolean,
-        val vfsWriteFeature: VfsWriteConfig? = null,
-        val sendMessageFeature: SysSendmsgConfig? = null,
-        val uprobesFeature: List<UprobeConfig>? = listOf(),
-        val jniReferencesFeature: JniReferencesConfig? = null
+        val pids: Set<UInt>
     ) : ConfigurationAction()
-    data object Reset: ConfigurationAction()
+
+    data object Reset : ConfigurationAction()
 }

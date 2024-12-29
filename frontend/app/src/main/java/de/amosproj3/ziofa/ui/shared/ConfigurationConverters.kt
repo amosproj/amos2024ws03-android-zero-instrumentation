@@ -4,12 +4,7 @@
 
 package de.amosproj3.ziofa.ui.shared
 
-import de.amosproj3.ziofa.api.configuration.ConfigurationAction
 import de.amosproj3.ziofa.client.Configuration
-import de.amosproj3.ziofa.client.JniReferencesConfig
-import de.amosproj3.ziofa.client.SysSendmsgConfig
-import de.amosproj3.ziofa.client.UprobeConfig
-import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 
 /**
@@ -64,51 +59,3 @@ fun Configuration.toUIOptionsForPids(
     }
     return options.toList()
 }
-
-/**
- * Convert [BackendFeatureOptions] from UI to configuration and set the changes in the local
- * configuration.
- */
-fun BackendFeatureOptions.toConfigurationChangeAction(
-    pids: Set<UInt>,
-    active: Boolean,
-): ConfigurationAction.Change =
-    when (this) {
-        is BackendFeatureOptions.VfsWriteOption ->
-            ConfigurationAction.Change(
-                enable = active,
-                vfsWriteFeature = VfsWriteConfig(pids.associateWith { DURATION_THRESHOLD }),
-            )
-
-        is BackendFeatureOptions.SendMessageOption ->
-            ConfigurationAction.Change(
-                enable = active,
-                sendMessageFeature =
-                SysSendmsgConfig(
-                    pids.associateWith { DURATION_THRESHOLD }
-                    // TODO this is not a duration
-                ),
-            )
-
-        is BackendFeatureOptions.UprobeOption ->
-            ConfigurationAction.Change(
-                enable = active,
-                uprobesFeature =
-                pids.map {
-                    UprobeConfig(
-                        fnName = this.method,
-                        target = this.odexFilePath,
-                        offset = this.offset,
-                        pid = it,
-                    )
-                },
-            )
-
-        is BackendFeatureOptions.JniReferencesOption ->
-            ConfigurationAction.Change(
-                enable = active,
-                jniReferencesFeature = JniReferencesConfig(pids.toList()),
-            )
-
-        else -> throw NotImplementedError("NO SUPPORT YET")
-    }

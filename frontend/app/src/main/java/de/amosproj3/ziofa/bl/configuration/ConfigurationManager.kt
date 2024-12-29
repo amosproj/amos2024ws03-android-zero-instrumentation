@@ -15,13 +15,16 @@ import de.amosproj3.ziofa.api.configuration.ConfigurationState
 import de.amosproj3.ziofa.client.Client
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Configuration
+import de.amosproj3.ziofa.client.UprobeConfig
+import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
+import de.amosproj3.ziofa.ui.configuration.utils.EMPTY_CONFIGURATION
+import de.amosproj3.ziofa.ui.shared.DURATION_THRESHOLD
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConfigurationManager(clientFactory: ClientFactory) :
@@ -35,7 +38,6 @@ class ConfigurationManager(clientFactory: ClientFactory) :
         initializeStateMachine()
     }
 
-    private val EMPTY_CONFIGURATION = Configuration(null, null, listOf(), null)
 
     private val _configurationState =
         MutableStateFlow<ConfigurationState>(ConfigurationState.Uninitialized(clientFactory))
@@ -62,7 +64,7 @@ class ConfigurationManager(clientFactory: ClientFactory) :
             }
 
             inState<ConfigurationState.Synchronized> {
-                on<ConfigurationAction.Change>(executionPolicy = ExecutionPolicy.ORDERED)
+                on<ConfigurationAction.ChangeFeature>(executionPolicy = ExecutionPolicy.ORDERED)
                 { action, state ->
                     state.override {
                         ConfigurationState.Different(
@@ -97,7 +99,7 @@ class ConfigurationManager(clientFactory: ClientFactory) :
                     }
                 }
 
-                on<ConfigurationAction.Change> { action, state ->
+                on<ConfigurationAction.ChangeFeature> { action, state ->
                     state.override {
                         ConfigurationState.Different(
                             client = this.client,
@@ -142,47 +144,55 @@ class ConfigurationManager(clientFactory: ClientFactory) :
         }
 
     private fun Configuration.applyChange(
-        change: ConfigurationAction.Change
+        action: ConfigurationAction.ChangeFeature,
     ): Configuration {
-        Timber.e("changeFeatureConfigurationForPIDs.prev $this")
-        Timber.e(
-            "changeFeatureConfigurationForPIDs() $change"
-        )
-        return this.copy(
-            vfsWrite =
-            change.vfsWriteFeature?.let { requestedChanges ->
-                this.vfsWrite.updatePIDs(
-                    pidsToAdd =
-                    if (change.enable) requestedChanges.entries.entries else setOf(),
-                    pidsToRemove =
-                    if (!change.enable) requestedChanges.entries.entries else setOf(),
+
+        val feature = action.backendFeature
+        val enable = action.enable
+        val pids = action.pids
+
+        return when (feature) {
+            is BackendFeatureOptions.VfsWriteOption ->
+                this.copy(
+                    vfsWrite = this.vfsWrite?.updatePIDs(
+                        pidsToAdd = if (enable) pids.associateWith { DURATION_THRESHOLD }.entries else setOf(),
+                        pidsToRemove = if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries else setOf()
+                    )
                 )
-            } ?: this.vfsWrite,
-            sysSendmsg =
-            change.sendMessageFeature?.let { requestedChanges ->
-                this.sysSendmsg.updatePIDs(
-                    pidsToAdd =
-                    if (change.enable) requestedChanges.entries.entries else setOf(),
-                    pidsToRemove =
-                    if (!change.enable) requestedChanges.entries.entries else setOf(),
+
+            is BackendFeatureOptions.SendMessageOption ->
+                this.copy(
+                    sysSendmsg = this.sysSendmsg?.updatePIDs(
+                        pidsToAdd = if (enable) pids.associateWith { DURATION_THRESHOLD }.entries else setOf(),
+                        pidsToRemove = if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries else setOf()
+                    )
                 )
-            } ?: this.sysSendmsg,
-            uprobes =
-            change.uprobesFeature.let { requestedChanges ->
-                if (requestedChanges == null)
-                    return@let this.uprobes
-                this.uprobes.updateUProbes(
-                    pidsToAdd = if (change.enable) requestedChanges else listOf(),
-                    pidsToRemove = if (!change.enable) requestedChanges else listOf(),
+
+            is BackendFeatureOptions.JniReferencesOption ->
+                this.copy(
+                    jniReferences = this.jniReferences?.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf()
+                    )
                 )
-            },
-            jniReferences =
-            change.jniReferencesFeature?.let { requestedChanges ->
-                this.jniReferences.updatePIDs(
-                    pidsToAdd = if (change.enable) requestedChanges.pids else listOf(),
-                    pidsToRemove = if (!change.enable) requestedChanges.pids else listOf(),
+
+            is BackendFeatureOptions.UprobeOption -> {
+                val uprobeUpdate = pids.map {
+                    UprobeConfig(
+                        fnName = feature.method,
+                        target = feature.odexFilePath,
+                        offset = feature.offset,
+                        pid = it,
+                    )
+                }
+                this.copy(
+                    uprobes = this.uprobes.updateUProbes(
+                        pidsToAdd = if (enable) uprobeUpdate else listOf(),
+                        pidsToRemove = if (!enable) uprobeUpdate else listOf()
+                    )
                 )
-            } ?: this.jniReferences,
-        ).also { Timber.i("new local configuration = $it") }
+            }
+
+        }
     }
 }

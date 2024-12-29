@@ -45,8 +45,8 @@ fun List<UprobeConfig>?.updateUProbes(
 }
 
 fun JniReferencesConfig?.updatePIDs(
-    pidsToAdd: List<UInt> = listOf(),
-    pidsToRemove: List<UInt> = listOf(),
+    pidsToAdd: Set<UInt> = setOf(),
+    pidsToRemove: Set<UInt> = setOf(),
 ): JniReferencesConfig {
     val config = this ?: JniReferencesConfig(listOf())
     return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet()))

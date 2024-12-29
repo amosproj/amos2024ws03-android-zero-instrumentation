@@ -12,12 +12,10 @@ import de.amosproj3.ziofa.api.configuration.ConfigurationAction
 import de.amosproj3.ziofa.api.configuration.ConfigurationState
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
-import de.amosproj3.ziofa.ui.shared.toConfigurationChangeAction
 import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -26,7 +24,6 @@ class ConfigurationViewModel(
     private val configurationAccess: ConfigurationAccess,
     private val pids: List<UInt>,
 ) : ViewModel() {
-
 
     val configurationScreenState =
         configurationAccess.configurationState
@@ -40,12 +37,11 @@ class ConfigurationViewModel(
 
     fun optionChanged(option: BackendFeatureOptions, active: Boolean) {
         if (configurationScreenState.value is ConfigurationScreenState.Valid) {
-
-            val change = option.toConfigurationChangeAction(
-                pids = pids.toSet(),
-                active = active,
+            val change = ConfigurationAction.ChangeFeature(
+                backendFeature = option,
+                enable = active,
+                pids = pids.toSet()
             )
-
             viewModelScope.launch { configurationAccess.performAction(change) }
         }
     }
