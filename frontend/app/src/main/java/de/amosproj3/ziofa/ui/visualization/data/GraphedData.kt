@@ -4,7 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.data
 
-import de.amosproj3.ziofa.api.events.BackendEvent
+import de.amosproj3.ziofa.client.Event
 
 sealed class GraphedData {
     data class TimeSeriesData(
@@ -17,7 +17,7 @@ sealed class GraphedData {
         val metaData: VisualizationMetaData,
     ) : GraphedData()
 
-    data class EventListData(val eventData: List<BackendEvent>) : GraphedData()
+    data class EventListData(val eventData: List<Event>) : GraphedData()
 
     data object EMPTY : GraphedData()
 }

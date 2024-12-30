@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
-import de.amosproj3.ziofa.ui.visualization.composables.EventList
+import de.amosproj3.ziofa.ui.visualization.composables.EventListViewer
 import de.amosproj3.ziofa.ui.visualization.composables.MetricDropdown
 import de.amosproj3.ziofa.ui.visualization.composables.SwitchModeFab
 import de.amosproj3.ziofa.ui.visualization.composables.VicoBar
@@ -49,12 +49,20 @@ fun VisualizationScreen(
 
         Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxSize()) {
             when (state) {
-                is VisualizationScreenState.MetricSelectionValid -> {
+                is VisualizationScreenState.ChartView -> {
                     MetricSelection(
                         selectionData = state.selectionData,
                         optionSelected = { viewModel.optionSelected(it) }
                     )
-                    DataViewer(state.graphedData)
+                    ChartViewer(state.graphedData)
+                }
+
+                is VisualizationScreenState.EventListView -> {
+                    MetricSelection(
+                        selectionData = state.selectionData,
+                        optionSelected = { viewModel.optionSelected(it) }
+                    )
+                    EventListViewer(state.graphedData.eventData)
                 }
 
                 is VisualizationScreenState.WaitingForMetricSelection -> {
@@ -70,12 +78,25 @@ fun VisualizationScreen(
             }
         }
 
-        if (state is VisualizationScreenState.MetricSelectionValid)
-            SwitchModeFab(
-                modifier = Modifier.align(Alignment.BottomEnd),
-                onClick = { viewModel.switchMode() },
-                activeDisplayMode = state.displayMode,
-            )
+        when (state) {
+            is VisualizationScreenState.EventListView -> {
+                SwitchModeFab(
+                    modifier = Modifier.align(Alignment.BottomEnd),
+                    onClick = { viewModel.switchMode() },
+                    text = "Switch to chart mode"
+                )
+            }
+
+            is VisualizationScreenState.ChartView -> {
+                SwitchModeFab(
+                    modifier = Modifier.align(Alignment.BottomEnd),
+                    onClick = { viewModel.switchMode() },
+                    text = "Switch to event mode"
+                )
+            }
+
+            else -> {}
+        }
     }
 }
 
@@ -91,7 +112,7 @@ fun SelectMetricPrompt(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun DataViewer(data: GraphedData) {
+fun ChartViewer(data: GraphedData) {
     when (data) {
         is GraphedData.TimeSeriesData ->
             VicoTimeSeries(seriesData = data.seriesData, chartMetadata = data.metaData)
@@ -99,9 +120,8 @@ fun DataViewer(data: GraphedData) {
         is GraphedData.HistogramData ->
             VicoBar(seriesData = data.seriesData, chartMetadata = data.metaData)
 
-        is GraphedData.EventListData -> EventList(data.eventData)
-
         GraphedData.EMPTY -> {}
+        else -> TODO()
     }
 }
 
@@ -112,12 +132,14 @@ fun MetricSelection(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth()) {
+        val dropdownModifier = Modifier
+            .weight(1f)
+            .padding(end = 0.dp)
+
         MetricDropdown(
             selectionData.componentOptions,
             "Select a package",
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 0.dp),
+            modifier = dropdownModifier,
             optionSelected = { optionSelected(it) },
             selectedOption = selectionData.selectedComponent.displayName,
         )
@@ -127,9 +149,7 @@ fun MetricSelection(
                 MetricDropdown(
                     metricOptions,
                     "Select a metric",
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 0.dp),
+                    modifier = dropdownModifier,
                     optionSelected = { optionSelected(it) },
                     selectedOption = selectionData.selectedMetric?.displayName
                         ?: "Please select...",
@@ -141,11 +161,10 @@ fun MetricSelection(
                 MetricDropdown(
                     timeframeOptions,
                     "Select an interval for aggregation",
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 0.dp),
+                    modifier = dropdownModifier,
                     optionSelected = { optionSelected(it) },
-                    selectedOption = selectionData.selectedTimeframe?.displayName ?: "Please select...",
+                    selectedOption = selectionData.selectedTimeframe?.displayName
+                        ?: "Please select...",
                 )
             } ?: Spacer(Modifier.weight(1f))
     }

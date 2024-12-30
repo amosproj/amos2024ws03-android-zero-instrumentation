@@ -4,7 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.utils
 
-import de.amosproj3.ziofa.api.events.BackendEvent
+import de.amosproj3.ziofa.client.Event
 import de.amosproj3.ziofa.ui.shared.HISTOGRAM_BUCKETS
 import de.amosproj3.ziofa.ui.shared.TIME_SERIES_SIZE
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
@@ -14,7 +14,7 @@ import kotlin.time.toDuration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-fun Flow<BackendEvent.VfsWriteEvent>.toBucketedHistogram(
+fun Flow<Event.VfsWrite>.toBucketedHistogram(
     visualizationMetaData: VisualizationMetaData,
     timeframe: DropdownOption.Timeframe,
 ) =
@@ -22,7 +22,7 @@ fun Flow<BackendEvent.VfsWriteEvent>.toBucketedHistogram(
         .sortAndClip(HISTOGRAM_BUCKETS)
         .map { GraphedData.HistogramData(it, visualizationMetaData) }
 
-fun Flow<BackendEvent.SendMessageEvent>.toMovingAverage(
+fun Flow<Event.SysSendmsg>.toMovingAverage(
     visualizationMetaData: VisualizationMetaData,
     timeframe: DropdownOption.Timeframe,
 ) =
@@ -32,4 +32,4 @@ fun Flow<BackendEvent.SendMessageEvent>.toMovingAverage(
         )
         .map { GraphedData.TimeSeriesData(it, visualizationMetaData) }
 
-fun Flow<BackendEvent>.toEventList() = this.accumulateEvents().map { GraphedData.EventListData(it) }
+fun Flow<Event>.toEventList() = this.accumulateEvents().map { GraphedData.EventListData(it) }

@@ -5,7 +5,6 @@
 
 package de.amosproj3.ziofa.bl.events
 
-import de.amosproj3.ziofa.api.events.BackendEvent
 import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Event
@@ -25,32 +24,37 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
         flow { clientFactory.connect().initStream().collect { emit(it) } }
             .shareIn(coroutineScope, SharingStarted.Lazily)
 
-    override fun vfsWriteEvents(pids: List<UInt>?): Flow<BackendEvent.VfsWriteEvent> =
+    override fun vfsWriteEvents(pids: List<UInt>?): Flow<Event.VfsWrite> =
         dataFlow
             .mapNotNull { it as? Event.VfsWrite }
             .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
-            .map {
-                BackendEvent.VfsWriteEvent(
-                    fd = it.fp,
-                    pid = it.pid,
-                    size = it.bytesWritten,
-                    timestampMillis = it.beginTimeStamp,
-                )
-            }
 
-    override fun sendMessageEvents(pids: List<UInt>?): Flow<BackendEvent.SendMessageEvent> =
+    override fun sendMessageEvents(pids: List<UInt>?): Flow<Event.SysSendmsg> =
         dataFlow
             .mapNotNull { it as? Event.SysSendmsg }
             .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
-            .map {
-                BackendEvent.SendMessageEvent(
-                    fd = it.fd,
-                    pid = it.pid,
-                    tid = it.tid,
-                    beginTimestamp = it.beginTimeStamp,
-                    durationNanos = it.durationNanoSecs,
+
+    override fun localJniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences> =
+        dataFlow
+            .mapNotNull { it as? Event.JniReferences }
+            .filter {
+                it.jniMethodName in listOf(
+                    Event.JniReferences.JniMethodName.AddLocalRef,
+                    Event.JniReferences.JniMethodName.DeleteLocalRef
                 )
             }
+            .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
+
+    override fun globalJniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences> =
+        dataFlow
+            .mapNotNull { it as? Event.JniReferences }
+            .filter {
+                it.jniMethodName in listOf(
+                    Event.JniReferences.JniMethodName.AddGlobalRef,
+                    Event.JniReferences.JniMethodName.DeleteGlobalRef
+                )
+            }
+            .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
 
     private fun UInt.isGlobalRequestedOrPidConfigured(pids: List<UInt>?) =
         pids?.contains(this) ?: true

@@ -100,16 +100,21 @@ class VisualizationViewModel(
             .flatMapLatest { (selection, mode) ->
                 Timber.i("Data flow changed!")
                 if (isValidSelection(selection.selectedMetric, selection.selectedTimeframe)) {
-                    getDisplayedData(
-                        selectedComponent = selection.selectedComponent,
-                        selectedMetric = selection.selectedMetric,
-                        selectedTimeframe = selection.selectedTimeframe,
-                        visualizationMetaData = selection.selectedMetric.getChartMetadata(),
-                        mode = mode,
-                    )
-                        .onStart { Timber.i("Subscribed to displayed data") }
-                        .onCompletion { Timber.i("Displayed data completed") }
-                        .map { VisualizationScreenState.MetricSelectionValid(it, selection, mode) }
+                    when (mode) {
+                        VisualizationDisplayMode.CHART -> getChartData(
+                            selectedComponent = selection.selectedComponent,
+                            selectedMetric = selection.selectedMetric,
+                            selectedTimeframe = selection.selectedTimeframe,
+                            visualizationMetaData = selection.selectedMetric.getChartMetadata()
+                        ).map { VisualizationScreenState.ChartView(it, selection) }
+
+                        VisualizationDisplayMode.EVENTS -> getEventListData(
+                            selectedComponent = selection.selectedComponent,
+                            selectedMetric = selection.selectedMetric,
+                            selectedTimeframe = selection.selectedTimeframe,
+                        ).map { VisualizationScreenState.EventListView(it, selection) }
+                    }
+
                 } else {
                     flowOf(VisualizationScreenState.WaitingForMetricSelection(selection, mode))
                 }
@@ -140,50 +145,53 @@ class VisualizationViewModel(
         }
     }
 
+    private fun getEventListData(
+        selectedComponent: DropdownOption,
+        selectedMetric: DropdownOption.Metric,
+        selectedTimeframe: DropdownOption.Timeframe
+    ): Flow<GraphedData.EventListData> {
+        val pids = selectedComponent.getPIDsOrNull()
+        val metric = selectedMetric.backendFeature
+        return when (metric) {
+            is BackendFeatureOptions.VfsWriteOption ->
+                dataStreamProvider.vfsWriteEvents(pids = pids)
+                    .toEventList()
+
+            is BackendFeatureOptions.SendMessageOption ->
+                dataStreamProvider.sendMessageEvents(pids = pids)
+                    .toEventList()
+
+            else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+        }
+    }
+
+
     /** Creates [Flow] of [GraphedData] based on the selection. */
-    private suspend fun getDisplayedData(
+    private fun getChartData(
         selectedComponent: DropdownOption,
         selectedMetric: DropdownOption.Metric,
         selectedTimeframe: DropdownOption.Timeframe,
-        mode: VisualizationDisplayMode,
         visualizationMetaData: VisualizationMetaData,
     ): Flow<GraphedData> {
 
         val pids = selectedComponent.getPIDsOrNull()
         val metric = selectedMetric.backendFeature
 
-        return when (mode) {
-            VisualizationDisplayMode.CHART ->
-                when (metric) {
-                    is BackendFeatureOptions.VfsWriteOption ->
-                        dataStreamProvider
-                            .vfsWriteEvents(pids = pids)
-                            .toBucketedHistogram(visualizationMetaData, selectedTimeframe)
+        return when (metric) {
+            is BackendFeatureOptions.VfsWriteOption ->
+                dataStreamProvider
+                    .vfsWriteEvents(pids = pids)
+                    .toBucketedHistogram(visualizationMetaData, selectedTimeframe)
 
-                    is BackendFeatureOptions.SendMessageOption ->
-                        dataStreamProvider
-                            .sendMessageEvents(pids = pids)
-                            .toMovingAverage(visualizationMetaData, selectedTimeframe)
+            is BackendFeatureOptions.SendMessageOption ->
+                dataStreamProvider
+                    .sendMessageEvents(pids = pids)
+                    .toMovingAverage(visualizationMetaData, selectedTimeframe)
 
-                    else -> throw NotImplementedError("NOT IMPLEMENTED YET")
-                }
-
-            VisualizationDisplayMode.EVENTS ->
-                when (metric) {
-                    is BackendFeatureOptions.VfsWriteOption ->
-                        dataStreamProvider.vfsWriteEvents(pids = pids)
-                            .toEventList()
-
-                    is BackendFeatureOptions.SendMessageOption ->
-                        dataStreamProvider.sendMessageEvents(pids = pids)
-                            .toEventList()
-
-                    else -> throw NotImplementedError("NOT IMPLEMENTED YET")
-                }
+            else -> throw NotImplementedError("NOT IMPLEMENTED YET")
         }
     }
-
-
-    private fun Configuration.getActiveMetricsForPids(pids: List<UInt>?) =
-        this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.Metric(it) }
 }
+
+private fun Configuration.getActiveMetricsForPids(pids: List<UInt>?) =
+    this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.Metric(it) }

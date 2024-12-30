@@ -4,11 +4,11 @@
 
 package de.amosproj3.ziofa.ui.visualization.utils
 
-import de.amosproj3.ziofa.api.events.BackendEvent
+import androidx.compose.ui.text.intl.Locale
+import de.amosproj3.ziofa.client.Event
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import kotlin.time.toDuration
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.conflate
@@ -17,24 +17,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.scan
 
-fun Flow<UInt>.countPerTimeframe(timeframe: DropdownOption.Timeframe): Flow<UInt> =
-    flow {
-        var previousCount: UInt = 0u
-        this@countPerTimeframe.collect { currentCount ->
-            val countedLastTimeframe = currentCount - previousCount
-            emit(countedLastTimeframe)
-            previousCount = currentCount
-            delay(timeframe.amount.toDuration(timeframe.unit))
-        }
-    }
-
-fun Flow<UInt>.toTimestampedSeries(seriesSize: Int, secondsPerDatapoint: Float) =
-    this.scan(listOf<Pair<Float, Float>>()) { prev, next ->
-        val idx = (prev.lastOrNull()?.first ?: 0.0f) + secondsPerDatapoint
-        prev.plus(idx to next.toFloat()).takeLast(seriesSize)
-    }
-
-fun Flow<BackendEvent>.toAveragedDurationOverTimeframe(
+fun Flow<Event.SysSendmsg>.toAveragedDurationOverTimeframe(
     seriesSize: Int,
     millisTimeframeDuration: Long,
 ) =
@@ -44,13 +27,13 @@ fun Flow<BackendEvent>.toAveragedDurationOverTimeframe(
         prev.plus(idx to next.toFloat()).takeLast(seriesSize)
     }
 
-fun Flow<BackendEvent>.windowed(windowMillis: Long): Flow<Double> = flow {
+fun Flow<Event.SysSendmsg>.windowed(windowMillis: Long): Flow<Double> = flow {
     val buffer = mutableListOf<ULong>()
     var windowStart = System.currentTimeMillis()
 
     this@windowed.collect { value ->
         val now = System.currentTimeMillis()
-        buffer.add(value.durationOrSize)
+        buffer.add(value.durationNanoSecs)
 
         if (now - windowStart >= windowMillis) {
             val average = buffer.map { it.toFloat() }.average()
@@ -67,15 +50,15 @@ fun Flow<BackendEvent>.windowed(windowMillis: Long): Flow<Double> = flow {
     }
 }
 
-fun Flow<BackendEvent>.toBucketedData(millisTimeframeDuration: ULong) = flow {
-    val collectedEvents = mutableMapOf<ULong, MutableList<BackendEvent>>()
+fun Flow<Event.VfsWrite>.toBucketedData(millisTimeframeDuration: ULong) = flow {
+    val collectedEvents = mutableMapOf<ULong, MutableList<Event.VfsWrite>>()
     this@toBucketedData.collect {
 
         // Remove old
         val currentTime = System.currentTimeMillis()
         collectedEvents.entries.forEach { (_, vfsWriteEventsList) ->
             vfsWriteEventsList.removeAll {
-                currentTime.toULong() - it.startTimestamp > millisTimeframeDuration
+                currentTime.toULong() - it.beginTimeStamp > millisTimeframeDuration
             }
         }
         collectedEvents.entries.removeAll { (_, vfsWriteEventsList) ->
@@ -83,7 +66,7 @@ fun Flow<BackendEvent>.toBucketedData(millisTimeframeDuration: ULong) = flow {
         }
 
         // Add new
-        val key = it.fileDescriptor
+        val key = it.fp
         val currentBucketEntries = collectedEvents.getOrElse(key) { mutableListOf() }
         currentBucketEntries.add(it)
         collectedEvents[key] = currentBucketEntries
@@ -91,7 +74,7 @@ fun Flow<BackendEvent>.toBucketedData(millisTimeframeDuration: ULong) = flow {
         // Emit update
         emit(
             collectedEvents.entries.map { (fileDescriptor, writeEventsList) ->
-                fileDescriptor to writeEventsList.sumOf { event -> event.durationOrSize }
+                fileDescriptor to writeEventsList.sumOf { event -> event.bytesWritten }
             }
         )
     }
@@ -105,8 +88,17 @@ fun DropdownOption.Timeframe.toSeconds(): Float {
     return this.amount.toDuration(this.unit).inWholeMilliseconds / 1000.0f
 }
 
-fun Flow<BackendEvent>.accumulateEvents() =
-    this.scan(initial = listOf<BackendEvent>()) { prev, next -> prev.plus(next) }
+fun ULong.nanosToSeconds(): String {
+val locale = Locale.current.platformLocale
+    return String.format(
+        locale,
+        "%.2f",
+        this.toDouble() / 1_000_000_000,
+    )
+}
+
+fun Flow<Event>.accumulateEvents() =
+    this.scan(initial = listOf<Event>()) { prev, next -> prev.plus(next) }
 
 fun List<Pair<Float, Float>>.isDefaultSeries(): Boolean {
     return this == DEFAULT_TIMESERIES_DATA
