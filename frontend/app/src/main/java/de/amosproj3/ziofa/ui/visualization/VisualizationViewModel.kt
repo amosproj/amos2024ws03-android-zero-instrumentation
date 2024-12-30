@@ -17,13 +17,17 @@ import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationDisplayMode
-import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
+import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
+import de.amosproj3.ziofa.ui.visualization.data.EventListEntry
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_SELECTION_DATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_TIMEFRAME_OPTIONS
+import de.amosproj3.ziofa.ui.visualization.utils.accumulateEvents
 import de.amosproj3.ziofa.ui.visualization.utils.getChartMetadata
+import de.amosproj3.ziofa.ui.visualization.utils.getEventListMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
 import de.amosproj3.ziofa.ui.visualization.utils.isValidSelection
+import de.amosproj3.ziofa.ui.visualization.utils.nanosToSeconds
 import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
 import de.amosproj3.ziofa.ui.visualization.utils.toEventList
 import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
@@ -37,8 +41,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import timber.log.Timber
@@ -105,14 +107,20 @@ class VisualizationViewModel(
                             selectedComponent = selection.selectedComponent,
                             selectedMetric = selection.selectedMetric,
                             selectedTimeframe = selection.selectedTimeframe,
-                            visualizationMetaData = selection.selectedMetric.getChartMetadata()
+                            chartMetadata = selection.selectedMetric.getChartMetadata()
                         ).map { VisualizationScreenState.ChartView(it, selection) }
 
                         VisualizationDisplayMode.EVENTS -> getEventListData(
                             selectedComponent = selection.selectedComponent,
                             selectedMetric = selection.selectedMetric,
                             selectedTimeframe = selection.selectedTimeframe,
-                        ).map { VisualizationScreenState.EventListView(it, selection) }
+                        ).map {
+                            VisualizationScreenState.EventListView(
+                                graphedData = it,
+                                selectionData = selection,
+                                eventListMetadata = selection.selectedMetric.getEventListMetadata()
+                            )
+                        }
                     }
 
                 } else {
@@ -155,11 +163,25 @@ class VisualizationViewModel(
         return when (metric) {
             is BackendFeatureOptions.VfsWriteOption ->
                 dataStreamProvider.vfsWriteEvents(pids = pids)
-                    .toEventList()
+                    .map {
+                        EventListEntry(
+                            col1 = "${it.fp}",
+                            col2 = "${it.pid}",
+                            col3 = it.beginTimeStamp.nanosToSeconds(),
+                            col4 = "${it.bytesWritten}"
+                        )
+                    }.toEventList()
 
             is BackendFeatureOptions.SendMessageOption ->
                 dataStreamProvider.sendMessageEvents(pids = pids)
-                    .toEventList()
+                    .map {
+                        EventListEntry(
+                            col1 = "${it.pid}",
+                            col2 = "${it.fd}",
+                            col3 = it.beginTimeStamp.nanosToSeconds(),
+                            col4 = it.durationNanoSecs.nanosToSeconds(),
+                        )
+                    }.toEventList()
 
             else -> throw NotImplementedError("NOT IMPLEMENTED YET")
         }
@@ -171,7 +193,7 @@ class VisualizationViewModel(
         selectedComponent: DropdownOption,
         selectedMetric: DropdownOption.Metric,
         selectedTimeframe: DropdownOption.Timeframe,
-        visualizationMetaData: VisualizationMetaData,
+        chartMetadata: ChartMetadata,
     ): Flow<GraphedData> {
 
         val pids = selectedComponent.getPIDsOrNull()
@@ -181,12 +203,12 @@ class VisualizationViewModel(
             is BackendFeatureOptions.VfsWriteOption ->
                 dataStreamProvider
                     .vfsWriteEvents(pids = pids)
-                    .toBucketedHistogram(visualizationMetaData, selectedTimeframe)
+                    .toBucketedHistogram(chartMetadata, selectedTimeframe)
 
             is BackendFeatureOptions.SendMessageOption ->
                 dataStreamProvider
                     .sendMessageEvents(pids = pids)
-                    .toMovingAverage(visualizationMetaData, selectedTimeframe)
+                    .toMovingAverage(chartMetadata, selectedTimeframe)
 
             else -> throw NotImplementedError("NOT IMPLEMENTED YET")
         }

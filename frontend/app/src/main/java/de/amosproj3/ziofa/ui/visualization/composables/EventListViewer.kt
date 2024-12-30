@@ -11,46 +11,26 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import de.amosproj3.ziofa.client.Event
-import de.amosproj3.ziofa.ui.visualization.utils.nanosToSeconds
+import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
+import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 
 @Composable
-fun EventListViewer(events: List<Event>, modifier: Modifier = Modifier) {
-
-    events.getOrNull(0)?.let { Header(it) }
+fun EventListViewer(
+    eventListData: GraphedData.EventListData,
+    eventListMetadata: EventListMetadata,
+    modifier: Modifier = Modifier
+) {
+    Header(eventListMetadata)
     LazyColumn(modifier.fillMaxSize()) {
-        items(events) { event ->
+        items(eventListData.eventData) { event ->
             Row {
-                when (event) {
-                    is Event.SysSendmsg -> {
-                        ListItem(
-                            col1 = "${event.pid}",
-                            col2 = "${event.fd}",
-                            col3 = event.beginTimeStamp.nanosToSeconds(),
-                            col4 = event.durationNanoSecs.nanosToSeconds(),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    is Event.VfsWrite -> {
-                        ListItem(
-                            col1 = "${event.fp}",
-                            col2 = "${event.pid}",
-                            col3 = event.beginTimeStamp.nanosToSeconds(),
-                            col4 = "${event.bytesWritten}",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    is Event.JniReferences ->
-                        ListItem(
-                            col1 = "${event.pid}",
-                            col2 = "${event.tid}",
-                            col3 = "${event.beginTimeStamp}",
-                            col4 = event.jniMethodName!!.name, //TODO why is this nullable
-                            modifier = Modifier.weight(1f)
-                        )
-                }
+                ListItem(
+                    col1 = event.col1,
+                    col2 = event.col2,
+                    col3 = event.col3,
+                    col4 = event.col4,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -71,21 +51,14 @@ fun ListItem(
 }
 
 @Composable
-fun Header(firstEvent: Event, modifier: Modifier = Modifier) {
+fun Header(
+    eventListMetadata: EventListMetadata,
+    modifier: Modifier = Modifier
+) {
     Row(modifier) {
-        Text(text = "Process ID", modifier = Modifier.weight(1f))
-        Text(text = "File Descriptor", modifier = Modifier.weight(1f))
-        Text(text = "Event time since Boot in s", modifier = Modifier.weight(1f))
-        when (firstEvent) {
-            is Event.SysSendmsg -> {
-                Text(text = "Duration in ms", modifier = Modifier.weight(1f))
-            }
-
-            is Event.VfsWrite -> {
-                Text(text = "Size in byte", modifier = Modifier.weight(1f))
-            }
-
-            is Event.JniReferences -> TODO()
-        }
+        Text(text = eventListMetadata.label1, modifier = modifier.weight(1f))
+        Text(text = eventListMetadata.label2, modifier = modifier.weight(1f))
+        Text(text = eventListMetadata.label3, modifier = modifier.weight(1f))
+        Text(text = eventListMetadata.label4, modifier = modifier.weight(1f))
     }
 }

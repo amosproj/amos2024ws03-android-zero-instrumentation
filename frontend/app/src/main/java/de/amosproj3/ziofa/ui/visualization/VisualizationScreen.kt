@@ -62,7 +62,7 @@ fun VisualizationScreen(
                         selectionData = state.selectionData,
                         optionSelected = { viewModel.optionSelected(it) }
                     )
-                    EventListViewer(state.graphedData.eventData)
+                    EventListViewer(state.graphedData, state.eventListMetadata)
                 }
 
                 is VisualizationScreenState.WaitingForMetricSelection -> {

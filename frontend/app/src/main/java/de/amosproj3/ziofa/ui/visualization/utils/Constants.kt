@@ -5,11 +5,13 @@
 package de.amosproj3.ziofa.ui.visualization.utils
 
 import androidx.compose.ui.graphics.Color
+import de.amosproj3.ziofa.client.Event
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
-import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
+import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
+import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
 import kotlin.time.DurationUnit
 import timber.log.Timber
 
@@ -39,19 +41,38 @@ val DEFAULT_SELECTION_DATA =
     )
 
 val DEFAULT_CHART_METADATA = // TODO replace with reasonable defaults
-    VisualizationMetaData(xLabel = "x", yLabel = "y")
+    ChartMetadata(xLabel = "x", yLabel = "y")
 
-fun DropdownOption.Metric.getChartMetadata(): VisualizationMetaData {
+val DEFAULT_EVENT_LIST_METADATA = EventListMetadata("unknown", "unknown", "unknown", "unknown")
+
+fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
     return when (this.backendFeature) {
         is BackendFeatureOptions.VfsWriteOption ->
-            VisualizationMetaData("Top file descriptors", "File Descriptor Name")
+            ChartMetadata("Top file descriptors", "File Descriptor Name")
 
         is BackendFeatureOptions.SendMessageOption ->
-            VisualizationMetaData("Average duration of messages", "Seconds since start")
+            ChartMetadata("Average duration of messages", "Seconds since start")
 
         else -> {
             Timber.e("needs metadata!")
             DEFAULT_CHART_METADATA
+        }
+    }
+}
+
+fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
+    return when (this.backendFeature) {
+        is BackendFeatureOptions.VfsWriteOption ->
+            EventListMetadata("Process ID", "File Descriptor","Event time since Boot in s", "Size in byte")
+
+        is BackendFeatureOptions.SendMessageOption ->
+            EventListMetadata("Process ID", "File Descriptor","Event time since Boot in s", "Duration in ms")
+
+        is BackendFeatureOptions.JniReferencesOption -> TODO()
+
+        else -> {
+            Timber.e("needs metadata!")
+            DEFAULT_EVENT_LIST_METADATA
         }
     }
 }

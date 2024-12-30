@@ -4,20 +4,21 @@
 
 package de.amosproj3.ziofa.ui.visualization.data
 
-import de.amosproj3.ziofa.client.Event
+
+data class EventListEntry(val col1: String,val col2: String,val col3: String,val col4: String)
 
 sealed class GraphedData {
     data class TimeSeriesData(
         val seriesData: List<Pair<Float, Float>>,
-        val metaData: VisualizationMetaData,
+        val metaData: ChartMetadata,
     ) : GraphedData()
 
     data class HistogramData(
         val seriesData: List<Pair<ULong, ULong>>,
-        val metaData: VisualizationMetaData,
+        val metaData: ChartMetadata,
     ) : GraphedData()
 
-    data class EventListData(val eventData: List<Event>) : GraphedData()
+    data class EventListData(val eventData: List<EventListEntry>) : GraphedData()
 
     data object EMPTY : GraphedData()
 }

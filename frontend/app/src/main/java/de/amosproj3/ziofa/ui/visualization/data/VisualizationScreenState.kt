@@ -13,6 +13,7 @@ sealed class VisualizationScreenState {
     data class EventListView(
         val graphedData: GraphedData.EventListData,
         val selectionData: SelectionData,
+        val eventListMetadata: EventListMetadata
     ) : VisualizationScreenState()
 
     data class WaitingForMetricSelection(

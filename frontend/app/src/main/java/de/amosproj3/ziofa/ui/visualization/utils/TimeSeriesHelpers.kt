@@ -97,8 +97,8 @@ val locale = Locale.current.platformLocale
     )
 }
 
-fun Flow<Event>.accumulateEvents() =
-    this.scan(initial = listOf<Event>()) { prev, next -> prev.plus(next) }
+fun <E>Flow<E>.accumulateEvents() =
+    this.scan(initial = listOf<E>()) { prev, next -> prev.plus(next) }
 
 fun List<Pair<Float, Float>>.isDefaultSeries(): Boolean {
     return this == DEFAULT_TIMESERIES_DATA
