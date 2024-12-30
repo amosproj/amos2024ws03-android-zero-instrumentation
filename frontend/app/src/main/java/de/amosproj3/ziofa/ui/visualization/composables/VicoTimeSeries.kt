@@ -36,15 +36,16 @@ import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
+import de.amosproj3.ziofa.ui.visualization.utils.VICO_LINE_COLOR
 import de.amosproj3.ziofa.ui.visualization.utils.isDefaultSeries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
 fun VicoTimeSeries(
-    modifier: Modifier = Modifier,
     seriesData: List<Pair<Float, Float>>,
     chartMetadata: VisualizationMetaData,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier.padding(10.dp).fillMaxSize(),
@@ -53,15 +54,15 @@ fun VicoTimeSeries(
         val modelProducer = remember { CartesianChartModelProducer() }
         if (seriesData.isNotEmpty() && !seriesData.isDefaultSeries()) {
             modelProducer.SeriesUpdate(seriesData)
-            modelProducer.TimeSeriesChart(modifier, chartMetadata)
+            modelProducer.TimeSeriesChart(chartMetadata)
         }
     }
 }
 
 @Composable
 private fun CartesianChartModelProducer.TimeSeriesChart(
-    modifier: Modifier,
     chartMetadata: VisualizationMetaData,
+    modifier: Modifier = Modifier,
 ) {
     CartesianChartHost(
         chart =
@@ -69,7 +70,7 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                 rememberLineCartesianLayer(
                     LineCartesianLayer.LineProvider.series(
                         LineCartesianLayer.rememberLine(
-                            remember { LineCartesianLayer.LineFill.single(fill(Color(0xffa485e0))) }
+                            remember { LineCartesianLayer.LineFill.single(fill(VICO_LINE_COLOR)) }
                         )
                     )
                 ),

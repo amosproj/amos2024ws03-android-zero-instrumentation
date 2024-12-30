@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: MIT
 
+@file:Suppress("MagicNumber")
+
 package de.amosproj3.ziofa.ui.theme
 
 import androidx.compose.ui.graphics.Color
