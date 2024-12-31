@@ -13,7 +13,6 @@ interface DataStreamProvider {
 
     fun sendMessageEvents(pids: List<UInt>?): Flow<Event.SysSendmsg>
 
-    fun localJniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences>
-    fun globalJniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences>
+    fun jniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences>
 
 }

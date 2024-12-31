@@ -63,12 +63,27 @@ fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
 fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
     return when (this.backendFeature) {
         is BackendFeatureOptions.VfsWriteOption ->
-            EventListMetadata("Process ID", "File Descriptor","Event time since Boot in s", "Size in byte")
+            EventListMetadata(
+                label1 = "Process ID",
+                label2 = "File Descriptor",
+                label3 = "Event time since Boot in s",
+                label4 = "Size in byte"
+            )
 
         is BackendFeatureOptions.SendMessageOption ->
-            EventListMetadata("Process ID", "File Descriptor","Event time since Boot in s", "Duration in ms")
+            EventListMetadata(
+                label1 = "Process ID",
+                label2 = "File Descriptor",
+                label3 = "Event time since Boot in s",
+                label4 = "Duration in ms"
+            )
 
-        is BackendFeatureOptions.JniReferencesOption -> TODO()
+        is BackendFeatureOptions.JniReferencesOption -> EventListMetadata(
+            label1 = "Process ID",
+            label2 = "Thread ID",
+            label3 = "Event time since Boot in s",
+            label4 = "JNI Method Name"
+        )
 
         else -> {
             Timber.e("needs metadata!")

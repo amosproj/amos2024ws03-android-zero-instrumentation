@@ -6,8 +6,6 @@ package de.amosproj3.ziofa.ui.visualization.utils
 
 import androidx.compose.ui.text.intl.Locale
 import de.amosproj3.ziofa.client.Event
-import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
-import kotlin.time.toDuration
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
@@ -83,10 +81,6 @@ fun Flow<Event.VfsWrite>.toBucketedData(millisTimeframeDuration: ULong) = flow {
 @OptIn(FlowPreview::class)
 fun Flow<List<Pair<ULong, ULong>>>.sortAndClip(limit: Int) =
     this.map { it.sortedBy { (fd, size) -> size }.reversed().take(limit) }.conflate().sample(2500)
-
-fun DropdownOption.Timeframe.toSeconds(): Float {
-    return this.amount.toDuration(this.unit).inWholeMilliseconds / 1000.0f
-}
 
 fun ULong.nanosToSeconds(): String {
 val locale = Locale.current.platformLocale

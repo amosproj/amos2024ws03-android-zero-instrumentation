@@ -34,26 +34,9 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
             .mapNotNull { it as? Event.SysSendmsg }
             .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
 
-    override fun localJniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences> =
+    override fun jniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences> =
         dataFlow
             .mapNotNull { it as? Event.JniReferences }
-            .filter {
-                it.jniMethodName in listOf(
-                    Event.JniReferences.JniMethodName.AddLocalRef,
-                    Event.JniReferences.JniMethodName.DeleteLocalRef
-                )
-            }
-            .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
-
-    override fun globalJniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences> =
-        dataFlow
-            .mapNotNull { it as? Event.JniReferences }
-            .filter {
-                it.jniMethodName in listOf(
-                    Event.JniReferences.JniMethodName.AddGlobalRef,
-                    Event.JniReferences.JniMethodName.DeleteGlobalRef
-                )
-            }
             .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
 
     private fun UInt.isGlobalRequestedOrPidConfigured(pids: List<UInt>?) =

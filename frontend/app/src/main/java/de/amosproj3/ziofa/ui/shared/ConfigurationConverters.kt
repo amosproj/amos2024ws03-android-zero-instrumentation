@@ -8,7 +8,7 @@ import de.amosproj3.ziofa.client.Configuration
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 
 /**
- * Convert ConfigurationUpdate to UI Options ([BackendFeatureOptions] ). Show as enabled depending
+ * Convert [Configuration] to UI Options ([BackendFeatureOptions] ). Show as enabled depending
  * on the PIDs the screen is configuring.
  */
 fun Configuration.toUIOptionsForPids(
@@ -43,6 +43,8 @@ fun Configuration.toUIOptionsForPids(
             } ?: BackendFeatureOptions.JniReferencesOption(enabled = false, pids = setOf())
         )
 
+        options.add(BackendFeatureOptions.SigquitOption(enabled = false, pids = setOf())) //TODO sigquit
+
         this.uprobes
             .filter { it.pid == null || relevantPids.contains(it.pid!!.toUInt()) }
             .forEach { uprobeConfig ->
@@ -56,6 +58,7 @@ fun Configuration.toUIOptionsForPids(
                     )
                 )
             }
+
     }
     return options.toList()
 }

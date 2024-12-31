@@ -27,6 +27,7 @@ import de.amosproj3.ziofa.ui.configuration.composables.SectionTitleRow
 import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
+import de.amosproj3.ziofa.ui.configuration.data.FeatureType
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -41,7 +42,11 @@ fun ConfigurationScreen(
 
     val viewModel: ConfigurationViewModel = koinViewModel(parameters = { parametersOf(pids) })
 
-    Box(modifier = modifier.padding(horizontal = 20.dp, vertical = 20.dp).fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .padding(horizontal = 20.dp, vertical = 20.dp)
+            .fillMaxSize()
+    ) {
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
         val configurationChangedByUser by remember { viewModel.changed }.collectAsState()
         when (val state = screenState) { // needed for immutability
@@ -49,19 +54,33 @@ fun ConfigurationScreen(
 
                 Column(Modifier.fillMaxWidth()) {
                     // Render list of options
-                    SectionTitleRow("IO Observability Features")
+                    SectionTitleRow(FeatureType.IO.displayName)
                     EbpfIOFeatureOptions(
                         options =
-                            state.options.filter { it !is BackendFeatureOptions.UprobeOption },
+                        state.options.filter {
+                            it.featureType == FeatureType.IO
+                        },
                         onOptionChanged = { option, newState ->
                             viewModel.optionChanged(option, newState)
                         },
                     )
 
-                    SectionTitleRow("Uprobes")
+                    SectionTitleRow(FeatureType.SIGNALS.displayName)
+                    EbpfIOFeatureOptions(
+                        options =
+                        state.options.filter {
+                            it.featureType == FeatureType.SIGNALS
+                        },
+                        onOptionChanged = { option, newState ->
+                            viewModel.optionChanged(option, newState)
+                        },
+                    )
+
+
+                    SectionTitleRow(FeatureType.UPROBES.displayName)
                     EbpfUprobeFeatureOptions(
                         options =
-                            state.options.mapNotNull { it as? BackendFeatureOptions.UprobeOption },
+                        state.options.mapNotNull { it as? BackendFeatureOptions.UprobeOption },
                         onOptionDeleted = { option ->
                             viewModel.optionChanged(option, active = false)
                         },

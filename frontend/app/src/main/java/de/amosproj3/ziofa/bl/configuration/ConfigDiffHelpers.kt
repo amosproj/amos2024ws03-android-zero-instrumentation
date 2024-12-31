@@ -47,6 +47,8 @@ fun Configuration.applyChange(
                 )
             )
 
+        is BackendFeatureOptions.SigquitOption-> this //TODO sigquit
+
         is BackendFeatureOptions.UprobeOption -> {
             val uprobeUpdate = pids.map {
                 UprobeConfig(

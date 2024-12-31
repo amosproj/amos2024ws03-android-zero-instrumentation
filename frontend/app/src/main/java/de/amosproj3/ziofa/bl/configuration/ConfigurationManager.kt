@@ -10,6 +10,7 @@ import arrow.core.Either
 import com.freeletics.flowredux.dsl.ExecutionPolicy
 import com.freeletics.flowredux.dsl.FlowReduxStateMachine
 import com.freeletics.flowredux.dsl.State
+import com.freeletics.flowredux.dsl.reduce
 import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.ConfigurationAction
 import de.amosproj3.ziofa.api.configuration.ConfigurationState
@@ -84,7 +85,14 @@ class ConfigurationManager(clientFactory: ClientFactory) :
                 }
 
                 on<ConfigurationAction.ChangeFeature> { action, state ->
-                    state.applyChangeLocally(action)
+                    state.override {
+                        val newLocalConfig = this.localConfiguration.applyChange(action)
+                        if (newLocalConfig == this.backendConfiguration)
+                            ConfigurationState.Synchronized(
+                                client = this.client,
+                                configuration = this.backendConfiguration
+                            ) else this.copy(localConfiguration = newLocalConfig)
+                    }
                 }
 
                 on<ConfigurationAction.Reset> { _, state ->
@@ -96,6 +104,7 @@ class ConfigurationManager(clientFactory: ClientFactory) :
         }
     }
 
+    /** Start updating the internal [MutableStateFlow] based on the current state of the state machine. */
     private fun startUpdatingConfigurationState() {
         CoroutineScope(Dispatchers.IO).launch {
             this@ConfigurationManager.state.collect {
@@ -104,10 +113,18 @@ class ConfigurationManager(clientFactory: ClientFactory) :
         }
     }
 
-    private fun State<ConfigurationState.Different>.applyChangeLocally(action: ConfigurationAction.ChangeFeature) =
-        this.mutate { this.copy(localConfiguration = this.localConfiguration.applyChange(action)) }
+    /** Transition to [ConfigurationState.Synchronized] if the configurations are equal. */
+    private fun State<ConfigurationState.Different>.sychronizedIfConfigurationsAreEqual() =
+        this.snapshot.let {
+            if (it.localConfiguration == it.backendConfiguration) this.override {
+                ConfigurationState.Synchronized(
+                    it.client,
+                    it.backendConfiguration
+                )
+            } else this.noChange()
+        }
 
-    private fun State<ConfigurationState.Synchronized>.applyChangeAndTransitionToDifferent(action: ConfigurationAction.ChangeFeature) =
+    fun State<ConfigurationState.Synchronized>.applyChangeAndTransitionToDifferent(action: ConfigurationAction.ChangeFeature) =
         this.override {
             ConfigurationState.Different(
                 client = this.client,

@@ -22,7 +22,6 @@ import de.amosproj3.ziofa.ui.visualization.data.EventListEntry
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_SELECTION_DATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_TIMEFRAME_OPTIONS
-import de.amosproj3.ziofa.ui.visualization.utils.accumulateEvents
 import de.amosproj3.ziofa.ui.visualization.utils.getChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.getEventListMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
@@ -59,9 +58,10 @@ class VisualizationViewModel(
     private val selectedTimeframe = MutableStateFlow<DropdownOption.Timeframe?>(null)
     private val displayMode = MutableStateFlow(VisualizationDisplayMode.EVENTS)
 
-    // Derived selection data
-    // This needs to be a StateFlow or else we will update the graphed data with every process list
-    // update and get flickering on the UI
+    /** Combine the mutable state with current configuration and running components to create
+     * a dropdown options selecting filters.
+     * This needs to be a StateFlow or else we will update the graphed data with every process list
+     update and get flickering on the UI*/
     private val selectionData =
         combine(
             selectedComponent,
@@ -113,7 +113,6 @@ class VisualizationViewModel(
                         VisualizationDisplayMode.EVENTS -> getEventListData(
                             selectedComponent = selection.selectedComponent,
                             selectedMetric = selection.selectedMetric,
-                            selectedTimeframe = selection.selectedTimeframe,
                         ).map {
                             VisualizationScreenState.EventListView(
                                 graphedData = it,
@@ -133,6 +132,8 @@ class VisualizationViewModel(
                 VisualizationScreenState.Loading,
             )
 
+    /** Called when the selection of a dropdown changes. The change should be reflected
+     * in the displayed data. */
     fun optionSelected(option: DropdownOption) {
         when (option) {
             is DropdownOption.App,
@@ -144,6 +145,8 @@ class VisualizationViewModel(
         }
     }
 
+    /** Cycle the active display mode between [VisualizationDisplayMode.CHART]
+     * and [VisualizationDisplayMode.EVENTS] */
     fun switchMode() {
         displayMode.update { prev ->
             when (prev) {
@@ -153,10 +156,11 @@ class VisualizationViewModel(
         }
     }
 
+    /** Create a [Flow] of [GraphedData.EventListData] for the given selection.
+     * New features have to be mapped to their events here. */
     private fun getEventListData(
         selectedComponent: DropdownOption,
-        selectedMetric: DropdownOption.Metric,
-        selectedTimeframe: DropdownOption.Timeframe
+        selectedMetric: DropdownOption.Metric
     ): Flow<GraphedData.EventListData> {
         val pids = selectedComponent.getPIDsOrNull()
         val metric = selectedMetric.backendFeature
@@ -183,12 +187,25 @@ class VisualizationViewModel(
                         )
                     }.toEventList()
 
+            is BackendFeatureOptions.JniReferencesOption ->
+                dataStreamProvider.jniReferenceEvents(pids = pids)
+                    .map {
+                        EventListEntry(
+                            col1 = "${it.pid}",
+                            col2 = "${it.tid}",
+                            col3 = "${it.beginTimeStamp}",
+                            col4 = it.jniMethodName!!.name //TODO why is this nullable??
+                        )
+                    }.toEventList()
+
             else -> throw NotImplementedError("NOT IMPLEMENTED YET")
         }
     }
 
 
-    /** Creates [Flow] of [GraphedData] based on the selection. */
+    /** Create a [Flow] of [GraphedData] for the given selection.
+     * The events should already be aggregated in the flow.
+     * New features have to be mapped to their events here. */
     private fun getChartData(
         selectedComponent: DropdownOption,
         selectedMetric: DropdownOption.Metric,
@@ -215,5 +232,7 @@ class VisualizationViewModel(
     }
 }
 
+/** Get a list of dropdown options from the [Configuration]. This list only contains
+ * metric that are configured (== active) for the any of the given [pids]. */
 private fun Configuration.getActiveMetricsForPids(pids: List<UInt>?) =
     this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.Metric(it) }
