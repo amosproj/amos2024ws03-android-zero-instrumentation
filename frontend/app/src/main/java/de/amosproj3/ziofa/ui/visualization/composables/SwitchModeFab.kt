@@ -15,15 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SwitchModeFab(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun SwitchModeFab(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     ExtendedFloatingActionButton(
         modifier = modifier.padding(end = 25.dp, bottom = 25.dp),
         onClick = onClick,
         icon = { Icon(imageVector = Icons.AutoMirrored.Filled.List, contentDescription = "") },
-        text = { Text(text) }
+        text = { Text(text) },
     )
 }

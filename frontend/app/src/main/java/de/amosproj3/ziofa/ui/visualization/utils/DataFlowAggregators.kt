@@ -7,10 +7,10 @@ package de.amosproj3.ziofa.ui.visualization.utils
 import de.amosproj3.ziofa.client.Event
 import de.amosproj3.ziofa.ui.shared.HISTOGRAM_BUCKETS
 import de.amosproj3.ziofa.ui.shared.TIME_SERIES_SIZE
-import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
-import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
+import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.EventListEntry
+import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import kotlin.time.toDuration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -33,4 +33,5 @@ fun Flow<Event.SysSendmsg>.toMovingAverage(
         )
         .map { GraphedData.TimeSeriesData(it, chartMetadata) }
 
-fun Flow<EventListEntry>.toEventList() = this.accumulateEvents().map { GraphedData.EventListData(it) }
+fun Flow<EventListEntry>.toEventList() =
+    this.accumulateEvents().map { GraphedData.EventListData(it) }

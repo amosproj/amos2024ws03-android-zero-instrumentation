@@ -42,11 +42,7 @@ fun ConfigurationScreen(
 
     val viewModel: ConfigurationViewModel = koinViewModel(parameters = { parametersOf(pids) })
 
-    Box(
-        modifier = modifier
-            .padding(horizontal = 20.dp, vertical = 20.dp)
-            .fillMaxSize()
-    ) {
+    Box(modifier = modifier.padding(horizontal = 20.dp, vertical = 20.dp).fillMaxSize()) {
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
         val configurationChangedByUser by remember { viewModel.changed }.collectAsState()
         when (val state = screenState) { // needed for immutability
@@ -56,10 +52,7 @@ fun ConfigurationScreen(
                     // Render list of options
                     SectionTitleRow(FeatureType.IO.displayName)
                     EbpfIOFeatureOptions(
-                        options =
-                        state.options.filter {
-                            it.featureType == FeatureType.IO
-                        },
+                        options = state.options.filter { it.featureType == FeatureType.IO },
                         onOptionChanged = { option, newState ->
                             viewModel.optionChanged(option, newState)
                         },
@@ -67,20 +60,16 @@ fun ConfigurationScreen(
 
                     SectionTitleRow(FeatureType.SIGNALS.displayName)
                     EbpfIOFeatureOptions(
-                        options =
-                        state.options.filter {
-                            it.featureType == FeatureType.SIGNALS
-                        },
+                        options = state.options.filter { it.featureType == FeatureType.SIGNALS },
                         onOptionChanged = { option, newState ->
                             viewModel.optionChanged(option, newState)
                         },
                     )
 
-
                     SectionTitleRow(FeatureType.UPROBES.displayName)
                     EbpfUprobeFeatureOptions(
                         options =
-                        state.options.mapNotNull { it as? BackendFeatureOptions.UprobeOption },
+                            state.options.mapNotNull { it as? BackendFeatureOptions.UprobeOption },
                         onOptionDeleted = { option ->
                             viewModel.optionChanged(option, active = false)
                         },

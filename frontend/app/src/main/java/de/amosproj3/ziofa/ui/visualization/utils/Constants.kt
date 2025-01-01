@@ -5,13 +5,12 @@
 package de.amosproj3.ziofa.ui.visualization.utils
 
 import androidx.compose.ui.graphics.Color
-import de.amosproj3.ziofa.client.Event
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
+import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
-import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
-import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
 import kotlin.time.DurationUnit
 import timber.log.Timber
 
@@ -67,7 +66,7 @@ fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
                 label1 = "Process ID",
                 label2 = "File Descriptor",
                 label3 = "Event time since Boot in s",
-                label4 = "Size in byte"
+                label4 = "Size in byte",
             )
 
         is BackendFeatureOptions.SendMessageOption ->
@@ -75,15 +74,16 @@ fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
                 label1 = "Process ID",
                 label2 = "File Descriptor",
                 label3 = "Event time since Boot in s",
-                label4 = "Duration in ms"
+                label4 = "Duration in ms",
             )
 
-        is BackendFeatureOptions.JniReferencesOption -> EventListMetadata(
-            label1 = "Process ID",
-            label2 = "Thread ID",
-            label3 = "Event time since Boot in s",
-            label4 = "JNI Method Name"
-        )
+        is BackendFeatureOptions.JniReferencesOption ->
+            EventListMetadata(
+                label1 = "Process ID",
+                label2 = "Thread ID",
+                label3 = "Event time since Boot in s",
+                label4 = "JNI Method Name",
+            )
 
         else -> {
             Timber.e("needs metadata!")

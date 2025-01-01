@@ -83,15 +83,11 @@ fun Flow<List<Pair<ULong, ULong>>>.sortAndClip(limit: Int) =
     this.map { it.sortedBy { (fd, size) -> size }.reversed().take(limit) }.conflate().sample(2500)
 
 fun ULong.nanosToSeconds(): String {
-val locale = Locale.current.platformLocale
-    return String.format(
-        locale,
-        "%.2f",
-        this.toDouble() / 1_000_000_000,
-    )
+    val locale = Locale.current.platformLocale
+    return String.format(locale, "%.2f", this.toDouble() / 1_000_000_000)
 }
 
-fun <E>Flow<E>.accumulateEvents() =
+fun <E> Flow<E>.accumulateEvents() =
     this.scan(initial = listOf<E>()) { prev, next -> prev.plus(next) }
 
 fun List<Pair<Float, Float>>.isDefaultSeries(): Boolean {

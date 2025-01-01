@@ -8,13 +8,13 @@ package de.amosproj3.ziofa.ui.configuration.data
 enum class FeatureType(val displayName: String) {
     IO("IO Observability Features"),
     SIGNALS("Linux Signals"),
-    UPROBES("Uprobes")
+    UPROBES("Uprobes"),
 }
 
 sealed class BackendFeatureOptions(
     val featureName: String,
     val featureType: FeatureType,
-    val active: Boolean
+    val active: Boolean,
 ) {
     data class VfsWriteOption(val enabled: Boolean, val pids: Set<UInt>) :
         BackendFeatureOptions("VFS Write Analysis", FeatureType.IO, enabled)

@@ -32,8 +32,7 @@ sealed class DropdownOption(val displayName: String) {
         DropdownOption(backendFeature.featureName)
 
     /** Timeframe options */
-    data class Timeframe(val amount: Int, val unit: DurationUnit) :
-        DropdownOption("$amount $unit")
+    data class Timeframe(val amount: Int, val unit: DurationUnit) : DropdownOption("$amount $unit")
 }
 
 data class SelectionData(

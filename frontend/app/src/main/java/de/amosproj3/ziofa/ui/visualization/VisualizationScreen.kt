@@ -43,7 +43,7 @@ fun VisualizationScreen(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         val visualizationScreenState by
-        remember { viewModel.visualizationScreenState }.collectAsState()
+            remember { viewModel.visualizationScreenState }.collectAsState()
         val state = visualizationScreenState
         Timber.i("Updating UI based on $state")
 
@@ -52,7 +52,7 @@ fun VisualizationScreen(
                 is VisualizationScreenState.ChartView -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        optionSelected = { viewModel.optionSelected(it) }
+                        optionSelected = { viewModel.optionSelected(it) },
                     )
                     ChartViewer(state.graphedData)
                 }
@@ -60,7 +60,7 @@ fun VisualizationScreen(
                 is VisualizationScreenState.EventListView -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        optionSelected = { viewModel.optionSelected(it) }
+                        optionSelected = { viewModel.optionSelected(it) },
                     )
                     EventListViewer(state.graphedData, state.eventListMetadata)
                 }
@@ -68,7 +68,7 @@ fun VisualizationScreen(
                 is VisualizationScreenState.WaitingForMetricSelection -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        optionSelected = { viewModel.optionSelected(it) }
+                        optionSelected = { viewModel.optionSelected(it) },
                     )
                     SelectMetricPrompt()
                 }
@@ -83,7 +83,7 @@ fun VisualizationScreen(
                 SwitchModeFab(
                     modifier = Modifier.align(Alignment.BottomEnd),
                     onClick = { viewModel.switchMode() },
-                    text = "Switch to chart mode"
+                    text = "Switch to chart mode",
                 )
             }
 
@@ -91,7 +91,7 @@ fun VisualizationScreen(
                 SwitchModeFab(
                     modifier = Modifier.align(Alignment.BottomEnd),
                     onClick = { viewModel.switchMode() },
-                    text = "Switch to event mode"
+                    text = "Switch to event mode",
                 )
             }
 
@@ -132,9 +132,7 @@ fun MetricSelection(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth()) {
-        val dropdownModifier = Modifier
-            .weight(1f)
-            .padding(end = 0.dp)
+        val dropdownModifier = Modifier.weight(1f).padding(end = 0.dp)
 
         MetricDropdown(
             selectionData.componentOptions,
@@ -151,8 +149,7 @@ fun MetricSelection(
                     "Select a metric",
                     modifier = dropdownModifier,
                     optionSelected = { optionSelected(it) },
-                    selectedOption = selectionData.selectedMetric?.displayName
-                        ?: "Please select...",
+                    selectedOption = selectionData.selectedMetric?.displayName ?: "Please select...",
                 )
             } ?: Spacer(Modifier.weight(1f))
         selectionData.timeframeOptions
@@ -163,8 +160,8 @@ fun MetricSelection(
                     "Select an interval for aggregation",
                     modifier = dropdownModifier,
                     optionSelected = { optionSelected(it) },
-                    selectedOption = selectionData.selectedTimeframe?.displayName
-                        ?: "Please select...",
+                    selectedOption =
+                        selectionData.selectedTimeframe?.displayName ?: "Please select...",
                 )
             } ?: Spacer(Modifier.weight(1f))
     }

@@ -37,23 +37,24 @@ class SymbolsViewModel(
                 val selectedSymbols =
                     currentState.symbols.entries.filter { it.value }.map { it.key }
                 pids.forEach { pid ->
-
                     selectedSymbols.forEach {
                         configurationAccess.performAction(
-                            //TODO how to we make sure, if there are multiple pids, that the we only
+                            // TODO how to we make sure, if there are multiple pids, that the we
+                            // only
                             // set uprobes for the pids where each symbol is coming from??
 
-                            //TODO replace SymbolsEntry with BackendFeatureOption for consistency
+                            // TODO replace SymbolsEntry with BackendFeatureOption for consistency
                             ConfigurationAction.ChangeFeature(
-                                backendFeature = BackendFeatureOptions.UprobeOption(
-                                    method = it.name,
-                                    enabled = true,
-                                    pids = pids.toSet(),
-                                    offset = it.offset,
-                                    odexFilePath = it.odexFile
-                                ),
+                                backendFeature =
+                                    BackendFeatureOptions.UprobeOption(
+                                        method = it.name,
+                                        enabled = true,
+                                        pids = pids.toSet(),
+                                        offset = it.offset,
+                                        odexFilePath = it.odexFile,
+                                    ),
                                 enable = true,
-                                pids = pids.toSet()
+                                pids = pids.toSet(),
                             )
                         )
                     }
@@ -67,7 +68,7 @@ class SymbolsViewModel(
             if (prev is SymbolsScreenState.SearchResultReady) {
                 prev.copy(
                     symbols =
-                    prev.symbols.updateEntry(symbolsEntry = symbolsEntry, newState = newState)
+                        prev.symbols.updateEntry(symbolsEntry = symbolsEntry, newState = newState)
                 )
             } else {
                 prev

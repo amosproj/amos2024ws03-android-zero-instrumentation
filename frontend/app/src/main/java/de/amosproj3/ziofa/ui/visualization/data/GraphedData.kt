@@ -4,8 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.data
 
-
-data class EventListEntry(val col1: String,val col2: String,val col3: String,val col4: String)
+data class EventListEntry(val col1: String, val col2: String, val col3: String, val col4: String)
 
 sealed class GraphedData {
     data class TimeSeriesData(

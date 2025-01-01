@@ -62,19 +62,14 @@ class ZiofaApplication : Application() {
         single<RunningComponentsAccess> {
             RunningComponentsProvider(clientFactory = get(), packageInformationProvider = get())
         }
-        single<ConfigurationAccess>{
-            ConfigurationManager(clientFactory = get())
-        }
+        single<ConfigurationAccess> { ConfigurationManager(clientFactory = get()) }
         factory<DataStreamProvider> { (scope: CoroutineScope) -> DataStreamManager(get(), scope) }
         single<SymbolsAccess> { UProbeManager(get()) }
     }
 
     private fun Module.createViewModelFactories() {
         viewModel { (pids: List<UInt>) ->
-            ConfigurationViewModel(
-                configurationAccess = get(),
-                pids = pids,
-            )
+            ConfigurationViewModel(configurationAccess = get(), pids = pids)
         }
         viewModel { ResetViewModel(get()) }
         viewModel { ProcessesViewModel(runningComponentsProvider = get()) }

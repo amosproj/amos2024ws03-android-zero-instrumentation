@@ -18,7 +18,7 @@ import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 fun EventListViewer(
     eventListData: GraphedData.EventListData,
     eventListMetadata: EventListMetadata,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Header(eventListMetadata)
     LazyColumn(modifier.fillMaxSize()) {
@@ -29,7 +29,7 @@ fun EventListViewer(
                     col2 = event.col2,
                     col3 = event.col3,
                     col4 = event.col4,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -42,7 +42,7 @@ fun ListItem(
     col2: String,
     col3: String,
     col4: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Text(text = col1, modifier = modifier)
     Text(text = col2, modifier = modifier)
@@ -51,10 +51,7 @@ fun ListItem(
 }
 
 @Composable
-fun Header(
-    eventListMetadata: EventListMetadata,
-    modifier: Modifier = Modifier
-) {
+fun Header(eventListMetadata: EventListMetadata, modifier: Modifier = Modifier) {
     Row(modifier) {
         Text(text = eventListMetadata.label1, modifier = modifier.weight(1f))
         Text(text = eventListMetadata.label2, modifier = modifier.weight(1f))

@@ -10,7 +10,6 @@ import arrow.core.Either
 import com.freeletics.flowredux.dsl.ExecutionPolicy
 import com.freeletics.flowredux.dsl.FlowReduxStateMachine
 import com.freeletics.flowredux.dsl.State
-import com.freeletics.flowredux.dsl.reduce
 import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.ConfigurationAction
 import de.amosproj3.ziofa.api.configuration.ConfigurationState
@@ -26,27 +25,27 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * This class is organized as a state machine with 4 states in [ConfigurationState].
- * Starting in state [ConfigurationState.Uninitialized], once the configuration is initially
- * retrieved from the backend, we transition to [ConfigurationState.Synchronized]. If the user makes
- * a change, the state will change to [ConfigurationState.Different] until the user
- * submits his configuration, which will change it back to [ConfigurationState.Synchronized].
- * Any errors in communication with the backend will transition to [ConfigurationState.Error] from
- * any state.
+ * This class is organized as a state machine with 4 states in [ConfigurationState]. Starting in
+ * state [ConfigurationState.Uninitialized], once the configuration is initially retrieved from the
+ * backend, we transition to [ConfigurationState.Synchronized]. If the user makes a change, the
+ * state will change to [ConfigurationState.Different] until the user submits his configuration,
+ * which will change it back to [ConfigurationState.Synchronized]. Any errors in communication with
+ * the backend will transition to [ConfigurationState.Error] from any state.
+ *
  * @param clientFactory the client factory for backend communication
- * */
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConfigurationManager(clientFactory: ClientFactory) :
     FlowReduxStateMachine<ConfigurationState, ConfigurationAction>(
-        initialState = ConfigurationState.Uninitialized(
-            clientFactory = clientFactory
-        )
-    ), ConfigurationAccess {
+        initialState = ConfigurationState.Uninitialized(clientFactory = clientFactory)
+    ),
+    ConfigurationAccess {
 
     private val _configurationState =
         MutableStateFlow<ConfigurationState>(ConfigurationState.Uninitialized(clientFactory))
 
     override val configurationState = _configurationState.asStateFlow()
+
     override suspend fun performAction(action: ConfigurationAction) {
         this.dispatch(action)
     }
@@ -67,8 +66,11 @@ class ConfigurationManager(clientFactory: ClientFactory) :
             }
 
             inState<ConfigurationState.Synchronized> {
-                on<ConfigurationAction.ChangeFeature>(executionPolicy = ExecutionPolicy.ORDERED)
-                { action, state -> state.applyChangeAndTransitionToDifferent(action) }
+                on<ConfigurationAction.ChangeFeature>(executionPolicy = ExecutionPolicy.ORDERED) {
+                    action,
+                    state ->
+                    state.applyChangeAndTransitionToDifferent(action)
+                }
 
                 on<ConfigurationAction.Reset> { _, state ->
                     val updatedConfig =
@@ -80,7 +82,9 @@ class ConfigurationManager(clientFactory: ClientFactory) :
                 on<ConfigurationAction.Synchronize> { _, state ->
                     val currentState = state.snapshot
                     val updatedConfig =
-                        currentState.client.updateBackendConfiguration(currentState.localConfiguration)
+                        currentState.client.updateBackendConfiguration(
+                            currentState.localConfiguration
+                        )
                     state.override { updatedConfig.synchronizedOrErrorState(client) }
                 }
 
@@ -90,8 +94,9 @@ class ConfigurationManager(clientFactory: ClientFactory) :
                         if (newLocalConfig == this.backendConfiguration)
                             ConfigurationState.Synchronized(
                                 client = this.client,
-                                configuration = this.backendConfiguration
-                            ) else this.copy(localConfiguration = newLocalConfig)
+                                configuration = this.backendConfiguration,
+                            )
+                        else this.copy(localConfiguration = newLocalConfig)
                     }
                 }
 
@@ -104,42 +109,42 @@ class ConfigurationManager(clientFactory: ClientFactory) :
         }
     }
 
-    /** Start updating the internal [MutableStateFlow] based on the current state of the state machine. */
+    /**
+     * Start updating the internal [MutableStateFlow] based on the current state of the state
+     * machine.
+     */
     private fun startUpdatingConfigurationState() {
         CoroutineScope(Dispatchers.IO).launch {
-            this@ConfigurationManager.state.collect {
-                _configurationState.value = it
-            }
+            this@ConfigurationManager.state.collect { _configurationState.value = it }
         }
     }
 
     /** Transition to [ConfigurationState.Synchronized] if the configurations are equal. */
     private fun State<ConfigurationState.Different>.sychronizedIfConfigurationsAreEqual() =
         this.snapshot.let {
-            if (it.localConfiguration == it.backendConfiguration) this.override {
-                ConfigurationState.Synchronized(
-                    it.client,
-                    it.backendConfiguration
-                )
-            } else this.noChange()
+            if (it.localConfiguration == it.backendConfiguration)
+                this.override {
+                    ConfigurationState.Synchronized(it.client, it.backendConfiguration)
+                }
+            else this.noChange()
         }
 
-    fun State<ConfigurationState.Synchronized>.applyChangeAndTransitionToDifferent(action: ConfigurationAction.ChangeFeature) =
+    fun State<ConfigurationState.Synchronized>.applyChangeAndTransitionToDifferent(
+        action: ConfigurationAction.ChangeFeature
+    ) =
         this.override {
             ConfigurationState.Different(
                 client = this.client,
                 localConfiguration = this.configuration.applyChange(action),
-                backendConfiguration = this.configuration
+                backendConfiguration = this.configuration,
             )
         }
 
-    private fun Either<Throwable, Configuration>.synchronizedOrErrorState(
-        client: Client,
-    ) = this.fold(
-        ifLeft = { ConfigurationState.Error(it) },
-        ifRight = { ConfigurationState.Synchronized(client, it) }
-    )
-
+    private fun Either<Throwable, Configuration>.synchronizedOrErrorState(client: Client) =
+        this.fold(
+            ifLeft = { ConfigurationState.Error(it) },
+            ifRight = { ConfigurationState.Synchronized(client, it) },
+        )
 
     private suspend fun Client.updateBackendConfiguration(configuration: Configuration) =
         Either.catch {

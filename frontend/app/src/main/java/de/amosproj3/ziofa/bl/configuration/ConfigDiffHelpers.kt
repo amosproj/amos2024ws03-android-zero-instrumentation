@@ -14,9 +14,7 @@ import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.shared.DURATION_THRESHOLD
 
-fun Configuration.applyChange(
-    action: ConfigurationAction.ChangeFeature,
-): Configuration {
+fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Configuration {
 
     val feature = action.backendFeature
     val enable = action.enable
@@ -25,47 +23,59 @@ fun Configuration.applyChange(
     return when (feature) {
         is BackendFeatureOptions.VfsWriteOption ->
             this.copy(
-                vfsWrite = this.vfsWrite?.updatePIDs(
-                    pidsToAdd = if (enable) pids.associateWith { DURATION_THRESHOLD }.entries else setOf(),
-                    pidsToRemove = if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries else setOf()
-                )
+                vfsWrite =
+                    this.vfsWrite?.updatePIDs(
+                        pidsToAdd =
+                            if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
+                            else setOf(),
+                        pidsToRemove =
+                            if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries
+                            else setOf(),
+                    )
             )
 
         is BackendFeatureOptions.SendMessageOption ->
             this.copy(
-                sysSendmsg = this.sysSendmsg?.updatePIDs(
-                    pidsToAdd = if (enable) pids.associateWith { DURATION_THRESHOLD }.entries else setOf(),
-                    pidsToRemove = if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries else setOf()
-                )
+                sysSendmsg =
+                    this.sysSendmsg?.updatePIDs(
+                        pidsToAdd =
+                            if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
+                            else setOf(),
+                        pidsToRemove =
+                            if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries
+                            else setOf(),
+                    )
             )
 
         is BackendFeatureOptions.JniReferencesOption ->
             this.copy(
-                jniReferences = this.jniReferences?.updatePIDs(
-                    pidsToAdd = if (enable) pids else setOf(),
-                    pidsToRemove = if (!enable) pids else setOf()
-                )
+                jniReferences =
+                    this.jniReferences?.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
+                    )
             )
 
-        is BackendFeatureOptions.SigquitOption-> this //TODO sigquit
+        is BackendFeatureOptions.SigquitOption -> this // TODO sigquit
 
         is BackendFeatureOptions.UprobeOption -> {
-            val uprobeUpdate = pids.map {
-                UprobeConfig(
-                    fnName = feature.method,
-                    target = feature.odexFilePath,
-                    offset = feature.offset,
-                    pid = it,
-                )
-            }
+            val uprobeUpdate =
+                pids.map {
+                    UprobeConfig(
+                        fnName = feature.method,
+                        target = feature.odexFilePath,
+                        offset = feature.offset,
+                        pid = it,
+                    )
+                }
             this.copy(
-                uprobes = this.uprobes.updateUProbes(
-                    pidsToAdd = if (enable) uprobeUpdate else listOf(),
-                    pidsToRemove = if (!enable) uprobeUpdate else listOf()
-                )
+                uprobes =
+                    this.uprobes.updateUProbes(
+                        pidsToAdd = if (enable) uprobeUpdate else listOf(),
+                        pidsToRemove = if (!enable) uprobeUpdate else listOf(),
+                    )
             )
         }
-
     }
 }
 

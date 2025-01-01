@@ -5,15 +5,13 @@
 package de.amosproj3.ziofa.ui.visualization.data
 
 sealed class VisualizationScreenState {
-    data class ChartView(
-        val graphedData: GraphedData,
-        val selectionData: SelectionData,
-    ) : VisualizationScreenState()
+    data class ChartView(val graphedData: GraphedData, val selectionData: SelectionData) :
+        VisualizationScreenState()
 
     data class EventListView(
         val graphedData: GraphedData.EventListData,
         val selectionData: SelectionData,
-        val eventListMetadata: EventListMetadata
+        val eventListMetadata: EventListMetadata,
     ) : VisualizationScreenState()
 
     data class WaitingForMetricSelection(

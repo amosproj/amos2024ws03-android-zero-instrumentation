@@ -31,17 +31,19 @@ class ConfigurationViewModel(
             .map { it.toConfigurationScreenState(pids) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.Loading)
 
-    val changed = configurationAccess.configurationState
-        .map { it is ConfigurationState.Different }
-        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    val changed =
+        configurationAccess.configurationState
+            .map { it is ConfigurationState.Different }
+            .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     fun optionChanged(option: BackendFeatureOptions, active: Boolean) {
         if (configurationScreenState.value is ConfigurationScreenState.Valid) {
-            val change = ConfigurationAction.ChangeFeature(
-                backendFeature = option,
-                enable = active,
-                pids = pids.toSet()
-            )
+            val change =
+                ConfigurationAction.ChangeFeature(
+                    backendFeature = option,
+                    enable = active,
+                    pids = pids.toSet(),
+                )
             viewModelScope.launch { configurationAccess.performAction(change) }
         }
     }
@@ -59,9 +61,11 @@ class ConfigurationViewModel(
                 ConfigurationScreenState.Valid(this.configuration.toUIOptionsForPids(relevantPids))
 
             is ConfigurationState.Different ->
-                ConfigurationScreenState.Valid(this.localConfiguration.toUIOptionsForPids(relevantPids))
+                ConfigurationScreenState.Valid(
+                    this.localConfiguration.toUIOptionsForPids(relevantPids)
+                )
 
-            is ConfigurationState.Error->
+            is ConfigurationState.Error ->
                 ConfigurationScreenState.Invalid(this.error.stackTraceToString())
 
             is ConfigurationState.Uninitialized -> ConfigurationScreenState.Loading

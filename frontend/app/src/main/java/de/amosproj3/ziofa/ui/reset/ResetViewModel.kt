@@ -11,8 +11,7 @@ import de.amosproj3.ziofa.api.configuration.ConfigurationAction
 import kotlinx.coroutines.launch
 
 // For consistency ;)
-class ResetViewModel(private val configurationAccess: ConfigurationAccess) :
-    ViewModel() {
+class ResetViewModel(private val configurationAccess: ConfigurationAccess) : ViewModel() {
     fun reset() {
         viewModelScope.launch { configurationAccess.performAction(ConfigurationAction.Reset) }
     }

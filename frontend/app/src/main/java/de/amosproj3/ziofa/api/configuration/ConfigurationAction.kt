@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.api.configuration
 
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
@@ -11,7 +15,7 @@ sealed class ConfigurationAction {
     data class ChangeFeature(
         val backendFeature: BackendFeatureOptions,
         val enable: Boolean,
-        val pids: Set<UInt>
+        val pids: Set<UInt>,
     ) : ConfigurationAction()
 
     /** Reset the backend configuration to an empty configuration. */
