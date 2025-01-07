@@ -6,12 +6,13 @@ use aya::EbpfError;
 use aya::programs::trace_point::TracePointLink;
 use aya::programs::TracePoint;
 use shared::config::SysSigquitConfig;
-use crate::features::{Feature};
+use crate::features::{update_pids, Feature};
 use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
 
 pub struct SysSigquitFeature {
     sys_enter_sigquit: RegistryGuard<TracePoint>,
     sys_enter_sigquit_link: Option<TracePointLink>,
+    trace_sigquit_pids: RegistryGuard<OwnedHashMap<u32, u64>>,
 }
 
 impl SysSigquitFeature {
@@ -19,6 +20,7 @@ impl SysSigquitFeature {
         Self {
             sys_enter_sigquit: registry.program.sys_enter_sigquit.take(),
             sys_enter_sigquit_link: None,
+            trace_sigquit_pids: registry.config.sigquit_pids.take(),
         }
     }
 
@@ -35,6 +37,18 @@ impl SysSigquitFeature {
         // the TrakePointLinks will be automatically detached when the reference is dropped
         let _ = self.sys_enter_sigquit_link.take();
     }
+
+    fn update_pids(
+        &mut self,
+        pids: &[u32]
+    ) -> Result<(), EbpfError> {
+
+        // the general update_pids function for all features works with hashmaps, so the list is converted into a hashmap with keys always being 0
+        let pid_0_tuples: Vec<(u32, u64)> = pids.iter().map(|pid| (*pid, 0)).collect();
+        let pids_as_hashmap: std::collections::HashMap<u32, u64> = std::collections::HashMap::from_iter(pid_0_tuples);
+
+        update_pids(&pids_as_hashmap, &mut self.trace_sigquit_pids)
+    }
 }
 
 impl Feature for SysSigquitFeature {
@@ -47,6 +61,7 @@ impl Feature for SysSigquitFeature {
         match config {
             Some(config) => {
                 self.attach()?;
+                self.update_pids(&config.pids)?;
             }
             None => {
                 self.detach();
