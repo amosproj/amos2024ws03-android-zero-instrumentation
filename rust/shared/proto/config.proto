@@ -21,7 +21,8 @@ message Configuration {
   optional VfsWriteConfig vfs_write = 1;
   optional SysSendmsgConfig sys_sendmsg = 2;
   optional JniReferencesConfig jniReferences = 3;
-  repeated UprobeConfig uprobes = 4;
+  optional SysSigquitConfig sys_sigquit = 4;
+  repeated UprobeConfig uprobes = 5;
 }
 
 message VfsWriteConfig {
@@ -33,5 +34,9 @@ message SysSendmsgConfig {
 }
 
 message JniReferencesConfig {
+  repeated uint32 pids = 1;
+}
+
+message SysSigquitConfig {
   repeated uint32 pids = 1;
 }

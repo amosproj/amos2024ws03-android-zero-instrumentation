@@ -7,7 +7,7 @@ use clap::Parser;
 use clap::Subcommand;
 use client::Client;
 use client::ClientError;
-use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig};
+use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig, SysSigquitConfig};
 use std::collections::HashMap;
 use tokio_stream::StreamExt;
 
@@ -114,6 +114,7 @@ async fn set_config(client: &mut Client) -> Result<()> {
                 entries: std::collections::HashMap::new(),
             }),
             jni_references: Some(JniReferencesConfig { pids: vec![] }),
+            sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
         })
         .await?;
     println!("Success");

@@ -12,7 +12,7 @@ mod typed_ringbuf;
 
 use aya::{maps::{HashMap, MapData, MapError, RingBuf}, programs::{KProbe, ProbeKind, ProgramError, TracePoint, UProbe}, EbpfError, EbpfLoader};
 use aya_log::EbpfLogger;
-use backend_common::{JNICall, SysSendmsgCall, VfsWriteCall};
+use backend_common::{JNICall, SysSendmsgCall, VfsWriteCall, SysSigquitCall};
 use pinning::{LoadAndPin, TryMapFromPin};
 pub use typed_ringbuf::TypedRingBuffer;
 pub use single_owner::{RegistryGuard, RegistryItem};
@@ -32,6 +32,7 @@ pub struct EbpfConfigRegistry {
     pub vfs_write_pids: RegistryItem<OwnedHashMap<u32, u64>>,
     pub sys_sendmsg_pids: RegistryItem<OwnedHashMap<u32, u64>>,
     pub jni_ref_pids: RegistryItem<OwnedHashMap<u32, u64>>,
+    pub sys_sigquit_pids: RegistryItem<OwnedHashMap<u32, u64>>,
 }
 
 #[derive(Clone)]
@@ -39,6 +40,7 @@ pub struct EbpfEventRegistry {
     pub vfs_write_events: RegistryItem<TypedRingBuffer<VfsWriteCall>>,
     pub sys_sendmsg_events: RegistryItem<TypedRingBuffer<SysSendmsgCall>>,
     pub jni_ref_calls: RegistryItem<TypedRingBuffer<JNICall>>,
+    pub sys_sigquit_events: RegistryItem<TypedRingBuffer<SysSigquitCall>>,
 }
 
 #[derive(Clone)]
@@ -51,6 +53,7 @@ pub struct EbpfProgramRegistry {
     pub trace_del_local: RegistryItem<UProbe>,
     pub trace_add_global: RegistryItem<UProbe>,
     pub trace_del_global: RegistryItem<UProbe>,
+    pub sys_sigquit: RegistryItem<TracePoint>,
 }
 
 impl EbpfRegistry {
@@ -69,6 +72,7 @@ impl EbpfConfigRegistry {
             vfs_write_pids: HashMap::<_, u32, u64>::try_from_pin(path("VFS_WRITE_PIDS"))?.into(),
             sys_sendmsg_pids: HashMap::<_, u32, u64>::try_from_pin(path("SYS_SENDMSG_PIDS"))?.into(),
             jni_ref_pids: HashMap::<_, u32, u64>::try_from_pin(path("JNI_REF_PIDS"))?.into(),
+            sys_sigquit_pids: HashMap::<_, u32, u64>::try_from_pin(path("SYS_SIGQUIT_PIDS"))?.into(),
         })
     }
 }
@@ -79,6 +83,7 @@ impl EbpfEventRegistry {
             vfs_write_events: RingBuf::try_from_pin(path("VFS_WRITE_EVENTS"))?.into(),
             sys_sendmsg_events: RingBuf::try_from_pin(path("SYS_SENDMSG_EVENTS"))?.into(),
             jni_ref_calls: RingBuf::try_from_pin(path("JNI_REF_CALLS"))?.into(),
+            sys_sigquit_events: RingBuf::try_from_pin(path("SYS_SIGQUIT_EVENTS"))?.into(),
         })
     }
 }
@@ -94,6 +99,7 @@ impl EbpfProgramRegistry {
             trace_del_local: UProbe::from_pin(path("trace_del_local"), ProbeKind::UProbe)?.into(),
             trace_add_global: UProbe::from_pin(path("trace_add_global"), ProbeKind::UProbe)?.into(),
             trace_del_global: UProbe::from_pin(path("trace_del_global"), ProbeKind::UProbe)?.into(),
+            sys_sigquit: TracePoint::from_pin(path("sys_sigquit"))?.into(),
         })
     }
 }
@@ -121,6 +127,7 @@ pub fn load_and_pin() -> Result<EbpfRegistry, EbpfError> {
     ebpf.load_and_pin::<UProbe>("trace_del_local", ZIOFA_EBPF_PATH).unwrap();
     ebpf.load_and_pin::<UProbe>("trace_add_global", ZIOFA_EBPF_PATH).unwrap();
     ebpf.load_and_pin::<UProbe>("trace_del_global", ZIOFA_EBPF_PATH).unwrap();
+    ebpf.load_and_pin::<TracePoint>("sys_sigquit", ZIOFA_EBPF_PATH).unwrap();
 
     EbpfRegistry::from_pin()
 }

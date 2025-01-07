@@ -18,9 +18,9 @@ pub struct SysSigquitFeature {
 impl SysSigquitFeature {
     fn create(registry: &EbpfRegistry) -> Self {
         Self {
-            sys_enter_sigquit: registry.program.sys_enter_sigquit.take(),
+            sys_enter_sigquit: registry.program.sys_sigquit.take(),
             sys_enter_sigquit_link: None,
-            trace_sigquit_pids: registry.config.sigquit_pids.take(),
+            trace_sigquit_pids: registry.config.sys_sigquit_pids.take(),
         }
     }
 

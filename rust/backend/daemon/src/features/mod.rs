@@ -31,7 +31,7 @@ pub trait Feature {
 
 pub struct Features {
     sys_sendmsg_feature: SysSendmsgFeature,
-    sys_sigquit_feature: SysSigquitFeature;
+    sys_sigquit_feature: SysSigquitFeature,
     vfs_write_feature: VfsWriteFeature,
     jni_reference_feature: JNIReferencesFeature,
 }
