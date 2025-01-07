@@ -15,6 +15,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.scan
 
+fun Flow<Int>.toTimestampedSeries(seriesSize: Int, secondsPerDatapoint: Float) =
+    this.scan(listOf<Pair<Float, Float>>()) { prev, next ->
+        val idx = (prev.lastOrNull()?.first ?: 0.0f) + secondsPerDatapoint
+        prev.plus(idx to next.toFloat()).takeLast(seriesSize)
+    }
+
 fun Flow<Event.SysSendmsg>.toAveragedDurationOverTimeframe(
     seriesSize: Int,
     millisTimeframeDuration: Long,
@@ -77,6 +83,18 @@ fun Flow<Event.VfsWrite>.toBucketedData(millisTimeframeDuration: ULong) = flow {
         )
     }
 }
+
+fun Flow<Event.JniReferences>.toReferenceCount() =
+    this.scan(0 to 0) { prev, next ->
+            when (next.jniMethodName) {
+                Event.JniReferences.JniMethodName.AddLocalRef -> prev.first + 1 to prev.second
+                Event.JniReferences.JniMethodName.DeleteLocalRef -> prev.first - 1 to prev.second
+                Event.JniReferences.JniMethodName.AddGlobalRef -> prev.first to prev.second + 1
+                Event.JniReferences.JniMethodName.DeleteGlobalRef -> prev.first to prev.second - 1
+                null -> prev
+            }
+        }
+        .map { it.first + it.second }
 
 @OptIn(FlowPreview::class)
 fun Flow<List<Pair<ULong, ULong>>>.sortAndClip(limit: Int) =

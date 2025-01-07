@@ -1,0 +1,184 @@
+// SPDX-FileCopyrightText: 2025 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
+package de.amosproj3.ziofa.ui.visualization
+
+import de.amosproj3.ziofa.api.events.DataStreamProvider
+import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
+import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
+import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import de.amosproj3.ziofa.ui.visualization.data.EventListEntry
+import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
+import de.amosproj3.ziofa.ui.visualization.data.GraphedData
+import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_CHART_METADATA
+import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_EVENT_LIST_METADATA
+import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
+import de.amosproj3.ziofa.ui.visualization.utils.nanosToSeconds
+import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
+import de.amosproj3.ziofa.ui.visualization.utils.toCombinedReferenceCount
+import de.amosproj3.ziofa.ui.visualization.utils.toEventList
+import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import timber.log.Timber
+
+/*
+ * When adding new features, the event visualizations have to be configured in this file.
+ */
+
+/** Configures the metadata for charts for [BackendFeatureOptions]. */
+fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
+    return when (this.backendFeature) {
+        is BackendFeatureOptions.VfsWriteOption ->
+            ChartMetadata(yLabel = "Top file descriptors", xLabel = "File Descriptor Name")
+
+        is BackendFeatureOptions.SendMessageOption ->
+            ChartMetadata(yLabel = "Average duration of messages", xLabel = "Seconds since start")
+
+        is BackendFeatureOptions.JniReferencesOption ->
+            ChartMetadata(
+                yLabel = "Number of JNI Indirect References",
+                xLabel = "Events since start",
+            )
+
+        else -> {
+            Timber.e("needs metadata!")
+            DEFAULT_CHART_METADATA
+        }
+    }
+}
+
+/** Configures the headers for [BackendFeatureOptions]. */
+fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
+    return when (this.backendFeature) {
+        is BackendFeatureOptions.VfsWriteOption ->
+            EventListMetadata(
+                label1 = "Process ID",
+                label2 = "File Descriptor",
+                label3 = "Event time since Boot in s",
+                label4 = "Size in byte",
+            )
+
+        is BackendFeatureOptions.SendMessageOption ->
+            EventListMetadata(
+                label1 = "Process ID",
+                label2 = "File Descriptor",
+                label3 = "Event time since Boot in s",
+                label4 = "Duration in ms",
+            )
+
+        is BackendFeatureOptions.JniReferencesOption ->
+            EventListMetadata(
+                label1 = "Process ID",
+                label2 = "Thread ID",
+                label3 = "Event time since Boot in s",
+                label4 = "JNI Method Name",
+            )
+
+        is BackendFeatureOptions.SigquitOption ->
+            EventListMetadata(
+                label1 = "Origin PID",
+                label2 = "Origin TID",
+                label3 = "Target PID",
+                label4 = "Timestamp",
+            )
+
+        else -> {
+            Timber.e("needs metadata!")
+            DEFAULT_EVENT_LIST_METADATA
+        }
+    }
+}
+
+/**
+ * Create a [Flow] of [GraphedData.EventListData] for the given selection. New features have to be
+ * mapped to their events here.
+ */
+fun DataStreamProvider.getEventListData(
+    selectedComponent: DropdownOption,
+    selectedMetric: DropdownOption.Metric,
+): Flow<GraphedData.EventListData> {
+    val pids = selectedComponent.getPIDsOrNull()
+    val metric = selectedMetric.backendFeature
+    return when (metric) {
+        is BackendFeatureOptions.VfsWriteOption ->
+            this.vfsWriteEvents(pids = pids)
+                .map {
+                    EventListEntry(
+                        col1 = "${it.fp}",
+                        col2 = "${it.pid}",
+                        col3 = it.beginTimeStamp.nanosToSeconds(),
+                        col4 = "${it.bytesWritten}",
+                    )
+                }
+                .toEventList()
+
+        is BackendFeatureOptions.SendMessageOption ->
+            this.sendMessageEvents(pids = pids)
+                .map {
+                    EventListEntry(
+                        col1 = "${it.pid}",
+                        col2 = "${it.fd}",
+                        col3 = it.beginTimeStamp.nanosToSeconds(),
+                        col4 = it.durationNanoSecs.nanosToSeconds(),
+                    )
+                }
+                .toEventList()
+
+        is BackendFeatureOptions.JniReferencesOption ->
+            this.jniReferenceEvents(pids = pids)
+                .map {
+                    EventListEntry(
+                        col1 = "${it.pid}",
+                        col2 = "${it.tid}",
+                        col3 = "${it.beginTimeStamp}",
+                        col4 = it.jniMethodName!!.name, // TODO why is this nullable??
+                    )
+                }
+                .toEventList()
+
+        is BackendFeatureOptions.SigquitOption ->
+            this.sigquitEvents(pids = pids)
+                .map {
+                    EventListEntry(
+                        col1 = "${it.pid}",
+                        col2 = "${it.tid}",
+                        col3 = "${it.targetPid}",
+                        col4 = it.timeStamp.nanosToSeconds(),
+                    )
+                }
+                .toEventList()
+
+        else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+    }
+}
+
+/**
+ * Create a [Flow] of [GraphedData] for the given selection. The events should already be aggregated
+ * in the flow. New features have to be mapped to their events here.
+ */
+fun DataStreamProvider.getChartData(
+    selectedComponent: DropdownOption,
+    selectedMetric: DropdownOption.Metric,
+    selectedTimeframe: DropdownOption.Timeframe,
+    chartMetadata: ChartMetadata,
+): Flow<GraphedData> {
+
+    val pids = selectedComponent.getPIDsOrNull()
+    val metric = selectedMetric.backendFeature
+
+    return when (metric) {
+        is BackendFeatureOptions.VfsWriteOption ->
+            this.vfsWriteEvents(pids = pids).toBucketedHistogram(chartMetadata, selectedTimeframe)
+
+        is BackendFeatureOptions.SendMessageOption ->
+            this.sendMessageEvents(pids = pids).toMovingAverage(chartMetadata, selectedTimeframe)
+
+        is BackendFeatureOptions.JniReferencesOption ->
+            this.jniReferenceEvents(pids = pids)
+                .toCombinedReferenceCount(chartMetadata, selectedTimeframe)
+
+        else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+    }
+}

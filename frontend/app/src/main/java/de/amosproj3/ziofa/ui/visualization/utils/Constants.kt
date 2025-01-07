@@ -5,14 +5,12 @@
 package de.amosproj3.ziofa.ui.visualization.utils
 
 import androidx.compose.ui.graphics.Color
-import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import kotlin.time.DurationUnit
-import timber.log.Timber
 
 @Suppress("MagicNumber") // these are constants already
 val DEFAULT_TIMEFRAME_OPTIONS =
@@ -43,54 +41,6 @@ val DEFAULT_CHART_METADATA = // TODO replace with reasonable defaults
     ChartMetadata(xLabel = "x", yLabel = "y")
 
 val DEFAULT_EVENT_LIST_METADATA = EventListMetadata("unknown", "unknown", "unknown", "unknown")
-
-fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
-    return when (this.backendFeature) {
-        is BackendFeatureOptions.VfsWriteOption ->
-            ChartMetadata("Top file descriptors", "File Descriptor Name")
-
-        is BackendFeatureOptions.SendMessageOption ->
-            ChartMetadata("Average duration of messages", "Seconds since start")
-
-        else -> {
-            Timber.e("needs metadata!")
-            DEFAULT_CHART_METADATA
-        }
-    }
-}
-
-fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
-    return when (this.backendFeature) {
-        is BackendFeatureOptions.VfsWriteOption ->
-            EventListMetadata(
-                label1 = "Process ID",
-                label2 = "File Descriptor",
-                label3 = "Event time since Boot in s",
-                label4 = "Size in byte",
-            )
-
-        is BackendFeatureOptions.SendMessageOption ->
-            EventListMetadata(
-                label1 = "Process ID",
-                label2 = "File Descriptor",
-                label3 = "Event time since Boot in s",
-                label4 = "Duration in ms",
-            )
-
-        is BackendFeatureOptions.JniReferencesOption ->
-            EventListMetadata(
-                label1 = "Process ID",
-                label2 = "Thread ID",
-                label3 = "Event time since Boot in s",
-                label4 = "JNI Method Name",
-            )
-
-        else -> {
-            Timber.e("needs metadata!")
-            DEFAULT_EVENT_LIST_METADATA
-        }
-    }
-}
 
 const val LIGHT_PURPLE = 0xffa485e0
 val VICO_LINE_COLOR = Color(LIGHT_PURPLE)

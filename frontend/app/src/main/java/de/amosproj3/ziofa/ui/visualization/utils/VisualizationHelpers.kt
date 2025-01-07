@@ -5,7 +5,9 @@
 package de.amosproj3.ziofa.ui.visualization.utils
 
 import de.amosproj3.ziofa.api.processes.RunningComponent
+import de.amosproj3.ziofa.client.Configuration
 import de.amosproj3.ziofa.ui.shared.toReadableString
+import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -51,3 +53,10 @@ fun isValidSelection(selectedMetric: DropdownOption?, selectedTimeframe: Dropdow
         selectedTimeframe != null &&
         selectedTimeframe is DropdownOption.Timeframe
 }
+
+/**
+ * Get a list of dropdown options from the [Configuration]. This list only contains metric that are
+ * configured (== active) for the any of the given [pids].
+ */
+fun Configuration.getActiveMetricsForPids(pids: List<UInt>?) =
+    this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.Metric(it) }

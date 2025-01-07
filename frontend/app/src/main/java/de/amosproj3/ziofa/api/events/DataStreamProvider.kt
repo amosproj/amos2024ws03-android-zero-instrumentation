@@ -14,4 +14,6 @@ interface DataStreamProvider {
     fun sendMessageEvents(pids: List<UInt>?): Flow<Event.SysSendmsg>
 
     fun jniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences>
+
+    fun sigquitEvents(pids: List<UInt>?): Flow<Event.SysSigquit>
 }

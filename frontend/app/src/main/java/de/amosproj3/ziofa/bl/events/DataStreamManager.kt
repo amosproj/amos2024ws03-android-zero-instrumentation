@@ -38,6 +38,11 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
             .mapNotNull { it as? Event.JniReferences }
             .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
 
+    override fun sigquitEvents(pids: List<UInt>?): Flow<Event.SysSigquit> =
+        dataFlow
+            .mapNotNull { it as? Event.SysSigquit }
+            .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
+
     private fun UInt.isGlobalRequestedOrPidConfigured(pids: List<UInt>?) =
         pids?.contains(this) ?: true
 }

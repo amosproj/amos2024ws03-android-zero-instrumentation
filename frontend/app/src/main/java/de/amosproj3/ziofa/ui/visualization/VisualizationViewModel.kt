@@ -10,30 +10,19 @@ import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.ConfigurationState
 import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
-import de.amosproj3.ziofa.client.Configuration
-import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
-import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
-import de.amosproj3.ziofa.ui.visualization.data.EventListEntry
-import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationDisplayMode
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_SELECTION_DATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_TIMEFRAME_OPTIONS
-import de.amosproj3.ziofa.ui.visualization.utils.getChartMetadata
-import de.amosproj3.ziofa.ui.visualization.utils.getEventListMetadata
+import de.amosproj3.ziofa.ui.visualization.utils.getActiveMetricsForPids
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
 import de.amosproj3.ziofa.ui.visualization.utils.isValidSelection
-import de.amosproj3.ziofa.ui.visualization.utils.nanosToSeconds
-import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
-import de.amosproj3.ziofa.ui.visualization.utils.toEventList
-import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
 import de.amosproj3.ziofa.ui.visualization.utils.toUIOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -106,7 +95,8 @@ class VisualizationViewModel(
                 if (isValidSelection(selection.selectedMetric, selection.selectedTimeframe)) {
                     when (mode) {
                         VisualizationDisplayMode.CHART ->
-                            getChartData(
+                            dataStreamProvider
+                                .getChartData(
                                     selectedComponent = selection.selectedComponent,
                                     selectedMetric = selection.selectedMetric,
                                     selectedTimeframe = selection.selectedTimeframe,
@@ -115,7 +105,8 @@ class VisualizationViewModel(
                                 .map { VisualizationScreenState.ChartView(it, selection) }
 
                         VisualizationDisplayMode.EVENTS ->
-                            getEventListData(
+                            dataStreamProvider
+                                .getEventListData(
                                     selectedComponent = selection.selectedComponent,
                                     selectedMetric = selection.selectedMetric,
                                 )
@@ -165,94 +156,4 @@ class VisualizationViewModel(
             }
         }
     }
-
-    /**
-     * Create a [Flow] of [GraphedData.EventListData] for the given selection. New features have to
-     * be mapped to their events here.
-     */
-    private fun getEventListData(
-        selectedComponent: DropdownOption,
-        selectedMetric: DropdownOption.Metric,
-    ): Flow<GraphedData.EventListData> {
-        val pids = selectedComponent.getPIDsOrNull()
-        val metric = selectedMetric.backendFeature
-        return when (metric) {
-            is BackendFeatureOptions.VfsWriteOption ->
-                dataStreamProvider
-                    .vfsWriteEvents(pids = pids)
-                    .map {
-                        EventListEntry(
-                            col1 = "${it.fp}",
-                            col2 = "${it.pid}",
-                            col3 = it.beginTimeStamp.nanosToSeconds(),
-                            col4 = "${it.bytesWritten}",
-                        )
-                    }
-                    .toEventList()
-
-            is BackendFeatureOptions.SendMessageOption ->
-                dataStreamProvider
-                    .sendMessageEvents(pids = pids)
-                    .map {
-                        EventListEntry(
-                            col1 = "${it.pid}",
-                            col2 = "${it.fd}",
-                            col3 = it.beginTimeStamp.nanosToSeconds(),
-                            col4 = it.durationNanoSecs.nanosToSeconds(),
-                        )
-                    }
-                    .toEventList()
-
-            is BackendFeatureOptions.JniReferencesOption ->
-                dataStreamProvider
-                    .jniReferenceEvents(pids = pids)
-                    .map {
-                        EventListEntry(
-                            col1 = "${it.pid}",
-                            col2 = "${it.tid}",
-                            col3 = "${it.beginTimeStamp}",
-                            col4 = it.jniMethodName!!.name, // TODO why is this nullable??
-                        )
-                    }
-                    .toEventList()
-
-            else -> throw NotImplementedError("NOT IMPLEMENTED YET")
-        }
-    }
-
-    /**
-     * Create a [Flow] of [GraphedData] for the given selection. The events should already be
-     * aggregated in the flow. New features have to be mapped to their events here.
-     */
-    private fun getChartData(
-        selectedComponent: DropdownOption,
-        selectedMetric: DropdownOption.Metric,
-        selectedTimeframe: DropdownOption.Timeframe,
-        chartMetadata: ChartMetadata,
-    ): Flow<GraphedData> {
-
-        val pids = selectedComponent.getPIDsOrNull()
-        val metric = selectedMetric.backendFeature
-
-        return when (metric) {
-            is BackendFeatureOptions.VfsWriteOption ->
-                dataStreamProvider
-                    .vfsWriteEvents(pids = pids)
-                    .toBucketedHistogram(chartMetadata, selectedTimeframe)
-
-            is BackendFeatureOptions.SendMessageOption ->
-                dataStreamProvider
-                    .sendMessageEvents(pids = pids)
-                    .toMovingAverage(chartMetadata, selectedTimeframe)
-
-            else -> throw NotImplementedError("NOT IMPLEMENTED YET")
-        }
-    }
 }
-
-/**
- * Get a list of dropdown options from the [Configuration]. This list only contains metric that are
- * configured (== active) for the any of the given [pids].
- */
-private fun Configuration.getActiveMetricsForPids(pids: List<UInt>?) =
-    this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.Metric(it) }

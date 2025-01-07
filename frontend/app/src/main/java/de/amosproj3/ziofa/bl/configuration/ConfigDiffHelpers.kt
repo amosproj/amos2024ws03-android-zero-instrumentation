@@ -56,7 +56,14 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
                     )
             )
 
-        is BackendFeatureOptions.SigquitOption -> this // TODO sigquit
+        is BackendFeatureOptions.SigquitOption ->
+            this.copy(
+                sysSigquit =
+                    this.sysSigquit?.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
+                    )
+            )
 
         is BackendFeatureOptions.UprobeOption -> {
             val uprobeUpdate =
@@ -122,9 +129,9 @@ fun JniReferencesConfig?.updatePIDs(
 }
 
 fun SysSigquitConfig?.updatePIDs(
-    pidsToAdd: List<UInt> = listOf(),
-    pidsToRemove: List<UInt> = listOf(),
+    pidsToAdd: Set<UInt> = setOf(),
+    pidsToRemove: Set<UInt> = setOf(),
 ): SysSigquitConfig {
     val config = this ?: SysSigquitConfig(listOf())
-    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet()))
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
 }

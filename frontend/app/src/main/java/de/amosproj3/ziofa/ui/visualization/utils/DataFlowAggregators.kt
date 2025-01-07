@@ -33,5 +33,13 @@ fun Flow<Event.SysSendmsg>.toMovingAverage(
         )
         .map { GraphedData.TimeSeriesData(it, chartMetadata) }
 
+fun Flow<Event.JniReferences>.toCombinedReferenceCount(
+    chartMetadata: ChartMetadata,
+    timeframe: DropdownOption.Timeframe,
+) =
+    this.toReferenceCount().toTimestampedSeries(TIME_SERIES_SIZE, timeframe.amount.toFloat()).map {
+        GraphedData.TimeSeriesData(seriesData = it, metaData = chartMetadata)
+    }
+
 fun Flow<EventListEntry>.toEventList() =
     this.accumulateEvents().map { GraphedData.EventListData(it) }

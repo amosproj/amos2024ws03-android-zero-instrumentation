@@ -44,8 +44,13 @@ fun Configuration.toUIOptionsForPids(
         )
 
         options.add(
-            BackendFeatureOptions.SigquitOption(enabled = false, pids = setOf())
-        ) // TODO sigquit
+            this.sysSigquit?.let {
+                BackendFeatureOptions.SigquitOption(
+                    enabled = it.pids.anyPidsEnabled(relevantPids),
+                    pids = it.pids.toSet(),
+                )
+            } ?: BackendFeatureOptions.SigquitOption(enabled = false, pids = setOf())
+        )
 
         this.uprobes
             .filter { it.pid == null || relevantPids.contains(it.pid!!.toUInt()) }
