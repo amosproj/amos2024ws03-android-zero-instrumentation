@@ -7,13 +7,15 @@ package de.amosproj3.ziofa.ui.visualization.utils
 import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.ui.shared.toReadableString
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 fun DropdownOption.getPIDsOrNull(): List<UInt>? {
     return when (this) {
         is DropdownOption.Global -> null
         is DropdownOption.Process -> listOf(this.pid)
         is DropdownOption.AppOption -> this.pids
-        else -> throw IllegalStateException("Invalid filter")
+        else -> error("Invalid filter")
     }
 }
 
@@ -35,3 +37,17 @@ fun List<RunningComponent>.toUIOptions() =
                 )
         }
     }
+
+@OptIn(ExperimentalContracts::class)
+fun isValidSelection(selectedMetric: DropdownOption?, selectedTimeframe: DropdownOption?): Boolean {
+    contract {
+        returns(true) implies
+            (selectedMetric is DropdownOption.MetricOption &&
+                selectedTimeframe is DropdownOption.TimeframeOption)
+    }
+
+    return selectedMetric != null &&
+        selectedMetric is DropdownOption.MetricOption &&
+        selectedTimeframe != null &&
+        selectedTimeframe is DropdownOption.TimeframeOption
+}

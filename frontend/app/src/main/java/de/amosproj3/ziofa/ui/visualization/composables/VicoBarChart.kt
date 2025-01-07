@@ -36,15 +36,16 @@ import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
 import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationMetaData
+import de.amosproj3.ziofa.ui.visualization.utils.VICO_LINE_COLOR
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 @Composable
 fun VicoBar(
-    modifier: Modifier = Modifier,
-    seriesData: List<Pair<ULong, ULong>>,
     chartMetadata: VisualizationMetaData,
+    seriesData: List<Pair<ULong, ULong>>,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier.padding(10.dp).fillMaxSize(),
@@ -55,9 +56,8 @@ fun VicoBar(
             Timber.e("bar data $seriesData")
             modelProducer.SeriesUpdate(seriesData.map { it.second.toInt() })
             modelProducer.TimeSeriesChart(
-                modifier,
-                chartMetadata,
-                seriesData.map { it.first.toString() },
+                chartMetadata = chartMetadata,
+                xLabels = seriesData.map { it.first.toString() },
             )
         }
     }
@@ -65,9 +65,9 @@ fun VicoBar(
 
 @Composable
 private fun CartesianChartModelProducer.TimeSeriesChart(
-    modifier: Modifier,
     chartMetadata: VisualizationMetaData,
     xLabels: List<String>,
+    modifier: Modifier = Modifier,
 ) {
     CartesianChartHost(
         chart =
@@ -76,7 +76,7 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                     ColumnCartesianLayer.ColumnProvider.series(
                         xLabels.map { _ ->
                             rememberLineComponent(
-                                fill = fill(Color(0xff6438a7)),
+                                fill = fill(VICO_LINE_COLOR),
                                 shape =
                                     CorneredShape.rounded(
                                         bottomLeftPercent = 40,

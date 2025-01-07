@@ -26,13 +26,18 @@ import androidx.compose.ui.unit.dp
 /** Top bar containing the app name and AMOS text */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ZiofaTopBar(screenName: String, showBackButton: Boolean = true, onBack: () -> Unit = {}) {
+fun ZiofaTopBar(
+    screenName: String,
+    modifier: Modifier = Modifier,
+    showBackButton: Boolean = true,
+    onBack: () -> Unit = {},
+) {
     TopAppBar(
         {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = modifier.fillMaxWidth(),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (showBackButton) {

@@ -76,7 +76,7 @@ fun VisualizationScreen(
 
         if (state is VisualizationScreenState.MetricSelectionValid)
             SwitchModeFab(
-                Modifier.align(Alignment.BottomEnd),
+                modifier = Modifier.align(Alignment.BottomEnd),
                 onClick = { viewModel.switchMode() },
                 activeDisplayMode = state.displayMode,
             )
@@ -84,8 +84,8 @@ fun VisualizationScreen(
 }
 
 @Composable
-fun SelectMetricPrompt() {
-    Box(Modifier.fillMaxSize()) {
+fun SelectMetricPrompt(modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxSize()) {
         Text(
             "Please make a selection!",
             Modifier.align(Alignment.Center),
@@ -115,8 +115,9 @@ fun MetricSelection(
     filterSelected: (DropdownOption) -> Unit,
     metricSelected: (DropdownOption) -> Unit,
     timeframeSelected: (DropdownOption) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(Modifier.fillMaxWidth()) {
+    Row(modifier.fillMaxWidth()) {
         MetricDropdown(
             selectionData.componentOptions,
             "Select a package",
@@ -143,7 +144,8 @@ fun MetricSelection(
                     "Select an interval for aggregation",
                     modifier = Modifier.weight(1f).padding(end = 0.dp),
                     optionSelected = { timeframeSelected(it) },
-                    selectionData.selectedTimeframe?.displayName ?: "Please select...",
+                    selectedOption =
+                        selectionData.selectedTimeframe?.displayName ?: "Please select...",
                 )
             } ?: Spacer(Modifier.weight(1f))
     }

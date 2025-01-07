@@ -23,8 +23,9 @@ import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 fun EbpfIOFeatureOptions(
     options: List<BackendFeatureOptions>,
     onOptionChanged: (BackendFeatureOptions, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp, vertical = 15.dp).fillMaxWidth()) {
+    LazyColumn(modifier = modifier.padding(horizontal = 20.dp, vertical = 15.dp).fillMaxWidth()) {
         items(options) { option ->
             Row(
                 modifier = Modifier.fillMaxWidth(),

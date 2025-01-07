@@ -34,7 +34,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ProcessesScreen(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     viewModel: ProcessesViewModel = koinViewModel(),
     onClickEdit: (RunningComponent) -> Unit,
 ) {
@@ -51,7 +51,9 @@ fun ProcessesScreen(
             ProcessesHeader()
             if (options.isNotEmpty()) {
                 LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
-                    items(options) { option -> ProcessListRow(option, onClickEdit = onClickEdit) }
+                    items(options) { option ->
+                        ProcessListRow(option = option, onClickEdit = onClickEdit)
+                    }
                 }
             } else {
                 Box(modifier.fillMaxSize()) {
@@ -64,13 +66,12 @@ fun ProcessesScreen(
 
 @Composable
 fun ProcessListRow(
+    modifier: Modifier = Modifier,
     option: RunningComponent,
-    onClickProcessInfo: (RunningComponent) -> Unit =
-        {}, // TODO implement modal with info about processes
     onClickEdit: (RunningComponent) -> Unit = {},
 ) {
     Row(
-        modifier = Modifier.fillMaxSize().padding(vertical = 10.dp),
+        modifier = modifier.fillMaxSize().padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {

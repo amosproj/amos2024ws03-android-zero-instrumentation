@@ -15,11 +15,11 @@ import androidx.compose.ui.text.intl.Locale
 import de.amosproj3.ziofa.api.events.BackendEvent
 
 @Composable
-fun EventList(events: List<BackendEvent>) {
+fun EventList(events: List<BackendEvent>, modifier: Modifier = Modifier) {
     val locale = Locale.current.platformLocale
 
     events.getOrNull(0)?.let { Header(it) }
-    LazyColumn(Modifier.fillMaxSize()) {
+    LazyColumn(modifier.fillMaxSize()) {
         items(events) { event ->
             Row {
                 Text(text = event.processId.toString(), modifier = Modifier.weight(1f))
@@ -50,8 +50,8 @@ fun EventList(events: List<BackendEvent>) {
 }
 
 @Composable
-fun Header(firstEvent: BackendEvent) {
-    Row {
+fun Header(firstEvent: BackendEvent, modifier: Modifier = Modifier) {
+    Row(modifier) {
         Text(text = "Process ID", modifier = Modifier.weight(1f))
         Text(text = "File Descriptor", modifier = Modifier.weight(1f))
         Text(text = "Event time since Boot in s", modifier = Modifier.weight(1f))

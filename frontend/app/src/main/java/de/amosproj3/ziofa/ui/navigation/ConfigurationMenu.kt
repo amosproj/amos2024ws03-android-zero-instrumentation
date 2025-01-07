@@ -14,16 +14,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import de.amosproj3.ziofa.ui.navigation.composables.MenuOptionData
 import de.amosproj3.ziofa.ui.navigation.composables.MenuOptions
 import de.amosproj3.ziofa.ui.navigation.data.Emoji
+import de.amosproj3.ziofa.ui.navigation.data.MenuOptionData
 
 @Composable
 fun ConfigurationMenu(
-    modifier: Modifier = Modifier,
     toProcesses: () -> Unit,
     toGlobalConfiguration: () -> Unit,
     toReset: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
 
     Box(
