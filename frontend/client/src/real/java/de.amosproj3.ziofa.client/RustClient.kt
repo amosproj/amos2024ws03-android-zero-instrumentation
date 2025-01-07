@@ -64,6 +64,13 @@ private fun uniffi.shared.Event.into() =
                         JniMethodName.UNDEFINED -> null
                     },
             )
+        is EventData.SysSigquit ->
+            Event.SysSigquit(
+                pid = d.v1.pid,
+                tid = d.v1.tid,
+                timeStamp = d.v1.timeStamp,
+                targetPid = d.v1.targetPid,
+            )
         null -> null
     }
 
@@ -81,6 +88,7 @@ private fun uniffi.shared.Configuration.into() =
                 )
             },
         jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
+        sysSigquit = sysSigquit?.let { SysSigquitConfig(pids = it.pids) },
     )
 
 private fun Configuration.into() =
@@ -97,6 +105,7 @@ private fun Configuration.into() =
                 )
             },
         jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
+        sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
     )
 
 private fun uniffi.shared.StringResponse.into() = StringResponse(name)

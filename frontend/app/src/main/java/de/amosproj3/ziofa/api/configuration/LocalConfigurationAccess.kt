@@ -7,6 +7,7 @@ package de.amosproj3.ziofa.api.configuration
 
 import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.SysSigquitConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +36,7 @@ interface LocalConfigurationAccess {
         sendMessageFeature: SysSendmsgConfig? = null,
         uprobesFeature: List<UprobeConfig>? = listOf(),
         jniReferencesFeature: JniReferencesConfig? = null,
+        sysSigquitFeature: SysSigquitConfig? = null,
     )
 
     /** Submit the local configuration to the backend. */

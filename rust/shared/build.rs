@@ -22,12 +22,14 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "VfsWriteEvent",
             "SysSendmsgEvent",
             "JniReferencesEvent",
+            "SysSigquitEvent",
             "VfsWriteConfig",
             "SysSendmsgConfig",
             "JniReferencesConfig",
             "StringResponse",
             "Symbol",
             "SetConfigurationResponse",
+            "SysSigquitConfig",
         ]
     } else {
         vec![]

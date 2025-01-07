@@ -14,6 +14,7 @@ import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Configuration
 import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.SysSigquitConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.shared.merge
@@ -66,6 +67,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
         sendMessageFeature: SysSendmsgConfig?,
         uprobesFeature: List<UprobeConfig>?,
         jniReferencesFeature: JniReferencesConfig?,
+        sysSigquitFeature: SysSigquitConfig?,
     ) {
         _localConfiguration.update { prev ->
             Timber.e("changeFeatureConfigurationForPIDs.prev $prev")
@@ -84,6 +86,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                         sysSendmsg = previousConfiguration.merge(sendMessageFeature, enable),
                         uprobes = previousConfiguration.merge(uprobesFeature, enable),
                         jniReferences = previousConfiguration.merge(jniReferencesFeature, enable),
+                        sysSigquit = previousConfiguration.merge(sysSigquitFeature, enable),
                     )
                     .also { Timber.i("new local configuration = $it") }
                     .let { ConfigurationUpdate.Valid(it) }
@@ -102,7 +105,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
 
     override fun reset() {
         runBlocking {
-            client?.setConfiguration(Configuration(null, null, listOf(), null))
+            client?.setConfiguration(Configuration(null, null, listOf(), null, null))
             updateBothConfigurations(getFromBackend())
         }
     }
@@ -129,6 +132,7 @@ class ConfigurationManager(val clientFactory: ClientFactory) :
                     sysSendmsg = null,
                     uprobes = listOf(),
                     jniReferences = null,
+                    sysSigquit = null,
                 )
             )
             ConfigurationUpdate.Valid(client!!.getConfiguration())

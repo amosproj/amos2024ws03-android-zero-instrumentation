@@ -70,6 +70,7 @@ message Event {
         VfsWriteEvent vfs_write = 1;
         SysSendmsgEvent sys_sendmsg = 2;
         JniReferencesEvent jni_references = 3;
+        SysSigquitEvent sys_sigquit = 4;
     }
 }
 
@@ -103,3 +104,9 @@ message JniReferencesEvent {
     JniMethodName jni_method_name = 4;
 }
 
+message SysSigquitEvent {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 time_stamp = 3;
+    uint64 target_pid = 4;
+}
