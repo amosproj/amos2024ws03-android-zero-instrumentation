@@ -5,7 +5,6 @@
 // SPDX-License-Identifier: MIT
 
 use tracing_subscriber::EnvFilter;
-mod configuration;
 mod constants;
 mod ebpf_utils;
 mod helpers;
@@ -15,6 +14,7 @@ mod features;
 mod collector;
 mod symbols;
 mod registry;
+mod mocked_filesystem;
 
 #[tokio::main]
 async fn main() {

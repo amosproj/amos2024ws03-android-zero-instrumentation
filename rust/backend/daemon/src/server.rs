@@ -9,10 +9,14 @@ use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
 use crate::registry;
 use crate::symbols::SymbolHandler;
 use crate::{
-    configuration, constants,
+    constants,
     ebpf_utils::EbpfErrorWrapper,
     procfs_utils::{list_processes, ProcErrorWrapper},
     features::Features,
+    mocked_filesystem::{
+        Filesystem, 
+        NormalFilesystem
+    },
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use ractor::Actor;
@@ -30,22 +34,25 @@ use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-pub struct ZiofaImpl {
+pub struct ZiofaImpl<F: Filesystem + Sync + Send + 'static> {
     features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
+    filesystem: F,
 }
 
-impl ZiofaImpl {
+impl<F: Filesystem + Sync + Send + 'static> ZiofaImpl<F> {
     pub fn new(
         features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
         symbol_handler: Arc<Mutex<SymbolHandler>>,
-    ) -> ZiofaImpl {
+        filesystem: F,
+    ) -> ZiofaImpl<F> {
         ZiofaImpl {
             features,
             channel,
             symbol_handler,
+            filesystem
         }
     }
 }
@@ -63,7 +70,7 @@ impl Channel {
 }
 
 #[tonic::async_trait]
-impl Ziofa for ZiofaImpl {
+impl<F: Filesystem + Sync + Send + 'static> Ziofa for ZiofaImpl<F> {
     async fn check_server(&self, _: Request<()>) -> Result<Response<CheckServerResponse>, Status> {
         // dummy data
         let response = CheckServerResponse {};
@@ -77,7 +84,7 @@ impl Ziofa for ZiofaImpl {
 
     async fn get_configuration(&self, _: Request<()>) -> Result<Response<Configuration>, Status> {
         //TODO: if ? fails needs valid return value for the function so that the server doesn't crash.
-        let config = configuration::load_from_file(constants::DEV_DEFAULT_FILE_PATH)?;
+        let config = self.filesystem.load(constants::DEV_DEFAULT_FILE_PATH)?;
         Ok(Response::new(config))
     }
 
@@ -87,7 +94,7 @@ impl Ziofa for ZiofaImpl {
     ) -> Result<Response<()>, Status> {
         let config = request.into_inner();
 
-        configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
+        self.filesystem.save(&config, constants::DEV_DEFAULT_FILE_PATH)?;
 
         let mut features_guard = self.features.lock().await;
 
@@ -242,7 +249,10 @@ pub async fn serve_forever() {
     let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
 
     let features = Arc::new(Mutex::new(features));
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler));
+
+    let filesystem = NormalFilesystem;
+
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem));
 
     Server::builder()
         .add_service(ziofa_server)
