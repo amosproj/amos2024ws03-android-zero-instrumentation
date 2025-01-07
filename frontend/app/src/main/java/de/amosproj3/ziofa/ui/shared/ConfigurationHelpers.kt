@@ -9,6 +9,7 @@ import de.amosproj3.ziofa.bl.configuration.updateUProbes
 import de.amosproj3.ziofa.client.Configuration
 import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.SysSigquitConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 
@@ -43,3 +44,11 @@ fun Configuration.merge(jniReferencesConfig: JniReferencesConfig?, enable: Boole
             pidsToRemove = if (!enable) requestedChanges.pids else listOf(),
         )
     } ?: this.jniReferences
+
+fun Configuration.merge(sysSigquitConfig: SysSigquitConfig?, enable: Boolean) =
+    sysSigquitConfig?.let { requestedChanges ->
+        this.sysSigquit.updatePIDs(
+            pidsToAdd = if (enable) requestedChanges.pids else listOf(),
+            pidsToRemove = if (!enable) requestedChanges.pids else listOf(),
+        )
+    } ?: this.sysSigquit

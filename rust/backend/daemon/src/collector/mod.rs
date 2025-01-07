@@ -4,10 +4,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-use backend_common::{JNICall, JNIMethodName, SysSendmsgCall, VfsWriteCall};
-use shared::ziofa::{Event, JniReferencesEvent, SysSendmsgEvent, VfsWriteEvent};
-use shared::ziofa::event::{EventData};
-use shared::ziofa::jni_references_event::{JniMethodName};
+use backend_common::{JNICall, JNIMethodName, SysSendmsgCall, VfsWriteCall, SysSigquitCall};
+use shared::ziofa::{Event, JniReferencesEvent, SysSendmsgEvent, VfsWriteEvent, SysSigquitEvent};
+use shared::ziofa::event::EventData;
+use shared::ziofa::jni_references_event::JniMethodName;
 mod ring_buf;
 mod supervisor;
 mod event_dipatcher;
@@ -60,6 +60,19 @@ impl IntoEvent for JNICall {
                     JNIMethodName::AddGlobalRef => JniMethodName::AddGlobalRef,
                     JNIMethodName::DeleteGlobalRef => JniMethodName::DeleteGlobalRef,
                 }).into(),
+            }))
+        }
+    }
+}
+
+impl IntoEvent for SysSigquitCall {
+    fn into_event(self) -> Event {
+        Event {
+            event_data: Some(EventData::SysSigquit(SysSigquitEvent {
+                pid: self.pid,
+                tid: self.tid,
+                time_stamp: self.time_stamp,
+                target_pid: self.target_pid,
             }))
         }
     }

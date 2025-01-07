@@ -91,6 +91,7 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
                 entries: HashMap::from([(pid, 0)]),
             }),
             jni_references: None,
+            sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
         })
         .await?;
 

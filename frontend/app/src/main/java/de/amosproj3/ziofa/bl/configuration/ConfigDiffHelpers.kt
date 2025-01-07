@@ -6,6 +6,7 @@ package de.amosproj3.ziofa.bl.configuration
 
 import de.amosproj3.ziofa.client.JniReferencesConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
+import de.amosproj3.ziofa.client.SysSigquitConfig
 import de.amosproj3.ziofa.client.UprobeConfig
 import de.amosproj3.ziofa.client.VfsWriteConfig
 
@@ -48,5 +49,13 @@ fun JniReferencesConfig?.updatePIDs(
     pidsToRemove: List<UInt> = listOf(),
 ): JniReferencesConfig {
     val config = this ?: JniReferencesConfig(listOf())
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet()))
+}
+
+fun SysSigquitConfig?.updatePIDs(
+    pidsToAdd: List<UInt> = listOf(),
+    pidsToRemove: List<UInt> = listOf(),
+): SysSigquitConfig {
+    val config = this ?: SysSigquitConfig(listOf())
     return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove.toSet()))
 }
