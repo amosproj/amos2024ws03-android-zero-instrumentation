@@ -4,7 +4,12 @@
 
 package de.amosproj3.ziofa.ui.visualization.data
 
-enum class VisualizationDisplayMode {
-    CHART,
-    EVENTS,
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.graphics.vector.ImageVector
+
+enum class VisualizationDisplayMode(val displayName: String, val icon: ImageVector) {
+    CHART("Chart", Icons.Filled.PlayArrow),
+    EVENTS("Event list", Icons.AutoMirrored.Filled.List),
 }
