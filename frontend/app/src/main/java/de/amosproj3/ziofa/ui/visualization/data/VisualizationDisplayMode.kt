@@ -4,4 +4,7 @@
 
 package de.amosproj3.ziofa.ui.visualization.data
 
-data class VisualizationMetaData(val xLabel: String, val yLabel: String)
+enum class VisualizationDisplayMode {
+    CHART,
+    EVENTS,
+}

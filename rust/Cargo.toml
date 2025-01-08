@@ -15,7 +15,7 @@ members = [
   "shared",
   "client",
   "playground/sendmsg-demo",
-  "uniffi-bindgen",
+  "uniffi-bindgen", "backend/ebpf-test",
 ]
 default-members = [
   "xtask",
@@ -72,6 +72,7 @@ object = "0.36.5"
 bytemuck = { version = "1.20.0" }
 crossbeam = "0.8.4"
 ractor = { version = "0.13.4", default-features = false }
+aya-obj = "0.2.1"
 
 [profile.release.package.backend-ebpf]
 debug = 2

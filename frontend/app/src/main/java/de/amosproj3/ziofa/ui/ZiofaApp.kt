@@ -34,7 +34,19 @@ import de.amosproj3.ziofa.ui.visualization.VisualizationScreen
 val GLOBAL_CONFIGURATION_ROUTE =
     "${Routes.IndividualConfiguration.name}?displayName=${Uri.encode("all processes")}?pids=-1"
 
+val PIDS_ARG =
+    navArgument("pids") {
+        type = NavType.StringType
+        nullable = true
+    }
+val DISPLAY_NAME_ARG =
+    navArgument("displayName") {
+        type = NavType.StringType
+        nullable = true
+    }
+
 /** Main application composable. All calls to [NavController] should happen here. */
+@Suppress("ModifierMissing, LongMethod") // Top level composable
 @Composable
 fun ZIOFAApp() {
     val navController = rememberNavController()
@@ -56,16 +68,16 @@ fun ZIOFAApp() {
             }
             screenWithDefaultAnimations(Routes.Reset.name) {
                 ResetScreen(
-                    Modifier.padding(innerPadding),
                     afterResetConfirmed = { navController.popBackStack() },
+                    modifier = Modifier.padding(innerPadding),
                 )
             }
             screenWithDefaultAnimations(Routes.Configuration.name) {
                 ConfigurationMenu(
-                    Modifier.padding(innerPadding),
                     toProcesses = { navController.navigate(Routes.Processes.name) },
                     toGlobalConfiguration = { navController.navigate(GLOBAL_CONFIGURATION_ROUTE) },
                     toReset = { navController.navigate(Routes.Reset.name) },
+                    modifier = Modifier.padding(innerPadding),
                 )
             }
             screenWithDefaultAnimations(Routes.Visualize.name) {
@@ -77,28 +89,17 @@ fun ZIOFAApp() {
             screenWithDefaultAnimations(Routes.Processes.name) {
                 ProcessesScreen(
                     Modifier.padding(innerPadding),
-                    onClickEdit = {
-                        navController.navigate(it.toConfigurationScreenRouteForComponent())
+                    onClickEdit = { component ->
+                        navController.navigate(component.toConfigurationScreenRouteForComponent())
                     },
                 )
             }
             parameterizedScreen(
                 "${Routes.IndividualConfiguration.name}?displayName={displayName}?pids={pids}",
-                arguments =
-                    listOf(
-                        navArgument("displayName") {
-                            type = NavType.StringType
-                            nullable = true
-                        },
-                        navArgument("pids") {
-                            type = NavType.StringType
-                            nullable = true
-                        },
-                    ),
+                arguments = listOf(DISPLAY_NAME_ARG, PIDS_ARG),
             ) {
                 ConfigurationScreen(
                     Modifier.padding(innerPadding),
-                    onBack = { navController.popBackStack() },
                     pids = it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull(),
                     onAddUprobeSelected = {
                         navController.navigate(it.arguments.copyToSymbolsRoute())
@@ -108,24 +109,17 @@ fun ZIOFAApp() {
 
             parameterizedScreen(
                 "${Routes.Symbols.name}?displayName={displayName}?pids={pids}",
-                arguments =
-                    listOf(
-                        navArgument("displayName") {
-                            type = NavType.StringType
-                            nullable = true
-                        },
-                        navArgument("pids") {
-                            type = NavType.StringType
-                            nullable = true
-                        },
-                    ),
+                arguments = listOf(DISPLAY_NAME_ARG, PIDS_ARG),
             ) {
                 SymbolsScreen(
                     modifier = Modifier.padding(innerPadding),
                     onSymbolsSubmitted = { navController.popBackStack() },
                     pids =
-                        it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull()
-                            ?: listOf(),
+                        it.arguments
+                            ?.getString("pids")
+                            ?.deserializePIDs()
+                            ?.validPIDsOrNull()
+                            .orEmpty(),
                 )
             }
         }

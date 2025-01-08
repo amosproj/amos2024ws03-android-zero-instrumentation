@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 use client::Client;
-use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig};
+use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, SysSigquitConfig};
 use shared::ziofa::process::Cmd;
 
 // client tests assume daemon is running!
@@ -55,6 +55,7 @@ async fn set_get_empty_config() {
         }),
         // jni_references: Some(JniReferencesConfig { pids: vec![] }),
         jni_references: None,
+        sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
     };
 
     client

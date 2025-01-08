@@ -16,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import de.amosproj3.ziofa.ui.navigation.composables.MenuOptionData
 import de.amosproj3.ziofa.ui.navigation.composables.MenuOptions
 import de.amosproj3.ziofa.ui.navigation.data.Emoji
+import de.amosproj3.ziofa.ui.navigation.data.MenuOptionData
 
 /** Static home screen for navigation */
 @Composable

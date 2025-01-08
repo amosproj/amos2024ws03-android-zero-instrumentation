@@ -67,7 +67,7 @@ jobs:
       - name: Cargo test
         run: | 
           cd rust
-          nix develop --command cargo test --workspace --all-targets --all-features --exclude client
+          nix develop --command cargo test --workspace --all-targets --all-features --exclude client --exclude backend-ebpf-test
 
   rust-build:
     name: Rust Build
@@ -115,3 +115,8 @@ jobs:
             --parallel \
             --build-cache \
             -Dorg.gradle.jvmargs=-Xmx4G
+      - name: Upload Detekt results to GitHub
+        uses: github/codeql-action/upload-sarif@v2
+        if: success() || failure()
+        with:
+          sarif_file: frontend/app/build/reports/detekt/detekt.sarif

@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.org.cyclonedx.bom)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -44,7 +45,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -92,6 +93,11 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.accompanist.drawablepainter)
+    implementation(libs.flowredux.jvm)
+    implementation(libs.flowredux.compose)
+
+    implementation(libs.arrow.core)
+    implementation(libs.arrow.fx.coroutines)
 
     implementation(project(":client"))
 
@@ -105,6 +111,9 @@ dependencies {
     implementation(libs.vico.compose.m2)
     implementation(libs.vico.compose.m3)
     implementation(libs.vico.core)
+    implementation(libs.arrow.core)
+    implementation(libs.arrow.fx.coroutines)
+    detektPlugins(libs.detekt.compose.rules)
 }
 
 tasks.cyclonedxBom {
@@ -117,4 +126,16 @@ tasks.cyclonedxBom {
     setIncludeBomSerialNumber(false)
     setIncludeLicenseText(true)
     setIncludeMetadataResolution(true)
+}
+
+detekt {
+    config = files("detekt.yml")
+    buildUponDefaultConfig = true
+    parallel = true
+    ignoreFailures = true
+}
+
+tasks.detekt {
+    reports.xml.required.set(true)
+    reports.html.required.set(true)
 }

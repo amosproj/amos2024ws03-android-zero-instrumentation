@@ -21,6 +21,7 @@ object RustClient : Client {
             sysSendmsg = SysSendmsgConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
             uprobes = listOf(),
             jniReferences = JniReferencesConfig(pids = listOf()),
+            sysSigquit = SysSigquitConfig(pids = listOf()),
         )
 
     override suspend fun serverCount(): Flow<UInt> = flow {
@@ -110,12 +111,34 @@ object RustClient : Client {
                 )
             }
             configuration.jniReferences?.pids?.forEach {
+                val rnd = Random.nextFloat()
+                if (rnd > 0.33f) {
+                    emit(
+                        Event.JniReferences(
+                            pid = it,
+                            tid = 1234u,
+                            beginTimeStamp = System.currentTimeMillis().toULong(),
+                            jniMethodName = Event.JniReferences.JniMethodName.AddGlobalRef,
+                        )
+                    )
+                } else {
+                    emit(
+                        Event.JniReferences(
+                            pid = it,
+                            tid = 1234u,
+                            beginTimeStamp = System.currentTimeMillis().toULong(),
+                            jniMethodName = Event.JniReferences.JniMethodName.DeleteLocalRef,
+                        )
+                    )
+                }
+            }
+            configuration.sysSigquit?.pids?.forEach {
                 emit(
-                    Event.JniReferences(
+                    Event.SysSigquit(
                         pid = it,
                         tid = 1234u,
-                        beginTimeStamp = System.currentTimeMillis().toULong(),
-                        jniMethodName = Event.JniReferences.JniMethodName.AddLocalRef,
+                        timeStamp = 12312412u,
+                        targetPid = 12874u,
                     )
                 )
             }

@@ -2,16 +2,39 @@
 //
 // SPDX-License-Identifier: MIT
 
-use aya_ebpf::{macros::{tracepoint, map}, maps::{RingBuf}, programs::{TracePointContext}, EbpfContext, helpers::gen::bpf_ktime_get_ns};
+use aya_ebpf::{helpers::gen::bpf_ktime_get_ns, macros::map, maps::RingBuf, programs::TracePointContext, EbpfContext};
+use aya_ebpf::maps::HashMap;
 use aya_log_ebpf::error;
-use backend_common::{SysSigquitCall};
+use backend_common::SysSigquitCall;
+
+#[map(name = "SYS_SIGQUIT_PIDS")]
+static SYS_SIGQUIT_PIDS: HashMap<u32, u64> = HashMap::pinned(4096, 0);
 
 #[map(name = "SYS_SIGQUIT_EVENTS")]
 pub static SYS_SIGQUIT_EVENTS: RingBuf = RingBuf::pinned(1024, 0);
 
-#[tracepoint]
-pub fn sys_sigquit(ctx: TracePointContext) -> u32 {
-    let pid = ctx.pid();
+// Disclaimer:
+// We have to swap here, because BPF_PROG_TEST_RUN does not support Tracepoints
+// For testing we can set the prog-test flag and interpret it as TracepointContext, because we can set whatever we want
+// For an example see backend/daemon/src/prog_test_run.rs
+
+#[cfg(feature = "prog-test")]
+type Arg = aya_ebpf::programs::RawTracePointContext;
+
+#[cfg(not(feature = "prog-test"))]
+type Arg = aya_ebpf::programs::TracePointContext;
+
+#[cfg_attr(feature = "prog-test", aya_ebpf::macros::raw_tracepoint)]
+#[cfg_attr(not(feature = "prog-test"), aya_ebpf::macros::tracepoint)]
+pub fn sys_sigquit(ctx: Arg) -> u32 {
+   let ctx = TracePointContext::new(ctx.as_ptr());
+   let pid = ctx.pid();
+   
+    if unsafe { SYS_SIGQUIT_PIDS.get(&pid).is_none() } {
+        // ignore signals from this pid
+        return 0;
+    }
+
     let tid = ctx.tgid();
 
     let time_stamp: u64;
