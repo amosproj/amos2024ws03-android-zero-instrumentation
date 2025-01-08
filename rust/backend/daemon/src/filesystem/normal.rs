@@ -1,20 +1,13 @@
-// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.com>
+// SPDX-FileCopyrightText: 2025 Franz Schlicht <franz.schlicht@gmail.com>
 //
 // SPDX-License-Identifier: MIT
 
-use std::{
-    fs::File,
-    io,
-    io::{BufReader, BufWriter},
-};
+use std::{fs::File, io::{self, BufReader, BufWriter}};
 
 use shared::config::Configuration;
 
-pub trait Filesystem {
-    fn load(&self, path: &str) -> io::Result<Configuration>;
+use super::Filesystem;
 
-    fn save(&self, config: &Configuration, path: &str) -> io::Result<()>;
-}
 
 pub struct NormalFilesystem;
 

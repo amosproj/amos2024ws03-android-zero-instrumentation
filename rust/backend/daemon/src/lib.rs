@@ -13,7 +13,7 @@ mod features;
 mod collector;
 mod symbols;
 mod registry;
-mod mocked_filesystem;
+mod filesystem;
 
 pub async fn run_server() {
     helpers::bump_rlimit();

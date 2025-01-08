@@ -14,7 +14,7 @@ mod features;
 mod collector;
 mod symbols;
 mod registry;
-mod mocked_filesystem;
+mod filesystem;
 
 #[tokio::main]
 async fn main() {

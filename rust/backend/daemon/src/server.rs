@@ -6,6 +6,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
+use crate::filesystem::{Filesystem, NormalFilesystem};
 use crate::registry;
 use crate::symbols::SymbolHandler;
 use crate::{
@@ -13,10 +14,6 @@ use crate::{
     ebpf_utils::EbpfErrorWrapper,
     procfs_utils::{list_processes, ProcErrorWrapper},
     features::Features,
-    mocked_filesystem::{
-        Filesystem, 
-        NormalFilesystem
-    },
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use ractor::Actor;
@@ -34,14 +31,16 @@ use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-pub struct ZiofaImpl<F: Filesystem + Sync + Send + 'static> {
+pub struct ZiofaImpl<F>
+where F: Filesystem {
     features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
     filesystem: F,
 }
 
-impl<F: Filesystem + Sync + Send + 'static> ZiofaImpl<F> {
+impl<F> ZiofaImpl<F> 
+where F: Filesystem {
     pub fn new(
         features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
@@ -70,7 +69,8 @@ impl Channel {
 }
 
 #[tonic::async_trait]
-impl<F: Filesystem + Sync + Send + 'static> Ziofa for ZiofaImpl<F> {
+impl<F> Ziofa for ZiofaImpl<F>
+where F: Filesystem {
     async fn check_server(&self, _: Request<()>) -> Result<Response<CheckServerResponse>, Status> {
         // dummy data
         let response = CheckServerResponse {};
