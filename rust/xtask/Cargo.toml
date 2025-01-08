@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 # SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 # SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+# SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
 #
 # SPDX-License-Identifier: MIT
 
@@ -13,8 +14,8 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
-adb_client = {workspace = true}
 anyhow = { workspace = true, default-features = true }
 cargo_metadata = { workspace = true }
 clap = { workspace = true, default-features = true, features = ["derive"] }
-ctrlc.workspace = true
+runner = { workspace = true }
+serde_json = { workspace = true }

@@ -1,14 +1,16 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
-use std::process::Command;
+use std::{collections::HashMap, process::Command};
 
 use anyhow::{bail, Context as _, Result};
 use clap::Parser;
-use xtask::{android_launch_path, AYA_BUILD_EBPF};
+use runner::HostSpec;
+use xtask::{build_runner_client, build_runner_server, AYA_BUILD_EBPF};
 
 #[derive(Debug, Parser)]
 pub struct Options {
@@ -35,9 +37,18 @@ pub fn run(opts: Options) -> Result<()> {
         test,
     } = opts;
 
-    let android_script = android_launch_path();
 
     if android {
+        let android_runner = build_runner_client();
+        let android_server = build_runner_server();
+        
+        let spec = HostSpec {
+            args: run_args,
+            env: HashMap::from([("RUST_LOG".to_string(), "error".to_string())]),
+            root: false,
+            runner_path: android_server
+        };
+
         let mut cmd = Command::new("cargo");
         cmd.env(AYA_BUILD_EBPF, "true");
         cmd.args(["ndk", "-t", "x86_64"]);
@@ -51,9 +62,9 @@ pub fn run(opts: Options) -> Result<()> {
             "client",
             "--config",
             &format!(
-                "target.\"cfg(all())\".runner=\"{} {}\"",
-                android_script.display(),
-                run_args.join(" ")
+                "target.'cfg(all())'.runner='{} {}'",
+                android_runner,
+                serde_json::to_string(&spec).unwrap()
             ),
         ]);
         let status = cmd

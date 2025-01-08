@@ -4700,11 +4700,11 @@ checksum = "d135d17ab770252ad95e9a872d365cf3090e3be864a34ab46f48555993efc904"
 name = "xtask"
 version = "0.1.0"
 dependencies = [
- "adb_client",
  "anyhow",
  "cargo_metadata 0.19.1",
  "clap",
- "ctrlc",
+ "runner",
+ "serde_json",
 ]
 
 [[package]]

@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -15,14 +16,14 @@ pub struct Options {
 
 pub fn test(opts: Options) {
     // spawn daemon
-    daemon::run(daemon::Options {
+    let shutdown = daemon::run(daemon::Options {
         release: opts.release,
         android: true,
         runner: "sudo -E".to_string(),
-        background: false,
-        kill: true,
+        background: true,
     })
-    .expect("Daemon should run");
+    .expect("Daemon should run")
+    .expect("Daemon should return shutdown channel");
 
     println!("Waiting one second for daemon to start.");
     thread::sleep(time::Duration::from_secs(1));
@@ -35,7 +36,6 @@ pub fn test(opts: Options) {
         test: true,
     })
     .expect("Client should run");
-
-    // kill daemon
-    // daemon::pkill(true).expect("Daemon should be killed");
+    
+    shutdown.send(()).expect("failed to send shutdown signal");
 }
