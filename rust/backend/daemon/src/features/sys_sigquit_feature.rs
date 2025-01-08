@@ -26,7 +26,7 @@ impl SysSigquitFeature {
 
     fn attach(&mut self) -> Result<(), EbpfError> {
         if self.sys_enter_sigquit_link.is_none() {
-            let link_id = self.sys_enter_sigquit.attach("syscalls","sys_enter_sigquit")?;
+            let link_id = self.sys_enter_sigquit.attach("syscalls","sys_enter_kill")?;
             self.sys_enter_sigquit_link = Some(self.sys_enter_sigquit.take_link(link_id)?);
         }
 
