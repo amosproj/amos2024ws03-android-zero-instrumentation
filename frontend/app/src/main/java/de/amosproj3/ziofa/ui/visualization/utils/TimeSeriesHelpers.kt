@@ -100,6 +100,7 @@ fun Flow<Event.JniReferences>.toReferenceCount() =
 fun Flow<List<Pair<ULong, ULong>>>.sortAndClip(limit: Int) =
     this.map { it.sortedBy { (fd, size) -> size }.reversed().take(limit) }.conflate().sample(2500)
 
+@Suppress("MagicNumber") // unit conversion
 fun ULong.nanosToSeconds(): String {
     val locale = Locale.current.platformLocale
     return String.format(locale, "%.2f", this.toDouble() / 1_000_000_000)

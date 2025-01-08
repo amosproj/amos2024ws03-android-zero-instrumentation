@@ -20,42 +20,30 @@ fun EventListViewer(
     eventListMetadata: EventListMetadata,
     modifier: Modifier = Modifier,
 ) {
-    Header(eventListMetadata)
+    HeaderRow(eventListMetadata)
     LazyColumn(modifier.fillMaxSize()) {
         items(eventListData.eventData) { event ->
-            Row {
-                ListItem(
-                    col1 = event.col1,
-                    col2 = event.col2,
-                    col3 = event.col3,
-                    col4 = event.col4,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            ListRow(col1 = event.col1, col2 = event.col2, col3 = event.col3, col4 = event.col4)
         }
     }
 }
 
 @Composable
-fun ListItem(
-    col1: String,
-    col2: String,
-    col3: String,
-    col4: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(text = col1, modifier = modifier)
-    Text(text = col2, modifier = modifier)
-    Text(text = col3, modifier = modifier)
-    Text(text = col4, modifier = modifier)
+fun ListRow(col1: String, col2: String, col3: String, col4: String, modifier: Modifier = Modifier) {
+    Row(modifier = modifier) {
+        Text(text = col1, modifier = Modifier.weight(1f))
+        Text(text = col2, modifier = Modifier.weight(1f))
+        Text(text = col3, modifier = Modifier.weight(1f))
+        Text(text = col4, modifier = Modifier.weight(1f))
+    }
 }
 
 @Composable
-fun Header(eventListMetadata: EventListMetadata, modifier: Modifier = Modifier) {
-    Row(modifier) {
-        Text(text = eventListMetadata.label1, modifier = modifier.weight(1f))
-        Text(text = eventListMetadata.label2, modifier = modifier.weight(1f))
-        Text(text = eventListMetadata.label3, modifier = modifier.weight(1f))
-        Text(text = eventListMetadata.label4, modifier = modifier.weight(1f))
+fun HeaderRow(eventListMetadata: EventListMetadata, modifier: Modifier = Modifier) {
+    Row(modifier = modifier) {
+        Text(text = eventListMetadata.label1, modifier = Modifier.weight(1f))
+        Text(text = eventListMetadata.label2, modifier = Modifier.weight(1f))
+        Text(text = eventListMetadata.label3, modifier = Modifier.weight(1f))
+        Text(text = eventListMetadata.label4, modifier = Modifier.weight(1f))
     }
 }

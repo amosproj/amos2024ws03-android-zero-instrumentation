@@ -14,6 +14,7 @@ import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.shared.DURATION_THRESHOLD
 
+@Suppress("CyclomaticComplexMethod", "LongMethod")
 fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Configuration {
 
     val feature = action.backendFeature

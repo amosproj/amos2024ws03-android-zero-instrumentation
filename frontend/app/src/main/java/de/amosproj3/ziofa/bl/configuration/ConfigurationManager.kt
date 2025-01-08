@@ -119,16 +119,6 @@ class ConfigurationManager(clientFactory: ClientFactory) :
         }
     }
 
-    /** Transition to [ConfigurationState.Synchronized] if the configurations are equal. */
-    private fun State<ConfigurationState.Different>.sychronizedIfConfigurationsAreEqual() =
-        this.snapshot.let {
-            if (it.localConfiguration == it.backendConfiguration)
-                this.override {
-                    ConfigurationState.Synchronized(it.client, it.backendConfiguration)
-                }
-            else this.noChange()
-        }
-
     fun State<ConfigurationState.Synchronized>.applyChangeAndTransitionToDifferent(
         action: ConfigurationAction.ChangeFeature
     ) =
