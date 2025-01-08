@@ -4,4 +4,4 @@
 
 package de.amosproj3.ziofa.ui.visualization.data
 
-data class VisualizationMetaData(val xLabel: String, val yLabel: String)
+data class ChartMetadata(val xLabel: String, val yLabel: String)

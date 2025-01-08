@@ -5,15 +5,28 @@
 
 package de.amosproj3.ziofa.ui.configuration.data
 
-sealed class BackendFeatureOptions(val featureName: String, val active: Boolean) {
+enum class FeatureType(val displayName: String) {
+    IO("IO Observability Features"),
+    SIGNALS("Linux Signals"),
+    UPROBES("Uprobes"),
+}
+
+sealed class BackendFeatureOptions(
+    val featureName: String,
+    val featureType: FeatureType,
+    val active: Boolean,
+) {
     data class VfsWriteOption(val enabled: Boolean, val pids: Set<UInt>) :
-        BackendFeatureOptions("VFS Write Analysis", enabled)
+        BackendFeatureOptions("VFS Write Analysis", FeatureType.IO, enabled)
 
     data class SendMessageOption(val enabled: Boolean, val pids: Set<UInt>) :
-        BackendFeatureOptions("Unix Domain Socket Analysis", enabled)
+        BackendFeatureOptions("Unix Domain Socket Analysis", FeatureType.IO, enabled)
 
     data class JniReferencesOption(val enabled: Boolean, val pids: Set<UInt>) :
-        BackendFeatureOptions("Local & Global Indirect JNI References", enabled)
+        BackendFeatureOptions("Local & Global Indirect JNI References", FeatureType.IO, enabled)
+
+    data class SigquitOption(val enabled: Boolean, val pids: Set<UInt>) :
+        BackendFeatureOptions("SIGQUIT", FeatureType.SIGNALS, enabled)
 
     data class UprobeOption(
         val method: String,
@@ -21,5 +34,5 @@ sealed class BackendFeatureOptions(val featureName: String, val active: Boolean)
         val pids: Set<UInt>,
         val offset: ULong,
         val odexFilePath: String,
-    ) : BackendFeatureOptions(method, enabled)
+    ) : BackendFeatureOptions(method, FeatureType.UPROBES, enabled)
 }

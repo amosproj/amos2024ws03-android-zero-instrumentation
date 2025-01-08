@@ -111,14 +111,26 @@ object RustClient : Client {
                 )
             }
             configuration.jniReferences?.pids?.forEach {
-                emit(
-                    Event.JniReferences(
-                        pid = it,
-                        tid = 1234u,
-                        beginTimeStamp = System.currentTimeMillis().toULong(),
-                        jniMethodName = Event.JniReferences.JniMethodName.AddLocalRef,
+                val rnd = Random.nextFloat()
+                if (rnd > 0.33f) {
+                    emit(
+                        Event.JniReferences(
+                            pid = it,
+                            tid = 1234u,
+                            beginTimeStamp = System.currentTimeMillis().toULong(),
+                            jniMethodName = Event.JniReferences.JniMethodName.AddGlobalRef,
+                        )
                     )
-                )
+                } else {
+                    emit(
+                        Event.JniReferences(
+                            pid = it,
+                            tid = 1234u,
+                            beginTimeStamp = System.currentTimeMillis().toULong(),
+                            jniMethodName = Event.JniReferences.JniMethodName.DeleteLocalRef,
+                        )
+                    )
+                }
             }
             configuration.sysSigquit?.pids?.forEach {
                 emit(
