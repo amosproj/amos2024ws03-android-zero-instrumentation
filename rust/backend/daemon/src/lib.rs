@@ -4,7 +4,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-mod configuration;
 mod constants;
 mod ebpf_utils;
 mod helpers;
@@ -14,6 +13,7 @@ mod features;
 mod collector;
 mod symbols;
 mod registry;
+mod filesystem;
 
 pub async fn run_server() {
     helpers::bump_rlimit();
