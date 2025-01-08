@@ -441,6 +441,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "backend-ebpf-test"
+version = "0.1.0"
+dependencies = [
+ "aya",
+ "aya-ebpf",
+ "aya-log-ebpf",
+ "aya-obj",
+ "backend-common",
+ "cargo_metadata 0.19.1",
+ "libc",
+ "which",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"

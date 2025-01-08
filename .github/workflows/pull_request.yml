@@ -67,7 +67,7 @@ jobs:
       - name: Cargo test
         run: | 
           cd rust
-          nix develop --command cargo test --workspace --all-targets --all-features --exclude client
+          nix develop --command cargo test --workspace --all-targets --all-features --exclude client --exclude backend-ebpf-test
 
   rust-build:
     name: Rust Build
