@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use shared::ziofa::{Event, SearchSymbolsRequest};
+use shared::ziofa::{Event, SearchSymbolsRequest, GetSymbolOffsetRequest};
 use shared::{
     config::Configuration,
     counter::{counter_client::CounterClient, IfaceMessage},
@@ -164,5 +164,13 @@ impl Client {
         limit: u64,
     ) -> Result<Vec<Symbol>> {
         Ok(self.ziofa.search_symbols(SearchSymbolsRequest { query, limit }).await?.into_inner().symbols)
+    }
+
+    pub async fn get_symbol_offset(
+        &mut self,
+        symbol_name: String,
+        library_path: String,
+    ) -> Result<Option<u64>> {
+        Ok(self.ziofa.get_symbol_offset(GetSymbolOffsetRequest { symbol_name, library_path }).await?.into_inner().offset)
     }
 }

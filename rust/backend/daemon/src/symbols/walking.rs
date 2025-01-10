@@ -50,6 +50,7 @@ pub fn all_symbol_files() -> impl Stream<Item = SymbolFilePath> {
     let data = WalkDir::new("/data");
     let product = WalkDir::new("/product");
     let vendor = WalkDir::new("/vendor");
+    let apex = WalkDir::new("/apex");
 
-    system.merge(system_ext).merge(data).merge(product).merge(vendor).filter_map(path_filter_map)
+    system.merge(system_ext).merge(data).merge(product).merge(vendor).merge(apex).filter_map(path_filter_map)
 }

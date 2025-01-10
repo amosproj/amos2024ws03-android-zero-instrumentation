@@ -124,6 +124,7 @@ pub fn index() -> Result<Index, io::Error> {
                 .set_stored()
                 .set_fast(Some("raw"))
                 );
+        builder.add_text_field("symbol_name_exact", STRING | STORED);
         builder.add_u64_field("symbol_offset", STORED | FAST | INDEXED);
         builder.add_text_field("library_path", STRING | STORED);
         builder.build()

@@ -8,7 +8,7 @@
 use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
 use crate::filesystem::{Filesystem, NormalFilesystem};
 use crate::registry;
-use crate::symbols::actors::{SearchReq, SymbolActor, SymbolActorMsg};
+use crate::symbols::actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg};
 use crate::symbols::SymbolHandler;
 use crate::{
     constants,
@@ -18,7 +18,7 @@ use crate::{
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use ractor::{call, Actor, ActorRef};
-use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, SearchSymbolsRequest, SearchSymbolsResponse, StringResponse, Symbol};
+use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, SearchSymbolsRequest, SearchSymbolsResponse, GetSymbolOffsetRequest, GetSymbolOffsetResponse, StringResponse, Symbol};
 use shared::{
     config::Configuration,
     ziofa::{
@@ -224,6 +224,7 @@ where F: Filesystem {
                 tx.send(Ok(Symbol {
                     method: symbol.to_string(),
                     offset: *offset,
+                    path: file_path.to_string_lossy().into_owned(),
                 }))
                 .await
                 .expect("Error sending odex file to client");
@@ -243,6 +244,13 @@ where F: Filesystem {
         let symbols = call!(self.symbol_actor_ref, SymbolActorMsg::Search, SearchReq { query, limit }).map_err(|e| Status::from_error(Box::new(e)))??;
         
         Ok(Response::new(SearchSymbolsResponse { symbols }))
+    }
+
+    async fn get_symbol_offset(&self, request: Request<GetSymbolOffsetRequest>) -> Result<Response<GetSymbolOffsetResponse>, Status> {
+        let GetSymbolOffsetRequest { symbol_name, library_path } = request.into_inner();
+        let offset = call!(self.symbol_actor_ref, SymbolActorMsg::GetOffset, GetOffsetRequest { symbol_name, library_path }).map_err(|e| Status::from_error(Box::new(e)))?;
+        
+        Ok(Response::new(GetSymbolOffsetResponse { offset }))
     }
 }
 

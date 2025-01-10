@@ -26,6 +26,7 @@ service Ziofa {
     
     rpc IndexSymbols(google.protobuf.Empty) returns (google.protobuf.Empty) {}
     rpc SearchSymbols(SearchSymbolsRequest) returns (SearchSymbolsResponse) {}
+    rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
 }
 
 message StringResponse {
@@ -45,9 +46,19 @@ message SearchSymbolsResponse {
     repeated Symbol symbols = 1;
 }
 
+message GetSymbolOffsetRequest {
+    string symbol_name = 1;
+    string library_path = 2;
+}
+
+message GetSymbolOffsetResponse {
+    optional uint64 offset = 1;
+}
+
 message Symbol {
     string method = 1;
-    uint64 offset = 2;
+    string path = 2;
+    uint64 offset = 3;
 }
 
 message PidMessage{

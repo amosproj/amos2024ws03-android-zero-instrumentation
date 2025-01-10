@@ -91,6 +91,15 @@ enum Commands {
         
         /// The limit of symbols sent by the server
         limit: u64
+    },
+
+    /// Finds the symbol given symbol name and library path
+    GetSymbolOffset {
+        /// The name of the symbol
+        symbol_name: String,
+    
+        /// The path of the library containing the symbol
+        library_path: String
     }
 }
 
@@ -217,10 +226,22 @@ async fn search_symbols(client: &mut Client, query: String, limit: u64) -> Resul
     
     let mut count = 0;
     for symbol in symbols {
-        println!("method: {} | offset: {}", symbol.method, symbol.offset);
+        println!("method: {} | offset: {} | library_path: {}", symbol.method, symbol.offset, symbol.path);
         count += 1;
     }
     println!("Total number of symbols: {count}");
+    
+    Ok(())
+}
+
+async fn get_symbol_offset(client: &mut Client, symbol_name: String, library_path: String) -> Result<()> {
+    let offset = client.get_symbol_offset(symbol_name, library_path).await?;
+    
+    if let Some(offset) = offset {
+        println!("Found offset: {offset}");
+    } else {
+        println!("Did not find symbol");
+    }
     
     Ok(())
 }
@@ -263,6 +284,9 @@ pub async fn main() -> anyhow::Result<()> {
         }
         Commands::SearchSymbols { query, limit } => {
             search_symbols(&mut client, query, limit).await?;
+        }
+        Commands::GetSymbolOffset { symbol_name, library_path } => {
+            get_symbol_offset(&mut client, symbol_name, library_path).await?;
         }
     }
 

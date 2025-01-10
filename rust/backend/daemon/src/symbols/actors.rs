@@ -4,7 +4,7 @@
 
 use std::{io, marker::PhantomData, sync::Arc};
 
-use tantivy::{collector::TopDocs, doc, query::QueryParser, schema::{Field, Value}, Index, IndexWriter, TantivyDocument};
+use tantivy::{collector::{DocSetCollector, TopDocs}, doc, query::{BooleanQuery, QueryParser, TermQuery}, schema::{Field, Value}, Index, IndexWriter, TantivyDocument, Term};
 use tokio_stream::{Stream, StreamExt};
 use ractor::{cast, concurrency::{spawn, JoinHandle}, factory::{queues::DefaultQueue, routing::QueuerRouting, Factory, FactoryArguments, FactoryMessage, Job, JobOptions, WorkerBuilder, WorkerMessage, WorkerStartContext}, Actor, ActorCell, ActorProcessingErr, ActorRef, RpcReplyPort, SpawnErr, State, SupervisionEvent};
 
@@ -168,7 +168,7 @@ struct SymbolIndexer;
 
 impl Actor for SymbolIndexer {
     type Arguments = Arc<IndexWriter>;
-    type State = (Field, Field, Field, Arc<IndexWriter>);
+    type State = (Field, Field, Field, Field, Arc<IndexWriter>);
     type Msg = SymbolWithPath;
     
     async fn pre_start(
@@ -179,7 +179,8 @@ impl Actor for SymbolIndexer {
         let symbol_name = args.index().schema().get_field("symbol_name")?;
         let symbol_offset = args.index().schema().get_field("symbol_offset")?;
         let library_path = args.index().schema().get_field("library_path")?;
-        Ok((symbol_name, symbol_offset, library_path, args))
+        let symbol_name_extact = args.index().schema().get_field("symbol_name_exact")?;
+        Ok((symbol_name, symbol_offset, library_path, symbol_name_extact, args))
     }
     
     async fn handle(
@@ -188,10 +189,11 @@ impl Actor for SymbolIndexer {
             message: Self::Msg,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
-        state.3.add_document(doc!{
-            state.0 => message.symbol.name,
+        state.4.add_document(doc!{
+            state.0 => message.symbol.name.clone(),
             state.1 => message.symbol.offset,
             state.2 => message.path,
+            state.3 => message.symbol.name,
         })?;
         
         Ok(())
@@ -228,9 +230,12 @@ impl SymbolActor {
 pub struct SearchReq { pub query: String, pub limit: u64 }
 pub type SearchRes = Result<Vec<shared::ziofa::Symbol>, io::Error>;
 
+pub struct GetOffsetRequest { pub symbol_name: String, pub library_path: String }
+
 pub enum SymbolActorMsg {
     ReIndex(RpcReplyPort<()>),
-    Search(SearchReq, RpcReplyPort<SearchRes>)
+    Search(SearchReq, RpcReplyPort<SearchRes>),
+    GetOffset(GetOffsetRequest, RpcReplyPort<Option<u64>>),
 }
 
 impl Actor for SymbolActor {
@@ -272,6 +277,7 @@ impl Actor for SymbolActor {
                 let searcher = reader.searcher();
                 let symbol_name = state.schema().get_field("symbol_name")?;
                 let symbol_offset = state.schema().get_field("symbol_offset")?;
+                let library_path = state.schema().get_field("library_path")?;
 
                 let query = match QueryParser::for_index(state, vec![symbol_name]).parse_query(&query) {
                     Ok(query) => query,
@@ -283,12 +289,33 @@ impl Actor for SymbolActor {
                 let results = searcher.search(&query, &TopDocs::with_limit(limit as usize))?.into_iter().map(|(_, address)| {
                     let doc : TantivyDocument = searcher.doc(address).map_err(io::Error::other)?;
                     let name = doc.get_first(symbol_name).and_then(|x| x.as_str()).ok_or_else(|| io::Error::other("expected str"))?;
+                    let path = doc.get_first(library_path).and_then(|x| x.as_str()).ok_or_else(|| io::Error::other("expected str"))?;
                     let offset = doc.get_first(symbol_offset).and_then(|x| x.as_u64()).ok_or_else(|| io::Error::other("expected u64"))?;
                     
-                    Ok::<_, io::Error>(shared::ziofa::Symbol { method: name.to_owned(), offset })
+                    Ok::<_, io::Error>(shared::ziofa::Symbol { method: name.to_owned(), offset, path: path.to_owned() })
                 }).collect::<Result<Vec<_>, _>>();
                 
                 reply.send(results)?;
+            }
+            SymbolActorMsg::GetOffset(GetOffsetRequest { symbol_name, library_path }, reply ) => {
+                let reader = state.reader()?;
+                let searcher = reader.searcher();
+                let symbol_name_exact = state.schema().get_field("symbol_name_exact")?;
+                let library_path_exact = state.schema().get_field("library_path")?;
+                let symbol_offset = state.schema().get_field("symbol_offset")?;
+
+                let symbol_query = TermQuery::new(Term::from_field_text(symbol_name_exact, &symbol_name), tantivy::schema::IndexRecordOption::Basic);
+                let library_path_query = TermQuery::new(Term::from_field_text(library_path_exact, &library_path), tantivy::schema::IndexRecordOption::Basic);
+                let query = BooleanQuery::intersection(vec![Box::new(symbol_query), Box::new(library_path_query)]);
+
+                let result = searcher.search(&query, &DocSetCollector)?.into_iter().map(|address| {
+                    let doc : TantivyDocument = searcher.doc(address).map_err(io::Error::other)?;
+                    let offset = doc.get_first(symbol_offset).and_then(|x| x.as_u64()).ok_or_else(|| io::Error::other("expected u64"))?;
+                    
+                    Ok::<_, io::Error>(offset)
+                }).next().transpose()?;
+                
+                reply.send(result)?;
             }
         }
         
