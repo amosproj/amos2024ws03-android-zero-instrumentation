@@ -4,19 +4,40 @@
 
 use std::io;
 
+use std::collections::HashMap;
+use tokio::sync::RwLock;
+
 use shared::config::Configuration;
 
 use super::Filesystem;
 
-// TODO: members + implementation
-pub struct MemoryFilesystem;
+pub struct MemoryFilesystem {
+    storage: RwLock<HashMap<String, Configuration>>,
+}
+
+impl MemoryFilesystem {
+    pub fn new() -> Self {
+        MemoryFilesystem {
+            storage: RwLock::new(HashMap::new()),
+        }
+    }
+}
 
 impl Filesystem for MemoryFilesystem {
-    fn load(&self, _path: &str) -> io::Result<Configuration> {
-        todo!()
+    fn load(&self, path: &str) -> io::Result<Configuration> {
+        tokio::task::block_in_place(|| {
+            let storage = self.storage.blocking_read();
+            storage.get(path).cloned().ok_or_else(|| {
+                io::Error::new(io::ErrorKind::NotFound, "Configuration not found")
+            })
+        })
     }
 
-    fn save(&self, _config: &Configuration, _path: &str) -> io::Result<()> {
-        todo!()
+    fn save(&self, config: &Configuration, path: &str) -> io::Result<()> {
+        tokio::task::block_in_place(|| {
+            let mut storage = self.storage.blocking_write();
+            storage.insert(path.to_string(), config.clone());
+            Ok(())
+        })
     }
 }
