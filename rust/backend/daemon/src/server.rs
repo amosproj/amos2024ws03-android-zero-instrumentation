@@ -13,12 +13,15 @@ use crate::symbols::SymbolHandler;
 use crate::{
     constants,
     ebpf_utils::EbpfErrorWrapper,
-    procfs_utils::{list_processes, ProcErrorWrapper},
     features::Features,
+    procfs_utils::{list_processes, ProcErrorWrapper},
 };
 use async_broadcast::{broadcast, Receiver, Sender};
 use ractor::{call, Actor, ActorRef};
-use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, SearchSymbolsRequest, SearchSymbolsResponse, GetSymbolOffsetRequest, GetSymbolOffsetResponse, StringResponse, Symbol};
+use shared::ziofa::{
+    Event, GetSymbolOffsetRequest, GetSymbolOffsetResponse, GetSymbolsRequest, PidMessage,
+    SearchSymbolsRequest, SearchSymbolsResponse, StringResponse, Symbol,
+};
 use shared::{
     config::Configuration,
     ziofa::{
@@ -33,7 +36,9 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 pub struct ZiofaImpl<F>
-where F: Filesystem {
+where
+    F: Filesystem,
+{
     features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
@@ -41,8 +46,10 @@ where F: Filesystem {
     symbol_actor_ref: ActorRef<SymbolActorMsg>,
 }
 
-impl<F> ZiofaImpl<F> 
-where F: Filesystem {
+impl<F> ZiofaImpl<F>
+where
+    F: Filesystem,
+{
     pub fn new(
         features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
@@ -74,7 +81,9 @@ impl Channel {
 
 #[tonic::async_trait]
 impl<F> Ziofa for ZiofaImpl<F>
-where F: Filesystem {
+where
+    F: Filesystem,
+{
     async fn check_server(&self, _: Request<()>) -> Result<Response<CheckServerResponse>, Status> {
         // dummy data
         let response = CheckServerResponse {};
@@ -98,13 +107,15 @@ where F: Filesystem {
     ) -> Result<Response<()>, Status> {
         let config = request.into_inner();
 
-        self.filesystem.save(&config, constants::DEV_DEFAULT_FILE_PATH)?;
+        self.filesystem
+            .save(&config, constants::DEV_DEFAULT_FILE_PATH)?;
 
         let mut features_guard = self.features.lock().await;
 
         // TODO: set config path
         features_guard
             .update_from_config(&config)
+            .await
             .map_err(EbpfErrorWrapper::from)?;
 
         Ok(Response::new(()))
@@ -233,44 +244,66 @@ where F: Filesystem {
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
-    
+
     async fn index_symbols(&self, _: Request<()>) -> Result<Response<()>, Status> {
-        call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex).map_err(|e| Status::from_error(Box::new(e)))?;
+        call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
         Ok(Response::new(()))
     }
-    
-    async fn search_symbols(&self, request: Request<SearchSymbolsRequest>) -> Result<Response<SearchSymbolsResponse>, Status> {
+
+    async fn search_symbols(
+        &self,
+        request: Request<SearchSymbolsRequest>,
+    ) -> Result<Response<SearchSymbolsResponse>, Status> {
         let SearchSymbolsRequest { query, limit } = request.into_inner();
-        let symbols = call!(self.symbol_actor_ref, SymbolActorMsg::Search, SearchReq { query, limit }).map_err(|e| Status::from_error(Box::new(e)))??;
-        
+        let symbols = call!(
+            self.symbol_actor_ref,
+            SymbolActorMsg::Search,
+            SearchReq { query, limit }
+        )
+        .map_err(|e| Status::from_error(Box::new(e)))??;
+
         Ok(Response::new(SearchSymbolsResponse { symbols }))
     }
 
-    async fn get_symbol_offset(&self, request: Request<GetSymbolOffsetRequest>) -> Result<Response<GetSymbolOffsetResponse>, Status> {
-        let GetSymbolOffsetRequest { symbol_name, library_path } = request.into_inner();
-        let offset = call!(self.symbol_actor_ref, SymbolActorMsg::GetOffset, GetOffsetRequest { symbol_name, library_path }).map_err(|e| Status::from_error(Box::new(e)))?;
-        
+    async fn get_symbol_offset(
+        &self,
+        request: Request<GetSymbolOffsetRequest>,
+    ) -> Result<Response<GetSymbolOffsetResponse>, Status> {
+        let GetSymbolOffsetRequest {
+            symbol_name,
+            library_path,
+        } = request.into_inner();
+        let offset = call!(
+            self.symbol_actor_ref,
+            SymbolActorMsg::GetOffset,
+            GetOffsetRequest {
+                symbol_name,
+                library_path
+            }
+        )
+        .map_err(|e| Status::from_error(Box::new(e)))?;
+
         Ok(Response::new(GetSymbolOffsetResponse { offset }))
     }
 }
 
-
-
 pub async fn serve_forever() {
     let registry = registry::load_and_pin().unwrap();
-    
+
     let symbol_actor_ref = SymbolActor::spawn().await.unwrap();
 
     let channel = Channel::new();
     let (collector_ref, _) = Actor::spawn(
-        None, 
-        CollectorSupervisor, 
-        CollectorSupervisorArguments::new(registry.event.clone(), 
-        channel.tx.clone())
-    ).await.unwrap();
+        None,
+        CollectorSupervisor,
+        CollectorSupervisorArguments::new(registry.event.clone(), channel.tx.clone()),
+    )
+    .await
+    .unwrap();
     let channel = Arc::new(channel);
 
-    let features = Features::init_all_features(&registry);
+    let features = Features::init_all_features(&registry, symbol_actor_ref.clone());
 
     let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
 
@@ -278,13 +311,19 @@ pub async fn serve_forever() {
 
     let filesystem = NormalFilesystem;
 
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem, symbol_actor_ref));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(
+        features,
+        channel,
+        symbol_handler,
+        filesystem,
+        symbol_actor_ref,
+    ));
 
     Server::builder()
         .add_service(ziofa_server)
         .serve(constants::sock_addr())
         .await
         .unwrap();
-    
+
     collector_ref.stop_and_wait(None, None).await.unwrap();
 }
