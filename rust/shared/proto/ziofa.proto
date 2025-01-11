@@ -23,6 +23,10 @@ service Ziofa {
     rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
+    
+    rpc IndexSymbols(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc SearchSymbols(SearchSymbolsRequest) returns (SearchSymbolsResponse) {}
+    rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
 }
 
 message StringResponse {
@@ -33,9 +37,28 @@ message GetSymbolsRequest {
     string file_path = 2;
 }
 
+message SearchSymbolsRequest {
+    string query = 1;
+    uint64 limit = 2;
+}
+
+message SearchSymbolsResponse {
+    repeated Symbol symbols = 1;
+}
+
+message GetSymbolOffsetRequest {
+    string symbol_name = 1;
+    string library_path = 2;
+}
+
+message GetSymbolOffsetResponse {
+    optional uint64 offset = 1;
+}
+
 message Symbol {
     string method = 1;
-    uint64 offset = 2;
+    string path = 2;
+    uint64 offset = 3;
 }
 
 message PidMessage{
