@@ -55,11 +55,9 @@ fn prog_test_run_example() {
     
     println!("{:?}", unsafe { attr.test });
     
-    let first = events.next().unwrap().to_vec();
+    let next = events.next().unwrap();
     
-    for next in [first] {
-        println!("{next:?}");
-        println!("{:?}", SysSigquitCall::try_from_raw(&*next));
-        println!("{} {}", unsafe { gettid() }, unsafe { getpid() });
-    }
+    println!("{next:?}");
+    println!("{:?}", SysSigquitCall::try_from_raw(&next));
+    println!("{} {}", unsafe { gettid() }, unsafe { getpid() });
 }

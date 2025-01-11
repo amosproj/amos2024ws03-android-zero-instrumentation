@@ -64,6 +64,9 @@ pub fn run(opts: Options, wait_for_exit: bool) -> Result<Option<Child>> {
             android_script.display(),
             run_args.join(" ")
         ));
+        if release {
+            cmd.arg("--release");
+        }
 
         if wait_for_exit {
             let status = cmd

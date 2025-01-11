@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -15,6 +16,11 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 use tokio::io::AsyncBufReadExt;
 use tokio::process::Command;
+
+pub mod walking;
+pub mod symbolizer;
+pub mod actors;
+pub mod index;
 
 #[derive(Debug, Error)]
 pub enum SymbolError {
