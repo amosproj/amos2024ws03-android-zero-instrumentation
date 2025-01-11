@@ -112,16 +112,16 @@ impl JNIReferencesFeature {
     ) -> Result<UProbeLink, EbpfError> {
         let jni_method_name = match (jni_method) {
             JNIMethod::AddLocal => {
-                "art::JavaVMExt::AddGlobalRef(art::Thread*, art::ObjPtr<art::mirror::Object>)"
+                "art::JNIEnvExt::NewLocalRef(art::mirror::Object*)"
             }
             JNIMethod::DelLocal => {
-                "art::JavaVMExt::AddGlobalRef(art::Thread*, art::ObjPtr<art::mirror::Object>)"
+                "art::JNIEnvExt::DeleteLocalRef(_jobject*)"
             }
             JNIMethod::AddGlobal => {
                 "art::JavaVMExt::AddGlobalRef(art::Thread*, art::ObjPtr<art::mirror::Object>)"
             }
             JNIMethod::DelGlobal => {
-                "art::JavaVMExt::AddGlobalRef(art::Thread*, art::ObjPtr<art::mirror::Object>)"
+                "art::JavaVMExt::DeleteGlobalRef(art::Thread*, _jobject*)"
             }
         };
 
