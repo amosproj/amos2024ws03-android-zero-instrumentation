@@ -112,7 +112,7 @@ impl JNIReferencesFeature {
     ) -> Result<UProbeLink, EbpfError> {
         let jni_method_name = match (jni_method) {
             JNIMethod::AddLocal => {
-                "art::JNIEnvExt::NewLocalRef(art::mirror::Object*)"
+                "art::jni::LocalReferenceTable::Add(art::ObjPtr<art::mirror::Object>, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >*)"
             }
             JNIMethod::DelLocal => {
                 "art::JNIEnvExt::DeleteLocalRef(_jobject*)"
@@ -141,7 +141,7 @@ impl JNIReferencesFeature {
 
         let link_id = jni_program
             .attach(
-                Some(jni_method_name),
+                None,
                 offset.unwrap(),
                 "/apex/com.android.art/lib64/libart.so",
                 None,
