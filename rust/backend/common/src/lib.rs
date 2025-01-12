@@ -123,6 +123,43 @@ impl SysSigquitCall {
     }
 }
 
+
+// -----------------------------------------
+// Detect blocking main-thread
+
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
+pub enum MainBlockingCause {
+    Futex,
+    Poll,
+    Select,
+    VfsWrite,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
+pub struct BlockingMainCall {
+    pub pid: u32,
+    pub tid: u32,
+    pub begin_time_stamp: u64,
+    pub duration_nano_sec: u64, // in nanoseconds
+    pub blocking_cause: MainBlockingCause,
+}
+
+impl BlockingMainCall {
+    pub fn new(pid: u32, tid: u32, begin_time_stamp: u64, duration_nano_sec: u64, blocking_cause: MainBlockingCause) -> Self {
+        Self {
+            pid,
+            tid,
+            begin_time_stamp,
+            duration_nano_sec,
+            blocking_cause,
+        }
+    }
+}
+
+
+
 // ----------------------------------
 // generate a unique id from pid and tid
 #[inline(always)]

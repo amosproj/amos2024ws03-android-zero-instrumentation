@@ -1,5 +1,5 @@
 #![no_std]
-
+// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
@@ -12,3 +12,4 @@ pub mod vfs_write;
 pub mod sys_sendmsg;
 pub mod jni_references;
 pub mod sys_sigquit;
+pub mod detect_blocking_main;
