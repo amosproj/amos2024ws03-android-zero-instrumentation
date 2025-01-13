@@ -29,7 +29,7 @@ sealed class DropdownOption(val displayName: String) {
      * @param backendFeature the associated backend feature of the metric option
      */
     data class Metric(val backendFeature: BackendFeatureOptions) :
-        DropdownOption(backendFeature.featureName)
+        DropdownOption(backendFeature.name)
 
     /** Timeframe options */
     data class Timeframe(val amount: Int, val unit: DurationUnit) : DropdownOption("$amount $unit")

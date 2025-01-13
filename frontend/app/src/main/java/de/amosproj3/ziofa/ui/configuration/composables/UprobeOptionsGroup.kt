@@ -5,12 +5,13 @@
 package de.amosproj3.ziofa.ui.configuration.composables
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
+import de.amosproj3.ziofa.ui.configuration.data.FeatureType
 
 @Composable
 fun EbpfUprobeFeatureOptions(
@@ -30,30 +32,30 @@ fun EbpfUprobeFeatureOptions(
     onAddUprobeSelected: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(modifier = modifier.padding(horizontal = 20.dp, vertical = 15.dp).fillMaxSize()) {
-        items(options) { option ->
+    Column(modifier = modifier.padding(horizontal = 20.dp, vertical = 15.dp).fillMaxSize()) {
+        SectionTitleRow(FeatureType.UPROBES.displayName)
+        Spacer(Modifier.height(15.dp))
+        options.forEach { option ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(option.featureName)
+                Text(option.name)
                 IconButton(onClick = { onOptionDeleted(option) }) {
                     Icon(Icons.Default.Delete, contentDescription = "")
                 }
             }
         }
 
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Add new uprobe ...")
-                IconButton(onClick = { onAddUprobeSelected() }) {
-                    Icon(Icons.Default.Add, contentDescription = "")
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Add new uprobe ...")
+            IconButton(onClick = { onAddUprobeSelected() }) {
+                Icon(Icons.Default.Add, contentDescription = "")
             }
         }
     }

@@ -5,12 +5,14 @@
 
 package de.amosproj3.ziofa.ui.visualization.composables
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +42,7 @@ import de.amosproj3.ziofa.ui.visualization.utils.VICO_LINE_COLOR
 import de.amosproj3.ziofa.ui.visualization.utils.isDefaultSeries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 @Composable
 fun VicoTimeSeries(
@@ -48,9 +51,12 @@ fun VicoTimeSeries(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier.padding(10.dp).fillMaxSize(),
+        modifier
+            .padding(10.dp)
+            .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+
         val modelProducer = remember { CartesianChartModelProducer() }
         if (seriesData.isNotEmpty() && !seriesData.isDefaultSeries()) {
             modelProducer.SeriesUpdate(seriesData)
@@ -66,50 +72,50 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
 ) {
     CartesianChartHost(
         chart =
-            rememberCartesianChart(
-                rememberLineCartesianLayer(
-                    LineCartesianLayer.LineProvider.series(
-                        LineCartesianLayer.rememberLine(
-                            remember { LineCartesianLayer.LineFill.single(fill(VICO_LINE_COLOR)) }
-                        )
+        rememberCartesianChart(
+            rememberLineCartesianLayer(
+                LineCartesianLayer.LineProvider.series(
+                    LineCartesianLayer.rememberLine(
+                        remember { LineCartesianLayer.LineFill.single(fill(VICO_LINE_COLOR)) }
                     )
-                ),
-                startAxis =
-                    VerticalAxis.rememberStart(
-                        label = rememberTextComponent(),
-                        titleComponent =
-                            rememberTextComponent(
-                                color = Color.White,
-                                margins = dimensions(end = 4.dp),
-                                padding = dimensions(8.dp, 2.dp),
-                                background =
-                                    rememberShapeComponent(
-                                        fill = fill(MaterialTheme.colorScheme.secondary),
-                                        shape = CorneredShape.Pill,
-                                    ),
-                            ),
-                        title = chartMetadata.yLabel,
-                    ),
-                bottomAxis =
-                    HorizontalAxis.rememberBottom(
-                        titleComponent =
-                            rememberTextComponent(
-                                color = Color.White,
-                                margins = dimensions(top = 4.dp),
-                                padding = dimensions(8.dp, 2.dp),
-                                background =
-                                    shapeComponent(
-                                        fill = fill(MaterialTheme.colorScheme.primary),
-                                        shape = CorneredShape.Pill,
-                                    ),
-                            ),
-                        title = chartMetadata.xLabel,
-                        label = rememberTextComponent(),
-                        guideline = null,
-                        itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented() },
-                    ),
-                layerPadding = cartesianLayerPadding(scalableStart = 16.dp, scalableEnd = 16.dp),
+                )
             ),
+            startAxis =
+            VerticalAxis.rememberStart(
+                label = rememberTextComponent(),
+                titleComponent =
+                rememberTextComponent(
+                    color = Color.White,
+                    margins = dimensions(end = 4.dp),
+                    padding = dimensions(8.dp, 2.dp),
+                    background =
+                    rememberShapeComponent(
+                        fill = fill(MaterialTheme.colorScheme.secondary),
+                        shape = CorneredShape.Pill,
+                    ),
+                ),
+                title = chartMetadata.yLabel,
+            ),
+            bottomAxis =
+            HorizontalAxis.rememberBottom(
+                titleComponent =
+                rememberTextComponent(
+                    color = Color.White,
+                    margins = dimensions(top = 4.dp),
+                    padding = dimensions(8.dp, 2.dp),
+                    background =
+                    shapeComponent(
+                        fill = fill(MaterialTheme.colorScheme.primary),
+                        shape = CorneredShape.Pill,
+                    ),
+                ),
+                title = chartMetadata.xLabel,
+                label = rememberTextComponent(),
+                guideline = null,
+                itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented() },
+            ),
+            layerPadding = cartesianLayerPadding(scalableStart = 16.dp, scalableEnd = 16.dp),
+        ),
         modelProducer = this@TimeSeriesChart,
         modifier = modifier,
         zoomState = rememberVicoZoomState(zoomEnabled = false),
