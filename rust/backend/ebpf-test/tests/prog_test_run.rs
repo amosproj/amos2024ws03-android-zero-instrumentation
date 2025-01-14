@@ -40,11 +40,9 @@ fn prog_test_run_example() {
     
     let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
 
-    unsafe {
-        attr.test.prog_fd = fd as u32; 
-        attr.test.ctx_in = args.as_ptr() as u64;
-        attr.test.ctx_size_in = args.len() as u32 * 8;
-    }
+    attr.test.prog_fd = fd as u32; 
+    attr.test.ctx_in = args.as_ptr() as u64;
+    attr.test.ctx_size_in = args.len() as u32 * 8;
 
     let _ = {
         let ret = unsafe { syscall(SYS_bpf, bpf_cmd::BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };

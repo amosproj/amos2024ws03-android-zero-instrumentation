@@ -35,7 +35,7 @@ pub struct AggregatorArguments {
 }
 
 impl AggregatorArguments {
-    pub fn new(
+    pub fn _new(
         event_actor: ActorRef<Event>,
         timeframe: Duration,
         event_type_enum: EventTypeEnum,
@@ -103,7 +103,7 @@ impl Actor for Aggregator {
     ) -> Result<(), ActorProcessingErr> {
         match msg.event_type {
             Some(EventType::Log(event)) => {
-                let msg_event_type = EventTypeEnum::try_from(event).unwrap();
+                let msg_event_type = EventTypeEnum::from(event);
 
                 if msg_event_type != state.event_type {
                     panic!(
