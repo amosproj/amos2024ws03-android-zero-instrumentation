@@ -1,4 +1,5 @@
-import com.android.utils.TraceUtils.simpleId
+import io.gitlab.arturbosch.detekt.Detekt
+import io.gitlab.arturbosch.detekt.DetektPlugin
 
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
@@ -17,6 +18,7 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.com.ncorti.ktfmt.gradle) apply true
     alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.detekt)
 }
 
 subprojects {
@@ -40,7 +42,7 @@ tasks.dependencyUpdates.configure {
     }
 }
 
-tasks.register("combinedFormat"){
+tasks.register("combinedFormat") {
     dependsOn(tasks.ktfmtFormat)
     dependsOn(tasks.versionCatalogFormat)
 }

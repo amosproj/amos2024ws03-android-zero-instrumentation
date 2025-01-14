@@ -17,3 +17,4 @@ pub const ZIOFA_EBPF_PATH: &str = "/sys/fs/bpf/ziofa";
 
 pub const _DEFAULT_TIMEFRAME: time::Duration = time::Duration::from_secs(1);
 pub const TIMESERIES_LENGTH: usize = 40;
+pub const INDEX_PATH: &str = "/data/local/tmp/index";

@@ -11,3 +11,4 @@
 pub mod vfs_write;
 pub mod sys_sendmsg;
 pub mod jni_references;
+pub mod sys_sigquit;

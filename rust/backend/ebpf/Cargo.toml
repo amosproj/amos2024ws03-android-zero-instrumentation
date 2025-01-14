@@ -13,9 +13,11 @@ edition.workspace = true
 
 [dependencies]
 backend-common = { workspace = true }
-
 aya-ebpf = { workspace = true }
 aya-log-ebpf = { workspace = true }
+
+[features]
+prog-test = []
 
 [build-dependencies]
 which = { workspace = true }

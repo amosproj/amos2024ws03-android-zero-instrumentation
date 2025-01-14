@@ -13,12 +13,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,21 +29,36 @@ import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.ui.processes.composables.EditButton
 import de.amosproj3.ziofa.ui.processes.composables.IconAndName
 import de.amosproj3.ziofa.ui.processes.composables.ProcessesHeader
+import de.amosproj3.ziofa.ui.processes.composables.ProcessesSearchBar
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ProcessesScreen(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     viewModel: ProcessesViewModel = koinViewModel(),
     onClickEdit: (RunningComponent) -> Unit,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column {
             val options by remember { viewModel.applicationsAndProcessesList }.collectAsState()
+            var searchQuery by remember { mutableStateOf("") }
 
+            ProcessesSearchBar(
+                value = searchQuery,
+                onValueChanged = { searchQuery = it },
+                onStartSearch = { viewModel.startSearch(query = searchQuery) },
+            )
             ProcessesHeader()
-            LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
-                items(options) { option -> ProcessListRow(option, onClickEdit = onClickEdit) }
+            if (options.isNotEmpty()) {
+                LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
+                    items(options) { option ->
+                        ProcessListRow(option = option, onClickEdit = onClickEdit)
+                    }
+                }
+            } else {
+                Box(modifier.fillMaxSize()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
             }
         }
     }
@@ -48,13 +66,12 @@ fun ProcessesScreen(
 
 @Composable
 fun ProcessListRow(
+    modifier: Modifier = Modifier,
     option: RunningComponent,
-    onClickProcessInfo: (RunningComponent) -> Unit =
-        {}, // TODO implement modal with info about processes
     onClickEdit: (RunningComponent) -> Unit = {},
 ) {
     Row(
-        modifier = Modifier.fillMaxSize().padding(vertical = 10.dp),
+        modifier = modifier.fillMaxSize().padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {

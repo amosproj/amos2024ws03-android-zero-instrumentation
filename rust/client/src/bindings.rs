@@ -59,6 +59,21 @@ impl OdexFileStream {
 }
 
 #[derive(uniffi::Object)]
+struct SoFileStream(Mutex<Pin<Box<dyn Stream<Item = Result<StringResponse>> + Send>>>);
+
+#[uniffi::export(async_runtime = "tokio")]
+impl SoFileStream {
+    pub async fn next(&self) -> Result<Option<StringResponse>> {
+        let mut guard = self.0.lock().await;
+        match guard.next().await {
+            Some(Ok(x)) => Ok(Some(x)),
+            Some(Err(e)) => Err(e),
+            None => Ok(None),
+        }
+    }
+}
+
+#[derive(uniffi::Object)]
 struct SymbolStream(Mutex<Pin<Box<dyn Stream<Item = Result<Symbol>> + Send>>>);
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -162,6 +177,16 @@ impl Client {
         Ok(OdexFileStream(Mutex::new(Box::pin(stream))))
     }
 
+    pub async fn get_so_files(&self, pid: u32) -> Result<SoFileStream> {
+        let mut guard = self.0.lock().await;
+        let stream = guard
+            .get_so_files(pid)
+            .await?
+            .map(|x| x.map_err(ClientError::from));
+
+        Ok(SoFileStream(Mutex::new(Box::pin(stream))))
+    }
+
     pub async fn get_symbols(&self, odex_file: String) -> Result<SymbolStream> {
         let mut guard = self.0.lock().await;
         let stream = guard
@@ -170,6 +195,18 @@ impl Client {
             .map(|x| x.map_err(ClientError::from));
 
         Ok(SymbolStream(Mutex::new(Box::pin(stream))))
+    }
+    
+    pub async fn index_symbols(&self) -> Result<()> {
+        Ok(self.0.lock().await.index_symbols().await?)
+    }
+    
+    pub async fn search_symbols(&self, query: String, limit: u64) -> Result<Vec<Symbol>> {
+        Ok(self.0.lock().await.search_symbols(query, limit).await?)
+    }
+
+    pub async fn get_symbol_offset(&self, symbol_name: String, library_path: String) -> Result<Option<u64>> {
+        Ok(self.0.lock().await.get_symbol_offset(symbol_name, library_path).await?)
     }
 }
 

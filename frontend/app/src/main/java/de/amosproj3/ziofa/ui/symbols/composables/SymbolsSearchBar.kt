@@ -19,8 +19,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+@Suppress("MagicNumber") // does not improve readability
 @Composable
-fun SearchBar(value: String, onValueChanged: (String) -> Unit, onStartSearch: (String) -> Unit) {
+fun SymbolsSearchBar(
+    value: String,
+    onValueChanged: (String) -> Unit,
+    onStartSearch: (String) -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,

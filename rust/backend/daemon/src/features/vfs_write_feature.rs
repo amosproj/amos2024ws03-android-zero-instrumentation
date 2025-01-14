@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@fau.de>
+// SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.com>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //

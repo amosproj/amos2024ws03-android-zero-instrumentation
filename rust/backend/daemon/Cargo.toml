@@ -33,11 +33,14 @@ serde = { workspace = true }
 crossbeam = { workspace = true }
 bytemuck = { workspace = true }
 ractor = { workspace = true, features = ["tokio_runtime"] }
+async-walkdir = { workspace = true }
+tokio-process-stream = { workspace = true }
+symbolic-demangle = { workspace = true }
+symbolic-common = { workspace = true }
+tantivy = { workspace = true }
+fmmap = { workspace = true }
+flume = { workspace = true }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }
 xtask = { workspace = true }
-
-[[test]]
-name = "base"
-path = "./tests/base.rs"

@@ -21,6 +21,7 @@ object RustClient : Client {
             sysSendmsg = SysSendmsgConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
             uprobes = listOf(),
             jniReferences = JniReferencesConfig(pids = listOf()),
+            sysSigquit = SysSigquitConfig(pids = listOf()),
         )
 
     override suspend fun serverCount(): Flow<UInt> = flow {
@@ -110,12 +111,34 @@ object RustClient : Client {
                 )
             }
             configuration.jniReferences?.pids?.forEach {
+                val rnd = Random.nextFloat()
+                if (rnd > 0.33f) {
+                    emit(
+                        Event.JniReferences(
+                            pid = it,
+                            tid = 1234u,
+                            beginTimeStamp = System.currentTimeMillis().toULong(),
+                            jniMethodName = Event.JniReferences.JniMethodName.AddGlobalRef,
+                        )
+                    )
+                } else {
+                    emit(
+                        Event.JniReferences(
+                            pid = it,
+                            tid = 1234u,
+                            beginTimeStamp = System.currentTimeMillis().toULong(),
+                            jniMethodName = Event.JniReferences.JniMethodName.DeleteLocalRef,
+                        )
+                    )
+                }
+            }
+            configuration.sysSigquit?.pids?.forEach {
                 emit(
-                    Event.JniReferences(
+                    Event.SysSigquit(
                         pid = it,
                         tid = 1234u,
-                        beginTimeStamp = System.currentTimeMillis().toULong(),
-                        jniMethodName = Event.JniReferences.JniMethodName.AddLocalRef,
+                        timeStamp = 12312412u,
+                        targetPid = 12874u,
                     )
                 )
             }
@@ -135,7 +158,18 @@ object RustClient : Client {
         emit("/system_ext/framework/oat/x86_64/androidx.window.extensions.odex")
     }
 
-    override suspend fun getSymbols(odexFilePath: String): Flow<Symbol> = flow {
+    override suspend fun getSoFiles(pid: UInt): Flow<String> = flow {
+        emit("/system/lib64/liblog.so")
+        emit("/vendor/lib64/libdrm.so")
+        emit("/vendor/lib64/android.hardware.graphics.mapper@3.0.so")
+        emit("/system/lib64/android.hardware.power-V5-ndk.so")
+        emit("/system/lib64/android.hardware.graphics.mapper@2.0.so")
+        emit("/system/lib64/android.hardware.media.c2@1.2.so")
+
+        emit("/system/lib64/android.hardware.renderscript@1.0.so")
+    }
+
+    override suspend fun getSymbols(filePath: String): Flow<Symbol> = flow {
         emit(
             Symbol(
                 method =

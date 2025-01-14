@@ -21,7 +21,12 @@ service Ziofa {
     rpc InitStream(google.protobuf.Empty) returns (stream Event) {}      // all Responses genereated by the ebpf-programms are send via this stream
 
     rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
+    rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
+
+    rpc IndexSymbols(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc SearchSymbols(SearchSymbolsRequest) returns (SearchSymbolsResponse) {}
+    rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
 }
 
 message StringResponse {
@@ -29,12 +34,31 @@ message StringResponse {
 }
 
 message GetSymbolsRequest {
-    string odex_file_path = 2;
+    string file_path = 2;
+}
+
+message SearchSymbolsRequest {
+    string query = 1;
+    uint64 limit = 2;
+}
+
+message SearchSymbolsResponse {
+    repeated Symbol symbols = 1;
+}
+
+message GetSymbolOffsetRequest {
+    string symbol_name = 1;
+    string library_path = 2;
+}
+
+message GetSymbolOffsetResponse {
+    optional uint64 offset = 1;
 }
 
 message Symbol {
     string method = 1;
-    uint64 offset = 2;
+    string path = 2;
+    uint64 offset = 3;
 }
 
 message PidMessage{
@@ -76,6 +100,7 @@ message Log{
         VfsWriteEvent vfs_write = 1;
         SysSendmsgEvent sys_sendmsg = 2;
         JniReferencesEvent jni_references = 3;
+        SysSigquitEvent sys_sigquit = 4;
     }
 }
 
@@ -109,13 +134,20 @@ message JniReferencesEvent {
     JniMethodName jni_method_name = 4;
 }
 
+message SysSigquitEvent {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 time_stamp = 3;
+    uint64 target_pid = 4;
+}
+
 message TimeSeries{
-    enum EventTypeEnum{
-        VfsWriteEvent = 0;
-        SysSendmsgEvent = 1;
-        JniReferencesEvent = 2;
-    }
-    EventTypeEnum event_type_enum = 1;
-    uint32 timeframe_ms = 2;
-    repeated uint64 data = 3;
+  enum EventTypeEnum{
+    VfsWriteEvent = 0;
+    SysSendmsgEvent = 1;
+    JniReferencesEvent = 2;
+  }
+  EventTypeEnum event_type_enum = 1;
+  uint32 timeframe_ms = 2;
+  repeated uint64 data = 3;
 }

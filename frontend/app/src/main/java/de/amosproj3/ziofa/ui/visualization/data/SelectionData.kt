@@ -14,7 +14,7 @@ sealed class DropdownOption(val displayName: String) {
     /** Filter options */
     data class Process(val processName: String, val pid: UInt) : DropdownOption(processName)
 
-    data class AppOption(
+    data class App(
         val appName: String,
         val packageName: String,
         val icon: Drawable,
@@ -28,12 +28,11 @@ sealed class DropdownOption(val displayName: String) {
      *
      * @param backendFeature the associated backend feature of the metric option
      */
-    data class MetricOption(val backendFeature: BackendFeatureOptions) :
+    data class Metric(val backendFeature: BackendFeatureOptions) :
         DropdownOption(backendFeature.featureName)
 
     /** Timeframe options */
-    data class TimeframeOption(val amount: Int, val unit: DurationUnit) :
-        DropdownOption("$amount $unit")
+    data class Timeframe(val amount: Int, val unit: DurationUnit) : DropdownOption("$amount $unit")
 }
 
 data class SelectionData(

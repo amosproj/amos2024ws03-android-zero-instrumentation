@@ -7,18 +7,13 @@ package de.amosproj3.ziofa.ui.configuration
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import de.amosproj3.ziofa.api.configuration.BackendConfigurationAccess
-import de.amosproj3.ziofa.api.configuration.ConfigurationUpdate
-import de.amosproj3.ziofa.api.configuration.LocalConfigurationAccess
-import de.amosproj3.ziofa.client.SysSendmsgConfig
-import de.amosproj3.ziofa.client.UprobeConfig
-import de.amosproj3.ziofa.client.VfsWriteConfig
+import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
+import de.amosproj3.ziofa.api.configuration.ConfigurationAction
+import de.amosproj3.ziofa.api.configuration.ConfigurationState
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
-import de.amosproj3.ziofa.ui.shared.DURATION_THRESHOLD
 import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -26,84 +21,53 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class ConfigurationViewModel(
-    private val localConfigurationAccess: LocalConfigurationAccess,
-    private val backendConfigurationAccess: BackendConfigurationAccess,
+    private val configurationAccess: ConfigurationAccess,
     private val pids: List<UInt>,
 ) : ViewModel() {
 
     val configurationScreenState =
-        localConfigurationAccess.localConfiguration
+        configurationAccess.configurationState
             .onEach { Timber.i("Update from UI: $it") }
             .map { it.toConfigurationScreenState(pids) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ConfigurationScreenState.Loading)
 
     val changed =
-        combine(
-                localConfigurationAccess.localConfiguration,
-                backendConfigurationAccess.backendConfiguration,
-            ) { local, backend ->
-                local != backend
-            }
+        configurationAccess.configurationState
+            .map { it is ConfigurationState.Different }
             .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     fun optionChanged(option: BackendFeatureOptions, active: Boolean) {
         if (configurationScreenState.value is ConfigurationScreenState.Valid) {
-            when (option) {
-                is BackendFeatureOptions.VfsWriteOption -> {
-                    localConfigurationAccess.changeFeatureConfiguration(
-                        enable = active,
-                        vfsWriteFeature = VfsWriteConfig(pids.associateWith { DURATION_THRESHOLD }),
-                    )
-                }
-
-                is BackendFeatureOptions.SendMessageOption -> {
-                    localConfigurationAccess.changeFeatureConfiguration(
-                        enable = active,
-                        sendMessageFeature =
-                            SysSendmsgConfig(
-                                pids.associateWith { DURATION_THRESHOLD }
-                                // TODO this is not a duration
-                            ),
-                    )
-                }
-
-                is BackendFeatureOptions.UprobeOption -> {
-                    localConfigurationAccess.changeFeatureConfiguration(
-                        enable = active,
-                        uprobesFeature =
-                            pids.map {
-                                UprobeConfig(
-                                    fnName = option.method,
-                                    target = option.odexFilePath,
-                                    offset = option.offset,
-                                    pid = it,
-                                )
-                            },
-                    )
-                }
-
-                else -> throw NotImplementedError("NO SUPPORT YET")
-            }
+            val change =
+                ConfigurationAction.ChangeFeature(
+                    backendFeature = option,
+                    enable = active,
+                    pids = pids.toSet(),
+                )
+            viewModelScope.launch { configurationAccess.performAction(change) }
         }
     }
 
     /** Submit the configuration changes to the backend. */
     fun configurationSubmitted() {
-        viewModelScope.launch { localConfigurationAccess.submitConfiguration() }
+        viewModelScope.launch { configurationAccess.performAction(ConfigurationAction.Synchronize) }
     }
 
-    private fun ConfigurationUpdate.toConfigurationScreenState(
+    private fun ConfigurationState.toConfigurationScreenState(
         relevantPids: List<UInt>
-    ): ConfigurationScreenState {
-        return when (this) {
-            is ConfigurationUpdate.Valid -> {
-                ConfigurationScreenState.Valid(this.toUIOptionsForPids(relevantPids))
-            }
+    ): ConfigurationScreenState =
+        when (this) {
+            is ConfigurationState.Synchronized ->
+                ConfigurationScreenState.Valid(this.configuration.toUIOptionsForPids(relevantPids))
 
-            is ConfigurationUpdate.Invalid ->
+            is ConfigurationState.Different ->
+                ConfigurationScreenState.Valid(
+                    this.localConfiguration.toUIOptionsForPids(relevantPids)
+                )
+
+            is ConfigurationState.Error ->
                 ConfigurationScreenState.Invalid(this.error.stackTraceToString())
 
-            is ConfigurationUpdate.Unknown -> ConfigurationScreenState.Loading
+            is ConfigurationState.Uninitialized -> ConfigurationScreenState.Loading
         }
-    }
 }

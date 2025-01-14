@@ -13,23 +13,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import de.amosproj3.ziofa.ui.visualization.utils.VisualizationDisplayMode
 
 @Composable
-fun SwitchModeFab(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit = {},
-    activeDisplayMode: VisualizationDisplayMode,
-) {
+fun SwitchModeFab(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     ExtendedFloatingActionButton(
         modifier = modifier.padding(end = 25.dp, bottom = 25.dp),
         onClick = onClick,
         icon = { Icon(imageVector = Icons.AutoMirrored.Filled.List, contentDescription = "") },
-        text = {
-            when (activeDisplayMode) {
-                VisualizationDisplayMode.CHART -> "Switch to event mode"
-                VisualizationDisplayMode.EVENTS -> "Switch to chart mode"
-            }.let { Text(it) }
-        },
+        text = { Text(text) },
     )
 }

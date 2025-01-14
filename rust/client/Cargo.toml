@@ -37,3 +37,7 @@ cli = ["dep:clap", "tokio/rt-multi-thread", "tokio/signal"]
 name = "client"
 path = "src/bin/cli.rs"
 required-features = ["cli"]
+
+[[test]]
+name = "base"
+path = "./tests/base.rs"

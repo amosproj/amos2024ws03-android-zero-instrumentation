@@ -6,17 +6,19 @@
 // SPDX-License-Identifier: MIT
 
 use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
+use crate::filesystem::{Filesystem, NormalFilesystem};
 use crate::registry;
+use crate::symbols::actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg};
 use crate::symbols::SymbolHandler;
 use crate::{
-    configuration, constants,
+    constants,
     ebpf_utils::EbpfErrorWrapper,
     procfs_utils::{list_processes, ProcErrorWrapper},
     features::Features,
 };
 use async_broadcast::{broadcast, Receiver, Sender};
-use ractor::Actor;
-use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
+use ractor::{call, Actor, ActorRef};
+use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, SearchSymbolsRequest, SearchSymbolsResponse, GetSymbolOffsetRequest, GetSymbolOffsetResponse, StringResponse, Symbol};
 use shared::{
     config::Configuration,
     ziofa::{
@@ -30,22 +32,30 @@ use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-pub struct ZiofaImpl {
+pub struct ZiofaImpl<F>
+where F: Filesystem {
     features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
+    filesystem: F,
+    symbol_actor_ref: ActorRef<SymbolActorMsg>,
 }
 
-impl ZiofaImpl {
+impl<F> ZiofaImpl<F> 
+where F: Filesystem {
     pub fn new(
         features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
         symbol_handler: Arc<Mutex<SymbolHandler>>,
-    ) -> ZiofaImpl {
+        filesystem: F,
+        symbol_actor_ref: ActorRef<SymbolActorMsg>,
+    ) -> ZiofaImpl<F> {
         ZiofaImpl {
             features,
             channel,
             symbol_handler,
+            filesystem,
+            symbol_actor_ref,
         }
     }
 }
@@ -63,7 +73,8 @@ impl Channel {
 }
 
 #[tonic::async_trait]
-impl Ziofa for ZiofaImpl {
+impl<F> Ziofa for ZiofaImpl<F>
+where F: Filesystem {
     async fn check_server(&self, _: Request<()>) -> Result<Response<CheckServerResponse>, Status> {
         // dummy data
         let response = CheckServerResponse {};
@@ -77,7 +88,7 @@ impl Ziofa for ZiofaImpl {
 
     async fn get_configuration(&self, _: Request<()>) -> Result<Response<Configuration>, Status> {
         //TODO: if ? fails needs valid return value for the function so that the server doesn't crash.
-        let config = configuration::load_from_file(constants::DEV_DEFAULT_FILE_PATH)?;
+        let config = self.filesystem.load(constants::DEV_DEFAULT_FILE_PATH)?;
         Ok(Response::new(config))
     }
 
@@ -87,7 +98,7 @@ impl Ziofa for ZiofaImpl {
     ) -> Result<Response<()>, Status> {
         let config = request.into_inner();
 
-        configuration::save_to_file(&config, constants::DEV_DEFAULT_FILE_PATH)?;
+        self.filesystem.save(&config, constants::DEV_DEFAULT_FILE_PATH)?;
 
         let mut features_guard = self.features.lock().await;
 
@@ -124,7 +135,44 @@ impl Ziofa for ZiofaImpl {
         tokio::spawn(async move {
             let mut symbol_handler_guard = symbol_handler.lock().await;
             // TODO Error Handling
-            let odex_paths = match symbol_handler_guard.get_odex_paths(pid) {
+            let odex_paths = match symbol_handler_guard.get_paths(pid, ".odex") {
+                Ok(paths) => paths,
+                Err(e) => {
+                    tx.send(Err(Status::from(e)))
+                        .await
+                        .expect("Error sending Error to client ._.");
+                    return;
+                }
+            };
+
+            for path in odex_paths {
+                tx.send(Ok(StringResponse {
+                    name: path.to_str().unwrap().to_string(),
+                }))
+                .await
+                .expect("Error sending odex file to client");
+            }
+        });
+
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
+    type GetSoFilesStream = ReceiverStream<Result<StringResponse, Status>>;
+
+    async fn get_so_files(
+        &self,
+        request: Request<PidMessage>,
+    ) -> Result<Response<Self::GetSoFilesStream>, Status> {
+        let pid = request.into_inner().pid;
+
+        let (tx, rx) = mpsc::channel(4);
+
+        let symbol_handler = self.symbol_handler.clone();
+
+        tokio::spawn(async move {
+            let mut symbol_handler_guard = symbol_handler.lock().await;
+            // TODO Error Handling
+            let odex_paths = match symbol_handler_guard.get_paths(pid, ".so") {
                 Ok(paths) => paths,
                 Err(e) => {
                     tx.send(Err(Status::from(e)))
@@ -153,8 +201,8 @@ impl Ziofa for ZiofaImpl {
         request: Request<GetSymbolsRequest>,
     ) -> Result<Response<Self::GetSymbolsStream>, Status> {
         let process_request = request.into_inner();
-        let odex_file_path_string = process_request.odex_file_path;
-        let odex_file_path = PathBuf::from(odex_file_path_string);
+        let file_path_string = process_request.file_path;
+        let file_path = PathBuf::from(file_path_string);
 
         let (tx, rx) = mpsc::channel(4);
 
@@ -163,7 +211,7 @@ impl Ziofa for ZiofaImpl {
         tokio::spawn(async move {
             let mut symbol_handler_guard = symbol_handler.lock().await;
 
-            let symbol = match symbol_handler_guard.get_symbols(&odex_file_path).await {
+            let symbol = match symbol_handler_guard.get_symbols(&file_path).await {
                 Ok(symbol) => symbol,
                 Err(e) => {
                     tx.send(Err(Status::from(e)))
@@ -176,6 +224,7 @@ impl Ziofa for ZiofaImpl {
                 tx.send(Ok(Symbol {
                     method: symbol.to_string(),
                     offset: *offset,
+                    path: file_path.to_string_lossy().into_owned(),
                 }))
                 .await
                 .expect("Error sending odex file to client");
@@ -184,12 +233,33 @@ impl Ziofa for ZiofaImpl {
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
+    
+    async fn index_symbols(&self, _: Request<()>) -> Result<Response<()>, Status> {
+        call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex).map_err(|e| Status::from_error(Box::new(e)))?;
+        Ok(Response::new(()))
+    }
+    
+    async fn search_symbols(&self, request: Request<SearchSymbolsRequest>) -> Result<Response<SearchSymbolsResponse>, Status> {
+        let SearchSymbolsRequest { query, limit } = request.into_inner();
+        let symbols = call!(self.symbol_actor_ref, SymbolActorMsg::Search, SearchReq { query, limit }).map_err(|e| Status::from_error(Box::new(e)))??;
+        
+        Ok(Response::new(SearchSymbolsResponse { symbols }))
+    }
+
+    async fn get_symbol_offset(&self, request: Request<GetSymbolOffsetRequest>) -> Result<Response<GetSymbolOffsetResponse>, Status> {
+        let GetSymbolOffsetRequest { symbol_name, library_path } = request.into_inner();
+        let offset = call!(self.symbol_actor_ref, SymbolActorMsg::GetOffset, GetOffsetRequest { symbol_name, library_path }).map_err(|e| Status::from_error(Box::new(e)))?;
+        
+        Ok(Response::new(GetSymbolOffsetResponse { offset }))
+    }
 }
 
 
 
 pub async fn serve_forever() {
     let registry = registry::load_and_pin().unwrap();
+    
+    let symbol_actor_ref = SymbolActor::spawn().await.unwrap();
 
     let channel = Channel::new();
     let (collector_ref, _) = Actor::spawn(
@@ -205,7 +275,10 @@ pub async fn serve_forever() {
     let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
 
     let features = Arc::new(Mutex::new(features));
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler));
+
+    let filesystem = NormalFilesystem;
+
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem, symbol_actor_ref));
 
     Server::builder()
         .add_service(ziofa_server)

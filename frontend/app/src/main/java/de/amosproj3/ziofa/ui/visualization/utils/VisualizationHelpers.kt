@@ -5,33 +5,58 @@
 package de.amosproj3.ziofa.ui.visualization.utils
 
 import de.amosproj3.ziofa.api.processes.RunningComponent
+import de.amosproj3.ziofa.client.Configuration
 import de.amosproj3.ziofa.ui.shared.toReadableString
+import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 fun DropdownOption.getPIDsOrNull(): List<UInt>? {
     return when (this) {
         is DropdownOption.Global -> null
         is DropdownOption.Process -> listOf(this.pid)
-        is DropdownOption.AppOption -> this.pids
-        else -> throw IllegalStateException("Invalid filter")
+        is DropdownOption.App -> this.pids
+        else -> error("Invalid filter")
     }
 }
 
 fun List<RunningComponent>.toUIOptions() =
-    this.map {
-        when (it) {
+    this.map { component ->
+        when (component) {
             is RunningComponent.Application ->
-                DropdownOption.AppOption(
-                    appName = it.packageInfo.displayName,
-                    packageName = it.packageInfo.displayName,
-                    icon = it.packageInfo.icon,
-                    pids = it.processList.map { it.pid.toUInt() },
+                DropdownOption.App(
+                    appName = component.packageInfo.displayName,
+                    packageName = component.packageInfo.displayName,
+                    icon = component.packageInfo.icon,
+                    pids = component.processList.map { it.pid },
                 )
 
             is RunningComponent.StandaloneProcess ->
                 DropdownOption.Process(
-                    it.process.cmd.toReadableString(),
-                    pid = it.process.pid.toUInt(),
+                    component.process.cmd.toReadableString(),
+                    pid = component.process.pid,
                 )
         }
     }
+
+@OptIn(ExperimentalContracts::class)
+fun isValidSelection(selectedMetric: DropdownOption?, selectedTimeframe: DropdownOption?): Boolean {
+    contract {
+        returns(true) implies
+            (selectedMetric is DropdownOption.Metric &&
+                selectedTimeframe is DropdownOption.Timeframe)
+    }
+
+    return selectedMetric != null &&
+        selectedMetric is DropdownOption.Metric &&
+        selectedTimeframe != null &&
+        selectedTimeframe is DropdownOption.Timeframe
+}
+
+/**
+ * Get a list of dropdown options from the [Configuration]. This list only contains metric that are
+ * configured (== active) for the any of the given [pids].
+ */
+fun Configuration.getActiveMetricsForPids(pids: List<UInt>?) =
+    this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.Metric(it) }

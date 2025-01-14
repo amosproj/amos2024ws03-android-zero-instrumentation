@@ -64,6 +64,13 @@ private fun uniffi.shared.Event.into() =
                         JniMethodName.UNDEFINED -> null
                     },
             )
+        is EventData.SysSigquit ->
+            Event.SysSigquit(
+                pid = d.v1.pid,
+                tid = d.v1.tid,
+                timeStamp = d.v1.timeStamp,
+                targetPid = d.v1.targetPid,
+            )
         null -> null
     }
 
@@ -81,6 +88,7 @@ private fun uniffi.shared.Configuration.into() =
                 )
             },
         jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
+        sysSigquit = sysSigquit?.let { SysSigquitConfig(pids = it.pids) },
     )
 
 private fun Configuration.into() =
@@ -97,6 +105,7 @@ private fun Configuration.into() =
                 )
             },
         jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
+        sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
     )
 
 private fun uniffi.shared.StringResponse.into() = StringResponse(name)
@@ -131,8 +140,11 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
     override suspend fun getOdexFiles(pid: UInt): Flow<String> =
         inner.getOdexFilesFlow(pid).mapNotNull { it.into().name }
 
-    override suspend fun getSymbols(odexFilePath: String): Flow<Symbol> =
-        inner.getSymbolFlow(odexFilePath).mapNotNull { it.into() }
+    override suspend fun getSoFiles(pid: UInt): Flow<String> =
+        inner.getSoFilesFlow(pid).mapNotNull { it.into().name }
+
+    override suspend fun getSymbols(filePath: String): Flow<Symbol> =
+        inner.getSymbolFlow(filePath).mapNotNull { it.into() }
 
     override suspend fun initStream(): Flow<Event> = inner.initStreamFlow().mapNotNull { it.into() }
 }
@@ -182,8 +194,16 @@ fun uniffi.client.Client.getOdexFilesFlow(pid: UInt) = flow {
     }
 }
 
-fun uniffi.client.Client.getSymbolFlow(odexFilePath: String) = flow {
-    getSymbols(odexFilePath).use { stream ->
+fun uniffi.client.Client.getSoFilesFlow(pid: UInt) = flow {
+    getOdexFiles(pid).use { stream ->
+        while (true) {
+            stream.next()?.also { file -> emit(file) } ?: break
+        }
+    }
+}
+
+fun uniffi.client.Client.getSymbolFlow(filePath: String) = flow {
+    getSymbols(filePath).use { stream ->
         while (true) {
             stream.next()?.also { symbol -> emit(symbol) } ?: break
         }
