@@ -129,9 +129,9 @@ impl CollectorSupervisorArguments {
 }
 
 impl Actor for CollectorSupervisor {
-    type Arguments = CollectorSupervisorArguments;
     type Msg = ();
     type State = CollectorSupervisorState;
+    type Arguments = CollectorSupervisorArguments;
 
     async fn pre_start(
         &self,
