@@ -6,7 +6,7 @@
 
 use crate::ziofa::event::EventType;
 use crate::ziofa::log::EventData;
-use crate::ziofa::metric::EventTypeEnum;
+use crate::ziofa::time_series::EventTypeEnum;
 use crate::ziofa::{Event, Log};
 
 #[cfg(feature = "uniffi")]

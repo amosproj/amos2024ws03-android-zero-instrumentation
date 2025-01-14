@@ -14,6 +14,7 @@ mod aggregator;
 mod event_dispatcher;
 mod ring_buf;
 mod supervisor;
+mod time_series;
 
 pub use supervisor::{CollectorSupervisor, CollectorSupervisorArguments};
 
