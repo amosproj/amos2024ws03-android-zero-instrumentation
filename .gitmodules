@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
 [submodule "rust/garbage-collection/art"]
 	path = rust/garbage-collection/art
 	url = https://android.googlesource.com/platform/art
