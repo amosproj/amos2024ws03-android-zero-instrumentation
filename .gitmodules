@@ -1,0 +1,15 @@
+[submodule "rust/garbage-collection/art"]
+	path = rust/garbage-collection/art
+	url = https://android.googlesource.com/platform/art
+[submodule "rust/garbage-collection/bionic"]
+	path = rust/garbage-collection/bionic
+	url = https://android.googlesource.com/platform/bionic
+[submodule "rust/garbage-collection/external/tinyxml2"]
+	path = rust/garbage-collection/external/tinyxml2
+	url = https://android.googlesource.com/platform/external/tinyxml2
+[submodule "rust/garbage-collection/external/fmtlib"]
+	path = rust/garbage-collection/external/fmtlib
+	url = https://android.googlesource.com/platform/external/fmtlib
+[submodule "rust/garbage-collection/system/libbase"]
+	path = rust/garbage-collection/system/libbase
+	url = https://android.googlesource.com/platform/system/libbase
