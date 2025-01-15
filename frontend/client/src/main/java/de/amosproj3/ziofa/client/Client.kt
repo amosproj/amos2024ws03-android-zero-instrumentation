@@ -13,6 +13,7 @@ data class Configuration(
     val uprobes: List<UprobeConfig>,
     val jniReferences: JniReferencesConfig?,
     val sysSigquit: SysSigquitConfig?,
+    val gc: GcConfig?,
 )
 
 data class VfsWriteConfig(val entries: Map<UInt, ULong>)
@@ -24,6 +25,8 @@ data class UprobeConfig(val fnName: String, val offset: ULong, var target: Strin
 data class JniReferencesConfig(val pids: List<UInt>)
 
 data class SysSigquitConfig(val pids: List<UInt>)
+
+data object GcConfig
 
 sealed class Event {
     data class VfsWrite(
@@ -61,6 +64,21 @@ sealed class Event {
         val tid: UInt,
         val timeStamp: ULong,
         val targetPid: ULong,
+    ) : Event()
+
+    data class Gc(
+        val pid: UInt,
+        val tid: UInt,
+        var targetFootprint: ULong,
+        var numBytesAllocated: ULong,
+        var gcsCompleted: UInt,
+        var gcCause: UInt,
+        var durationNs: ULong,
+        var freedObjects: ULong,
+        var freedBytes: Long,
+        var freedLosObjects: ULong,
+        var freedLosBytes: Long,
+        var pauseTimes: List<ULong>,
     ) : Event()
 }
 
