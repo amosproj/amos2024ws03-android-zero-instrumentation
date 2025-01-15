@@ -5,12 +5,14 @@
 //
 // SPDX-License-Identifier: MIT
 
-use aya::EbpfError;
-use aya::programs::trace_point::TracePointLink;
-use aya::programs::TracePoint;
-use shared::config::SysSendmsgConfig;
 use crate::features::{update_pids, Feature};
 use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
+use crate::symbols::actors::SymbolActorMsg;
+use aya::programs::trace_point::TracePointLink;
+use aya::programs::TracePoint;
+use aya::EbpfError;
+use ractor::ActorRef;
+use shared::config::SysSendmsgConfig;
 
 pub struct SysSendmsgFeature {
     sys_enter_sendmsg: RegistryGuard<TracePoint>,
@@ -33,12 +35,16 @@ impl SysSendmsgFeature {
 
     fn attach(&mut self) -> Result<(), EbpfError> {
         if self.sys_enter_sendmsg_link.is_none() {
-            let link_id = self.sys_enter_sendmsg.attach("syscalls","sys_enter_sendmsg")?;
+            let link_id = self
+                .sys_enter_sendmsg
+                .attach("syscalls", "sys_enter_sendmsg")?;
             self.sys_enter_sendmsg_link = Some(self.sys_enter_sendmsg.take_link(link_id)?);
         }
 
         if self.sys_exit_sendmsg_link.is_none() {
-            let link_id = self.sys_exit_sendmsg.attach("syscalls","sys_exit_sendmsg")?;
+            let link_id = self
+                .sys_exit_sendmsg
+                .attach("syscalls", "sys_exit_sendmsg")?;
             self.sys_exit_sendmsg_link = Some(self.sys_exit_sendmsg.take_link(link_id)?);
         }
 
@@ -61,11 +67,11 @@ impl SysSendmsgFeature {
 
 impl Feature for SysSendmsgFeature {
     type Config = SysSendmsgConfig;
-    fn init(registry: &EbpfRegistry) -> Self {
+    fn init(registry: &EbpfRegistry, _: Option<ActorRef<SymbolActorMsg>>) -> Self {
         SysSendmsgFeature::create(registry)
     }
 
-    fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
+    async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
         match config {
             Some(config) => {
                 self.attach()?;
@@ -78,8 +84,3 @@ impl Feature for SysSendmsgFeature {
         Ok(())
     }
 }
-
-
-
-
-

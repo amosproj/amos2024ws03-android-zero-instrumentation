@@ -18,5 +18,5 @@ mod filesystem;
 pub async fn run_server() {
     helpers::bump_rlimit();
 
-    server::serve_forever().await;
+    server::serve_forever_socket().await;
 } 

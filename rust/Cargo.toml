@@ -15,7 +15,9 @@ members = [
   "shared",
   "client",
   "playground/sendmsg-demo",
-  "uniffi-bindgen", "backend/ebpf-test",
+  "uniffi-bindgen", 
+  "backend/ebpf-test",
+  "runner",
 ]
 default-members = [
   "xtask",
@@ -60,6 +62,7 @@ xtask = { path = "./xtask" }
 backend-common = { path = "./backend/common" }
 backend-daemon = { path = "./backend/daemon" }
 backend-ebpf = { path = "./backend/ebpf" }
+runner = { path = "./runner" }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 procfs = "0.17.0"
@@ -80,6 +83,11 @@ symbolic-common = "12.12.3"
 tantivy = { version = "0.22.0", features = ["mmap", "zstd-compression"], default-features = false }
 fmmap = { version = "0.3.3", default-features = false, features = ["tokio-async"] }
 flume = { version = "0.11.1", default-features = false, features = ["async"] }
+adb_client = "2.1.0"
+ctrlc = "3.4.5"
+rustix = { version = "0.38.43" }
+tower = { version = "0.5.2" }
+hyper-util = { version = "0.1.10", features = ["tokio"] }
 
 [profile.release.package.backend-ebpf]
 debug = 2
