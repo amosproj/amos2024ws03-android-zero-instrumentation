@@ -564,6 +564,7 @@ version = "0.1.0"
 dependencies = [
  "aya",
  "bytemuck",
+ "garbage-collection",
 ]
 
 [[package]]
@@ -581,6 +582,7 @@ dependencies = [
  "crossbeam",
  "flume",
  "fmmap",
+ "garbage-collection",
  "hyper-util",
  "libc",
  "object",
@@ -608,8 +610,10 @@ name = "backend-ebpf"
 version = "0.1.0"
 dependencies = [
  "aya-ebpf",
+ "aya-log-common",
  "aya-log-ebpf",
  "backend-common",
+ "garbage-collection",
  "which 7.0.0",
  "xtask",
 ]

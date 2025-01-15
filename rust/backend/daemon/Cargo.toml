@@ -42,6 +42,7 @@ fmmap = { workspace = true }
 flume = { workspace = true }
 hyper-util = { workspace = true }
 tower = { workspace = true }
+garbage-collection = { workspace = true, features = ["serialize"] }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }
