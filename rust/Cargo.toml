@@ -18,6 +18,7 @@ members = [
   "uniffi-bindgen", 
   "backend/ebpf-test",
   "runner",
+  "garbage-collection",
 ]
 default-members = [
   "xtask",
