@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
 [package]
 name = "garbage-collection"
 version = "0.1.0"
@@ -6,3 +10,21 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
+bytemuck = { workspace = true, features = ["derive"] }
+clang = { workspace = true, features = ["runtime", "clang_3_7"], optional = true}
+clang-sys = { workspace = true, features = ["runtime"], optional = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+serde_json = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
+
+[features]
+parse = ["dep:clang", "dep:clang-sys", "dep:thiserror"]
+cli = ["parse", "serialize", "dep:serde_json"]
+read = []
+serialize = ["dep:serde"]
+
+[[bin]]
+name = "parser"
+path = "src/parser.rs"
+required-features = ["parse"]
+

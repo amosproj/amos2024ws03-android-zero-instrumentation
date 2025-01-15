@@ -64,6 +64,7 @@ backend-common = { path = "./backend/common" }
 backend-daemon = { path = "./backend/daemon" }
 backend-ebpf = { path = "./backend/ebpf" }
 runner = { path = "./runner" }
+garbage-collection = { path = "./garbage-collection" }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 procfs = "0.17.0"
@@ -89,6 +90,8 @@ ctrlc = "3.4.5"
 rustix = { version = "0.38.43" }
 tower = { version = "0.5.2" }
 hyper-util = { version = "0.1.10", features = ["tokio"] }
+clang = "2.0.0"
+clang-sys = "1.8.1"
 
 [profile.release.package.backend-ebpf]
 debug = 2
