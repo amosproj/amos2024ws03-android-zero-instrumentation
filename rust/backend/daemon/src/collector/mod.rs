@@ -4,8 +4,8 @@
 //
 // SPDX-License-Identifier: MIT
 
-use backend_common::{JNICall, JNIMethodName, SysSendmsgCall, VfsWriteCall, SysSigquitCall};
-use shared::ziofa::{Event, JniReferencesEvent, SysSendmsgEvent, VfsWriteEvent, SysSigquitEvent};
+use backend_common::{JNICall, JNIMethodName, SysGcCall, SysSendmsgCall, SysSigquitCall, VfsWriteCall};
+use shared::ziofa::{Event, GcEvent, JniReferencesEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent};
 use shared::ziofa::event::EventData;
 use shared::ziofa::jni_references_event::JniMethodName;
 mod ring_buf;
@@ -73,6 +73,27 @@ impl IntoEvent for SysSigquitCall {
                 tid: self.tid,
                 time_stamp: self.time_stamp,
                 target_pid: self.target_pid,
+            }))
+        }
+    }
+}
+
+impl IntoEvent for SysGcCall {
+    fn into_event(self) -> Event {
+        Event {
+            event_data: Some(EventData::Gc(GcEvent {
+                pid: self.pid,
+                tid: self.tid,
+                target_footprint: self.heap.target_footprint as u64,
+                num_bytes_allocated: self.heap.num_bytes_allocated as u64,
+                gcs_completed: self.heap.gcs_completed,
+                gc_cause: self.heap.gc_cause as u32,
+                duration_ns: self.heap.duration_ns,
+                freed_objects: self.heap.freed_objects,
+                freed_bytes: self.heap.freed_bytes,
+                freed_los_objects: self.heap.freed_los_objects,
+                freed_los_bytes: self.heap.freed_los_bytes,
+                pause_times: self.heap.pause_times.to_vec(),
             }))
         }
     }
