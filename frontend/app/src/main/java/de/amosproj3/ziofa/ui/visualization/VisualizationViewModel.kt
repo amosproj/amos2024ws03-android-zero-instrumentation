@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import timber.log.Timber
 
 class VisualizationViewModel(
@@ -102,7 +101,7 @@ class VisualizationViewModel(
                                     selectedTimeframe = selection.selectedTimeframe,
                                     chartMetadata = selection.selectedMetric.getChartMetadata(),
                                 )
-                                .map { VisualizationScreenState.ChartView(it, selection) }
+                                ?.map { VisualizationScreenState.Valid.ChartView(it, selection) }
 
                         VisualizationDisplayMode.EVENTS ->
                             dataStreamProvider
@@ -110,8 +109,8 @@ class VisualizationViewModel(
                                     selectedComponent = selection.selectedComponent,
                                     selectedMetric = selection.selectedMetric,
                                 )
-                                .map {
-                                    VisualizationScreenState.EventListView(
+                                ?.map {
+                                    VisualizationScreenState.Valid.EventListView(
                                         graphedData = it,
                                         selectionData = selection,
                                         eventListMetadata =
@@ -119,8 +118,19 @@ class VisualizationViewModel(
                                     )
                                 }
                     }
+                        ?: flowOf(
+                            VisualizationScreenState.Incomplete.NoVisualizationExists(
+                                selection,
+                                mode,
+                            )
+                        )
                 } else {
-                    flowOf(VisualizationScreenState.WaitingForMetricSelection(selection, mode))
+                    flowOf(
+                        VisualizationScreenState.Incomplete.WaitingForMetricSelection(
+                            selection,
+                            mode,
+                        )
+                    )
                 }
             }
             .stateIn(
@@ -144,16 +154,8 @@ class VisualizationViewModel(
         }
     }
 
-    /**
-     * Cycle the active display mode between [VisualizationDisplayMode.CHART] and
-     * [VisualizationDisplayMode.EVENTS]
-     */
-    fun switchMode() {
-        displayMode.update { prev ->
-            when (prev) {
-                VisualizationDisplayMode.EVENTS -> VisualizationDisplayMode.CHART
-                VisualizationDisplayMode.CHART -> VisualizationDisplayMode.EVENTS
-            }
-        }
+    /** Set the active display mode. */
+    fun switchMode(newMode: VisualizationDisplayMode) {
+        displayMode.value = newMode
     }
 }

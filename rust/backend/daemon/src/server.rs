@@ -288,7 +288,8 @@ where
     }
 }
 
-pub async fn serve_forever() {
+
+async fn setup() -> (ActorRef<()>, ZiofaServer<ZiofaImpl<NormalFilesystem>>) {
     let registry = registry::load_and_pin().unwrap();
 
     let symbol_actor_ref = SymbolActor::spawn().await.unwrap();
@@ -311,13 +312,13 @@ pub async fn serve_forever() {
 
     let filesystem = NormalFilesystem;
 
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(
-        features,
-        channel,
-        symbol_handler,
-        filesystem,
-        symbol_actor_ref,
-    ));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem, symbol_actor_ref));
+    
+    (collector_ref, ziofa_server)
+}
+
+pub async fn serve_forever_socket() {
+    let (collector_ref, ziofa_server) = setup().await;
 
     Server::builder()
         .add_service(ziofa_server)
@@ -326,4 +327,77 @@ pub async fn serve_forever() {
         .unwrap();
 
     collector_ref.stop_and_wait(None, None).await.unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io;
+
+    use hyper_util::rt::TokioIo;
+    use tokio::io::duplex;
+    use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
+    use tonic::transport::Endpoint;
+    use tower::service_fn;
+    use shared::ziofa::ziofa_client::ZiofaClient;
+
+    use super::*;
+    
+    #[tokio::test]
+    async fn test_in_memory_connection() {
+        
+        // We use a channel, this is plays the role of our operating system, that would normally give us a tcp socket when we connect to the server
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        
+        // Normal setup like in the default case
+        let (collector_ref, ziofa_server) = setup().await;
+        
+        // We create a new endpoint, the connection url is ignored in the `connect_with_connector` call
+        let channel = Endpoint::try_from("http://[::1]:50051").unwrap()
+            .connect_with_connector(service_fn({
+                move |_| {
+                    // We create a new duplex stream, this plays the role of the tcp socket
+                    let (left, right) = duplex(64);
+                    // We send the duplex stream over the channel, so our server gets the other end of it
+                    tx.send(right).unwrap();
+                    async move {
+                        // TokioIo is just a wrapper to make it compatible with the hyper webserver
+                        Ok::<_, io::Error>(TokioIo::new(left))
+                    }
+                }
+            })).await.unwrap();
+        
+        // We can create multiple clients
+        let mut client = ZiofaClient::new(channel.clone());
+        let mut other = ZiofaClient::new(channel);
+        
+        // stop condition
+        let (stop_tx, stop_rx) = tokio::sync::oneshot::channel();
+        
+        let stop = async move {
+            let _ = stop_rx.await;
+        };
+        
+        let server_task = tokio::spawn(async move {
+            Server::builder()
+                .add_service(ziofa_server)
+                // UnboundedReceiverStream is a wrapper to turn a Receiver into a Stream
+                // Network operations can fail so it expects a result type, we just wrap it in Ok
+                .serve_with_incoming_shutdown(UnboundedReceiverStream::new(rx).map(Ok::<_, io::Error>), stop)
+                .await
+                .unwrap();
+        });
+        
+        // We can now call the server as we like
+        let _ = client.check_server(()).await.unwrap();
+        let _ = other.check_server(()).await.unwrap();
+        
+        // gracefully shutdown the server
+        stop_tx.send(()).expect("still running");
+        
+        // wait for the task/server to be done
+        server_task.await.unwrap();
+        
+        // stop the collector
+        collector_ref.stop_and_wait(None, None).await.unwrap();
+    }
 }

@@ -40,6 +40,8 @@ symbolic-common = { workspace = true }
 tantivy = { workspace = true }
 fmmap = { workspace = true }
 flume = { workspace = true }
+hyper-util = { workspace = true }
+tower = { workspace = true }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }
