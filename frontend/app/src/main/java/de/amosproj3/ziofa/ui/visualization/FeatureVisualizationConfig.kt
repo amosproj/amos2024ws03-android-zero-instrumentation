@@ -98,7 +98,7 @@ fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
 fun DataStreamProvider.getEventListData(
     selectedComponent: DropdownOption,
     selectedMetric: DropdownOption.Metric,
-): Flow<GraphedData.EventListData> {
+): Flow<GraphedData.EventListData>? {
     val pids = selectedComponent.getPIDsOrNull()
     val metric = selectedMetric.backendFeature
     return when (metric) {
@@ -150,7 +150,7 @@ fun DataStreamProvider.getEventListData(
                 }
                 .toEventList()
 
-        else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+        else -> null
     }
 }
 
@@ -163,7 +163,7 @@ fun DataStreamProvider.getChartData(
     selectedMetric: DropdownOption.Metric,
     selectedTimeframe: DropdownOption.Timeframe,
     chartMetadata: ChartMetadata,
-): Flow<GraphedData> {
+): Flow<GraphedData>? {
 
     val pids = selectedComponent.getPIDsOrNull()
     val metric = selectedMetric.backendFeature
@@ -179,6 +179,6 @@ fun DataStreamProvider.getChartData(
             this.jniReferenceEvents(pids = pids)
                 .toCombinedReferenceCount(chartMetadata, selectedTimeframe)
 
-        else -> throw NotImplementedError("NOT IMPLEMENTED YET")
+        else -> null
     }
 }

@@ -7,6 +7,7 @@ use clap::Parser;
 use clap::Subcommand;
 use client::Client;
 use client::ClientError;
+use shared::config::GcConfig;
 use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig, SysSigquitConfig};
 use std::collections::HashMap;
 use tokio_stream::StreamExt;
@@ -80,6 +81,27 @@ enum Commands {
         #[arg(short, long)]
         silent: bool,
     },
+    
+    /// Create an Index for all Symbols on the System
+    IndexSymbols,
+
+    /// Search via query for symbols
+    SearchSymbols {
+        /// The query string
+        query: String,
+        
+        /// The limit of symbols sent by the server
+        limit: u64
+    },
+
+    /// Finds the symbol given symbol name and library path
+    GetSymbolOffset {
+        /// The name of the symbol
+        symbol_name: String,
+    
+        /// The path of the library containing the symbol
+        library_path: String
+    }
 }
 
 async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
@@ -92,6 +114,7 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
             }),
             jni_references: None,
             sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
+            gc: Some(GcConfig { })
         })
         .await?;
 
@@ -116,6 +139,7 @@ async fn set_config(client: &mut Client) -> Result<()> {
             }),
             jni_references: Some(JniReferencesConfig { pids: vec![] }),
             sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
+            gc: Some(GcConfig { })
         })
         .await?;
     println!("Success");
@@ -193,6 +217,38 @@ async fn get_symbols(client: &mut Client, file: String, silent: bool) -> Result<
     Ok(())
 }
 
+async fn index_symbols(client: &mut Client) -> Result<()> {
+    println!("Indexing Symbols, this can take a while...");
+    client.index_symbols().await?;
+    println!("SUCCESS");
+    Ok(())
+}
+
+async fn search_symbols(client: &mut Client, query: String, limit: u64) -> Result<()> {
+    let symbols = client.search_symbols(query, limit).await?;
+    
+    let mut count = 0;
+    for symbol in symbols {
+        println!("method: {} | offset: {} | library_path: {}", symbol.method, symbol.offset, symbol.path);
+        count += 1;
+    }
+    println!("Total number of symbols: {count}");
+    
+    Ok(())
+}
+
+async fn get_symbol_offset(client: &mut Client, symbol_name: String, library_path: String) -> Result<()> {
+    let offset = client.get_symbol_offset(symbol_name, library_path).await?;
+    
+    if let Some(offset) = offset {
+        println!("Found offset: {offset}");
+    } else {
+        println!("Did not find symbol");
+    }
+    
+    Ok(())
+}
+
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
     let args: Args = Args::parse();
@@ -225,6 +281,15 @@ pub async fn main() -> anyhow::Result<()> {
         }
         Commands::So { pid, silent } => {
             get_so_files(&mut client, pid, silent).await?;
+        }
+        Commands::IndexSymbols => {
+            index_symbols(&mut client).await?;
+        }
+        Commands::SearchSymbols { query, limit } => {
+            search_symbols(&mut client, query, limit).await?;
+        }
+        Commands::GetSymbolOffset { symbol_name, library_path } => {
+            get_symbol_offset(&mut client, symbol_name, library_path).await?;
         }
     }
 

@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+[package]
+name = "runner"
+version = "0.1.0"
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[lib]
+
+[dependencies]
+adb_client = { workspace = true, optional = true }
+ctrlc = { workspace = true, optional = true }
+rustix = { workspace = true, features = ["process"], optional = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, optional = true }
+
+[features]
+client = ["dep:adb_client", "dep:ctrlc", "dep:serde_json"]
+server = ["dep:rustix", "dep:serde_json"]
+
+[[bin]]
+name = "runner-server"
+path = "src/server.rs"
+required-features = ["server"]
+
+[[bin]]
+name = "runner-client"
+path = "src/client.rs"
+required-features = ["client"]

@@ -25,7 +25,7 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
         is BackendFeatureOptions.VfsWriteOption ->
             this.copy(
                 vfsWrite =
-                    this.vfsWrite?.updatePIDs(
+                    this.vfsWrite.updatePIDs(
                         pidsToAdd =
                             if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
                             else setOf(),
@@ -38,7 +38,7 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
         is BackendFeatureOptions.SendMessageOption ->
             this.copy(
                 sysSendmsg =
-                    this.sysSendmsg?.updatePIDs(
+                    this.sysSendmsg.updatePIDs(
                         pidsToAdd =
                             if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
                             else setOf(),
@@ -51,7 +51,7 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
         is BackendFeatureOptions.JniReferencesOption ->
             this.copy(
                 jniReferences =
-                    this.jniReferences?.updatePIDs(
+                    this.jniReferences.updatePIDs(
                         pidsToAdd = if (enable) pids else setOf(),
                         pidsToRemove = if (!enable) pids else setOf(),
                     )
@@ -60,7 +60,7 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
         is BackendFeatureOptions.SigquitOption ->
             this.copy(
                 sysSigquit =
-                    this.sysSigquit?.updatePIDs(
+                    this.sysSigquit.updatePIDs(
                         pidsToAdd = if (enable) pids else setOf(),
                         pidsToRemove = if (!enable) pids else setOf(),
                     )

@@ -6,7 +6,12 @@ SPDX-License-Identifier: MIT
 
 # Zero Instrumentation Observability for Android™[^1] (AMOS WS 2024)
 
+![Kotlin Version](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Famosproj%2Famos2024ws03-android-zero-instrumentation%2Fmaster%2Ffrontend%2Fgradle%2Flibs.versions.toml&query=%24.versions.kotlin&style=for-the-badge&label=Kotlin&color=pink)
+![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
+![Nix](https://img.shields.io/badge/NIX-5277C3.svg?style=for-the-badge&logo=NixOS&logoColor=white)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/amosproj/amos2024ws03-android-zero-instrumentation/docker-build.yml?style=for-the-badge)
 [![REUSE status](https://api.reuse.software/badge/github.com/amosproj/amos2024ws03-android-zero-instrumentation)](https://api.reuse.software/info/github.com/amosproj/amos2024ws03-android-zero-instrumentation)
+[![forthebadge](https://forthebadge.com/images/badges/works-on-my-machine.svg)](https://forthebadge.com)
 
 <img src="Deliverables/sprint-01/team-logo.svg" width="224">
 

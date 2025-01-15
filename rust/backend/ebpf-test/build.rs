@@ -15,7 +15,7 @@ use std::{
 };
 
 use cargo_metadata::{
-    Artifact, CompilerMessage, Message, Metadata, MetadataCommand, Package, Target, TargetKind,
+    Artifact, CompilerMessage, Message, Metadata, MetadataCommand, Package, Target,
 };
 
 /// This crate has a runtime dependency on artifacts produced by the `example-ebpf` crate.
