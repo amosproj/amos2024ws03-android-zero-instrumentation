@@ -101,6 +101,7 @@ message LogEvent {
         SysSendmsgEvent sys_sendmsg = 2;
         JniReferencesEvent jni_references = 3;
         SysSigquitEvent sys_sigquit = 4;
+        GcEvent gc = 5;
     }
 }
 
@@ -150,4 +151,19 @@ message TimeSeriesEvent {
   EventTypeEnum event_type_enum = 1;
   uint32 timeframe_ms = 2;
   repeated uint64 data = 3;
+}
+
+message GcEvent {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 target_footprint = 3;
+    uint64 num_bytes_allocated = 4;
+    uint32 gcs_completed = 5;
+    uint32 gc_cause = 6;
+    uint64 duration_ns = 7;
+    uint64 freed_objects = 8;
+    int64 freed_bytes = 9;
+    uint64 freed_los_objects = 10;
+    int64 freed_los_bytes = 11;
+    repeated uint64 pause_times = 12;
 }

@@ -9,9 +9,11 @@ mod jni_reference_feature;
 mod vfs_write_feature;
 mod sys_sendmsg_feature;
 mod sys_sigquit_feature;
+mod garbage_collection_feature;
 
 use std::collections::BTreeSet;
 use aya::EbpfError;
+use garbage_collection_feature::GcFeature;
 use jni_reference_feature::JNIReferencesFeature;
 use ractor::ActorRef;
 use shared::config::Configuration;
@@ -35,6 +37,7 @@ pub struct Features {
     sys_sigquit_feature: SysSigquitFeature,
     vfs_write_feature: VfsWriteFeature,
     jni_reference_feature: JNIReferencesFeature,
+    gc_feature: GcFeature,
 }
 
 impl Features {
@@ -44,12 +47,14 @@ impl Features {
         let vfs_write_feature = VfsWriteFeature::init(registry, None);
         let jni_reference_feature = JNIReferencesFeature::init(registry, Some(symbol_actor_ref));
         let sys_sigquit_feature = SysSigquitFeature::init(registry, None);
+        let gc_feature = GcFeature::init(registry, None);
 
         Self {
             sys_sendmsg_feature,
             vfs_write_feature,
             jni_reference_feature,
             sys_sigquit_feature,
+            gc_feature,
         }
     }
 
@@ -58,11 +63,11 @@ impl Features {
         config: &Configuration,
     ) -> Result<(), EbpfError> {
 
-
         self.vfs_write_feature.apply(&config.vfs_write).await?;
         self.sys_sendmsg_feature.apply(&config.sys_sendmsg).await?;
         self.jni_reference_feature.apply( &config.jni_references).await?;
         self.sys_sigquit_feature.apply( &config.sys_sigquit).await?;
+        self.gc_feature.apply( &config.gc).await?;
 
         Ok(())
     }

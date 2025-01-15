@@ -22,6 +22,7 @@ object RustClient : Client {
             uprobes = listOf(),
             jniReferences = JniReferencesConfig(pids = listOf()),
             sysSigquit = SysSigquitConfig(pids = listOf()),
+            gc = GcConfig,
         )
 
     override suspend fun serverCount(): Flow<UInt> = flow {

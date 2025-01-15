@@ -23,6 +23,7 @@ message Configuration {
   optional JniReferencesConfig jniReferences = 3;
   optional SysSigquitConfig sys_sigquit = 4;
   repeated UprobeConfig uprobes = 5;
+  optional GcConfig gc = 6;
 }
 
 message VfsWriteConfig {
@@ -40,3 +41,5 @@ message JniReferencesConfig {
 message SysSigquitConfig {
   repeated uint32 pids = 1;
 }
+
+message GcConfig { }
