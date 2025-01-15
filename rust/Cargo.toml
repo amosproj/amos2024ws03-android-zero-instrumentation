@@ -86,6 +86,8 @@ flume = { version = "0.11.1", default-features = false, features = ["async"] }
 adb_client = "2.1.0"
 ctrlc = "3.4.5"
 rustix = { version = "0.38.43" }
+tower = { version = "0.5.2" }
+hyper-util = { version = "0.1.10", features = ["tokio"] }
 
 [profile.release.package.backend-ebpf]
 debug = 2
