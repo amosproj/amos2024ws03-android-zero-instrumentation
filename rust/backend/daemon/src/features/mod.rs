@@ -13,19 +13,20 @@ mod sys_sigquit_feature;
 use std::collections::BTreeSet;
 use aya::EbpfError;
 use jni_reference_feature::JNIReferencesFeature;
+use ractor::ActorRef;
 use shared::config::Configuration;
 use sys_sendmsg_feature::SysSendmsgFeature;
 use sys_sigquit_feature::SysSigquitFeature;
 use vfs_write_feature::VfsWriteFeature;
 
-use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
+use crate::{registry::{EbpfRegistry, OwnedHashMap, RegistryGuard}, symbols::actors::SymbolActorMsg};
 
 
 pub trait Feature {
     type Config;
 
-    fn init(registry: &EbpfRegistry) -> Self;
-    fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError>;
+    fn init(registry: &EbpfRegistry, symbol_actor_ref: Option<ActorRef<SymbolActorMsg>>) -> Self;
+    async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError>;
 
 }
 
@@ -38,11 +39,11 @@ pub struct Features {
 
 impl Features {
 
-    pub fn init_all_features(registry: &EbpfRegistry) -> Self {
-        let sys_sendmsg_feature = SysSendmsgFeature::init(registry);
-        let vfs_write_feature = VfsWriteFeature::init(registry);
-        let jni_reference_feature = JNIReferencesFeature::init(registry);
-        let sys_sigquit_feature = SysSigquitFeature::init(registry);
+    pub fn init_all_features(registry: &EbpfRegistry, symbol_actor_ref: ActorRef<SymbolActorMsg>) -> Self {
+        let sys_sendmsg_feature = SysSendmsgFeature::init(registry, None);
+        let vfs_write_feature = VfsWriteFeature::init(registry, None);
+        let jni_reference_feature = JNIReferencesFeature::init(registry, Some(symbol_actor_ref));
+        let sys_sigquit_feature = SysSigquitFeature::init(registry, None);
 
         Self {
             sys_sendmsg_feature,
@@ -52,16 +53,16 @@ impl Features {
         }
     }
 
-    pub fn update_from_config(
+    pub async fn update_from_config(
         &mut self,
         config: &Configuration,
     ) -> Result<(), EbpfError> {
 
 
-        self.vfs_write_feature.apply(&config.vfs_write)?;
-        self.sys_sendmsg_feature.apply(&config.sys_sendmsg)?;
-        self.jni_reference_feature.apply( &config.jni_references)?;
-        self.sys_sigquit_feature.apply( &config.sys_sigquit)?;
+        self.vfs_write_feature.apply(&config.vfs_write).await?;
+        self.sys_sendmsg_feature.apply(&config.sys_sendmsg).await?;
+        self.jni_reference_feature.apply( &config.jni_references).await?;
+        self.sys_sigquit_feature.apply( &config.sys_sigquit).await?;
 
         Ok(())
     }

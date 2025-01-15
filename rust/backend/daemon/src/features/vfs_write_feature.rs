@@ -8,9 +8,11 @@
 use aya::EbpfError;
 use aya::programs::KProbe;
 use aya::programs::kprobe::KProbeLink;
+use ractor::ActorRef;
 use shared::config::VfsWriteConfig;
 use crate::features::{Feature, update_pids};
 use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
+use crate::symbols::actors::SymbolActorMsg;
 
 pub struct VfsWriteFeature {
     vfs_write: RegistryGuard<KProbe>,
@@ -74,11 +76,14 @@ impl VfsWriteFeature {
 impl Feature for VfsWriteFeature {
     type Config = VfsWriteConfig;
 
-    fn init(registry: &EbpfRegistry) -> Self {
+    fn init(
+        registry: &EbpfRegistry,
+        _: Option<ActorRef<SymbolActorMsg>>
+    ) -> Self {
         VfsWriteFeature::create(registry)
     }
 
-    fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
+    async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
         match config {
             Some(config) => {
                 self.attach()?;
