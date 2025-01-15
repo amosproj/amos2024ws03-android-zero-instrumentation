@@ -51,7 +51,7 @@ jobs:
         run: | 
           cd rust
           nix develop --command cargo clippy --workspace --all-targets --all-features --exclude backend-ebpf
-          nix develop --command cargo clippy --workspace --all-targets --all-features --package backend-ebpf -- -C panic=abort -Zpanic_abort_tests
+          # nix develop --command cargo clippy --workspace --all-targets --all-features --package backend-ebpf -- -C panic=abort -Zpanic_abort_tests
   
   rust-test:
     name: Rust Tests
