@@ -14,6 +14,8 @@ use crate::features::Feature;
 use crate::registry::{EbpfRegistry, RegistryGuard};
 use crate::symbols::actors::SymbolActorMsg;
 
+const COLLECT_GC_INTERNAL_OFFSET: u64 = 0x57ad10;
+
 pub struct GcFeature {
     collect_garbage_internal: RegistryGuard<UProbe>,
     collect_garbage_internal_ret: RegistryGuard<UProbe>,
@@ -33,12 +35,12 @@ impl GcFeature {
 
     fn attach(&mut self) -> Result<(), EbpfError> {
         if self.collect_garbage_internal_link.is_none() {
-            let link_id = self.collect_garbage_internal.attach(None, 0, "/apex/com.android.art/lib64/libart.so", None)?;
+            let link_id = self.collect_garbage_internal.attach(None, COLLECT_GC_INTERNAL_OFFSET, "/apex/com.android.art/lib64/libart.so", None)?;
             self.collect_garbage_internal_link = Some(self.collect_garbage_internal.take_link(link_id)?);
         }
 
         if self.collect_garbage_internal_ret_link.is_none() {
-            let link_id = self.collect_garbage_internal_ret.attach(None, 0, "/apex/com.android.art/lib64/libart.so", None)?;
+            let link_id = self.collect_garbage_internal_ret.attach(None, COLLECT_GC_INTERNAL_OFFSET, "/apex/com.android.art/lib64/libart.so", None)?;
             self.collect_garbage_internal_ret_link = Some(self.collect_garbage_internal_ret.take_link(link_id)?);
         }
 
