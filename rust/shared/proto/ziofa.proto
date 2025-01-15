@@ -89,13 +89,13 @@ message CmdlineData {
 }
 
 message Event {
-    oneof event_type{
-        TimeSeries time_series = 1;
-        Log log = 2;
+    oneof event_type {
+        TimeSeriesEvent time_series = 1;
+        LogEvent log = 2;
     }
 }
 
-message Log{
+message LogEvent {
     oneof event_data {
         VfsWriteEvent vfs_write = 1;
         SysSendmsgEvent sys_sendmsg = 2;
@@ -141,7 +141,7 @@ message SysSigquitEvent {
     uint64 target_pid = 4;
 }
 
-message TimeSeries{
+message TimeSeriesEvent {
   enum EventTypeEnum{
     VfsWriteEvent = 0;
     SysSendmsgEvent = 1;

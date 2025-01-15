@@ -5,8 +5,8 @@
 use ractor::concurrency::{Duration, JoinHandle};
 use ractor::{cast, Actor, ActorProcessingErr, ActorRef};
 use shared::ziofa::event::EventType;
-use shared::ziofa::time_series::EventTypeEnum;
-use shared::ziofa::{Event, TimeSeries as ZioTimeSeries};
+use shared::ziofa::time_series_event::EventTypeEnum;
+use shared::ziofa::{Event, TimeSeriesEvent as ZioTimeSeries};
 use tokio::time;
 use crate::collector::time_series::TimeSeries;
 use crate::constants::TIMESERIES_LENGTH;

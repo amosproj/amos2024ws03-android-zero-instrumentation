@@ -5,9 +5,9 @@
 // SPDX-License-Identifier: MIT
 
 use crate::ziofa::event::EventType;
-use crate::ziofa::log::EventData;
-use crate::ziofa::time_series::EventTypeEnum;
-use crate::ziofa::{Event, Log};
+use crate::ziofa::log_event::EventData;
+use crate::ziofa::time_series_event::EventTypeEnum;
+use crate::ziofa::{Event, LogEvent};
 
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
@@ -31,19 +31,19 @@ impl TryInto<EventTypeEnum> for Event {
         match self {
             Event {
                 event_type:
-                    Some(EventType::Log(Log {
+                    Some(EventType::Log(LogEvent {
                         event_data: Some(EventData::VfsWrite(_)),
                     })),
             } => Ok(EventTypeEnum::VfsWriteEvent),
             Event {
                 event_type:
-                    Some(EventType::Log(Log {
+                    Some(EventType::Log(LogEvent {
                         event_data: Some(EventData::SysSendmsg(_)),
                     })),
             } => Ok(EventTypeEnum::JniReferencesEvent),
             Event {
                 event_type:
-                    Some(EventType::Log(Log {
+                    Some(EventType::Log(LogEvent {
                         event_data: Some(EventData::JniReferences(_)),
                     })),
             } => Ok(EventTypeEnum::SysSendmsgEvent),
@@ -52,17 +52,17 @@ impl TryInto<EventTypeEnum> for Event {
     }
 }
 
-impl From<Log> for EventTypeEnum {
+impl From<LogEvent> for EventTypeEnum {
 
-    fn from(value: Log) -> Self {
+    fn from(value: LogEvent) -> Self {
         match value {
-            Log {
+            LogEvent {
                 event_data: Some(EventData::VfsWrite(_)),
             } => EventTypeEnum::VfsWriteEvent,
-            Log {
+            LogEvent {
                 event_data: Some(EventData::SysSendmsg(_)),
             } => EventTypeEnum::SysSendmsgEvent,
-            Log {
+            LogEvent {
                 event_data: Some(EventData::JniReferences(_)),
             } => EventTypeEnum::JniReferencesEvent,
             _ => panic!()

@@ -7,8 +7,8 @@
 use backend_common::{JNICall, JNIMethodName, SysSendmsgCall, SysSigquitCall, VfsWriteCall};
 use shared::ziofa::event::EventType;
 use shared::ziofa::jni_references_event::JniMethodName;
-use shared::ziofa::log::EventData;
-use shared::ziofa::{Event, JniReferencesEvent, Log, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent};
+use shared::ziofa::log_event::EventData;
+use shared::ziofa::{Event, JniReferencesEvent, LogEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent};
 
 mod aggregator;
 mod event_dispatcher;
@@ -25,7 +25,7 @@ pub trait IntoEvent {
 impl IntoEvent for VfsWriteCall {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(Log {
+            event_type: Some(EventType::Log(LogEvent {
                 event_data: Some(EventData::VfsWrite(VfsWriteEvent {
                     pid: self.pid,
                     tid: self.tid,
@@ -41,7 +41,7 @@ impl IntoEvent for VfsWriteCall {
 impl IntoEvent for SysSendmsgCall {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(Log {
+            event_type: Some(EventType::Log(LogEvent {
                 event_data: Some(EventData::SysSendmsg(SysSendmsgEvent {
                     pid: self.pid,
                     tid: self.tid,
@@ -57,7 +57,7 @@ impl IntoEvent for SysSendmsgCall {
 impl IntoEvent for JNICall {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(Log {
+            event_type: Some(EventType::Log(LogEvent {
                 event_data: Some(EventData::JniReferences(JniReferencesEvent {
                     pid: self.pid,
                     tid: self.tid,
@@ -78,7 +78,7 @@ impl IntoEvent for JNICall {
 impl IntoEvent for SysSigquitCall {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(Log {
+            event_type: Some(EventType::Log(LogEvent {
                 event_data: Some(EventData::SysSigquit(SysSigquitEvent {
                     pid: self.pid,
                     tid: self.tid,
