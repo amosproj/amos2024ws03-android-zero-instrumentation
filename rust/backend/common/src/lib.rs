@@ -4,10 +4,12 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 use bytemuck::{checked::CheckedCastError, AnyBitPattern, CheckedBitPattern};
+use garbage_collection::Heap;
 
 
 pub trait TryFromRaw: Sized {
@@ -35,6 +37,12 @@ impl TryFromRaw for JNICall {
 impl TryFromRaw for SysSigquitCall {
     fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
         Ok(*bytemuck::try_from_bytes(raw)?)
+    }
+}
+
+impl TryFromRaw for SysGcCall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::checked::try_from_bytes(raw)?)
     }
 }
 
@@ -121,6 +129,14 @@ impl SysSigquitCall {
             target_pid,
         }
     }
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
+pub struct SysGcCall {
+    pub pid: u32,
+    pub tid: u32,
+    pub heap: Heap
 }
 
 // ----------------------------------
