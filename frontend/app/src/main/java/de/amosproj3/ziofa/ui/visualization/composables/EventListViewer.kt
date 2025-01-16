@@ -7,15 +7,12 @@ package de.amosproj3.ziofa.ui.visualization.composables
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -27,6 +24,7 @@ import kotlinx.coroutines.launch
 fun EventListViewer(
     eventListData: GraphedData.EventListData,
     eventListMetadata: EventListMetadata,
+    autoScrollActive: Boolean,
     modifier: Modifier = Modifier,
 ) {
     HeaderRow(eventListMetadata)
@@ -34,18 +32,14 @@ fun EventListViewer(
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(eventListData.eventData.size) {
-
-        if (eventListData.eventData.isNotEmpty()) {
+        if (eventListData.eventData.isNotEmpty() && autoScrollActive) {
             coroutineScope.launch {
                 lazyListState.animateScrollToItem(eventListData.eventData.lastIndex)
             }
         }
     }
 
-    LazyColumn(
-        state = lazyListState,
-        modifier = modifier.fillMaxSize()
-    ) {
+    LazyColumn(state = lazyListState, modifier = modifier.fillMaxSize()) {
         items(eventListData.eventData) { event ->
             ListRow(col1 = event.col1, col2 = event.col2, col3 = event.col3, col4 = event.col4)
         }

@@ -6,11 +6,9 @@ package de.amosproj3.ziofa.ui.visualization.utils
 
 import androidx.compose.ui.text.intl.Locale
 import de.amosproj3.ziofa.client.Event
-import de.amosproj3.ziofa.ui.shared.TIME_SERIES_SIZE
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -22,7 +20,6 @@ fun Flow<Int>.toTimestampedSeries(seriesSize: Int, secondsPerDatapoint: Float) =
         val idx = (prev.lastOrNull()?.first ?: 0.0f) + secondsPerDatapoint
         prev.plus(idx to next.toFloat()).takeLast(seriesSize)
     }
-
 
 fun Flow<Event.SysSendmsg>.toAveragedDurationOverTimeframe(
     seriesSize: Int,
@@ -108,8 +105,6 @@ fun ULong.nanosToSeconds(): String {
     val locale = Locale.current.platformLocale
     return String.format(locale, "%.4f", this.toDouble() / 1_000_000_000)
 }
-
-
 
 fun <E> Flow<E>.accumulateEvents() =
     this.scan(initial = listOf<E>()) { prev, next -> prev.plus(next) }

@@ -18,7 +18,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -27,6 +29,8 @@ import de.amosproj3.ziofa.ui.visualization.composables.CenteredInfoText
 import de.amosproj3.ziofa.ui.visualization.composables.EventListViewer
 import de.amosproj3.ziofa.ui.visualization.composables.MetricDropdown
 import de.amosproj3.ziofa.ui.visualization.composables.SwitchModeFab
+import de.amosproj3.ziofa.ui.visualization.composables.ToggleAutoscrollFab
+import de.amosproj3.ziofa.ui.visualization.composables.ToggleAutoscrollFab
 import de.amosproj3.ziofa.ui.visualization.composables.VicoBar
 import de.amosproj3.ziofa.ui.visualization.composables.VicoTimeSeries
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
@@ -44,7 +48,9 @@ fun VisualizationScreen(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         val visualizationScreenState by
-            remember { viewModel.visualizationScreenState }.collectAsState()
+        remember { viewModel.visualizationScreenState }.collectAsState()
+        var autoScrollActive by remember { mutableStateOf(true) }
+
         val state = visualizationScreenState
         Timber.i("Updating UI based on $state")
 
@@ -61,7 +67,11 @@ fun VisualizationScreen(
                             ChartViewer(state.graphedData)
 
                         is VisualizationScreenState.Valid.EventListView ->
-                            EventListViewer(state.graphedData, state.eventListMetadata)
+                            EventListViewer(
+                                eventListData = state.graphedData,
+                                eventListMetadata = state.eventListMetadata,
+                                autoScrollActive = autoScrollActive
+                            )
                     }
                 }
 
@@ -74,6 +84,7 @@ fun VisualizationScreen(
                     when (state) {
                         is VisualizationScreenState.Incomplete.WaitingForMetricSelection ->
                             SelectMetricPrompt()
+
                         is VisualizationScreenState.Incomplete.NoVisualizationExists ->
                             VisualizationNonExistentPrompt()
                     }
@@ -84,11 +95,21 @@ fun VisualizationScreen(
             }
         }
 
+        if (state is VisualizationScreenState.Valid.EventListView) {
+            ToggleAutoscrollFab(
+                autoScrollActive = autoScrollActive,
+                onClick = { autoScrollActive = !autoScrollActive },
+                modifier = Modifier.align(Alignment.BottomStart),
+            )
+        }
+
         if (
             state is VisualizationScreenState.Valid || state is VisualizationScreenState.Incomplete
         ) {
             SwitchModeFab(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(20.dp),
                 onDisplayModeSelected = { viewModel.switchMode(it) },
             )
         }
@@ -104,7 +125,7 @@ fun SelectMetricPrompt() {
 fun VisualizationNonExistentPrompt() {
     CenteredInfoText(
         text =
-            "There is no visualization configured for this feature. \n" +
+        "There is no visualization configured for this feature. \n" +
                 "Please switch to a different mode.",
         icon = Icons.Filled.Warning,
     )
@@ -131,7 +152,9 @@ fun MetricSelection(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth()) {
-        val dropdownModifier = Modifier.weight(1f).padding(end = 0.dp)
+        val dropdownModifier = Modifier
+            .weight(1f)
+            .padding(end = 0.dp)
 
         MetricDropdown(
             selectionData.componentOptions,
@@ -148,7 +171,8 @@ fun MetricSelection(
                     "Select a metric",
                     modifier = dropdownModifier,
                     optionSelected = { optionSelected(it) },
-                    selectedOption = selectionData.selectedMetric?.displayName ?: "Please select...",
+                    selectedOption = selectionData.selectedMetric?.displayName
+                        ?: "Please select...",
                 )
             } ?: Spacer(Modifier.weight(1f))
         selectionData.timeframeOptions
@@ -160,7 +184,7 @@ fun MetricSelection(
                     modifier = dropdownModifier,
                     optionSelected = { optionSelected(it) },
                     selectedOption =
-                        selectionData.selectedTimeframe?.displayName ?: "Please select...",
+                    selectionData.selectedTimeframe?.displayName ?: "Please select...",
                 )
             } ?: Spacer(Modifier.weight(1f))
     }
