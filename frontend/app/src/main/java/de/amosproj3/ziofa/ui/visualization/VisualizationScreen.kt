@@ -4,16 +4,12 @@
 
 package de.amosproj3.ziofa.ui.visualization
 
+import VisualizationNonExistentPrompt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,17 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
-import de.amosproj3.ziofa.ui.visualization.composables.CenteredInfoText
 import de.amosproj3.ziofa.ui.visualization.composables.EventListViewer
-import de.amosproj3.ziofa.ui.visualization.composables.MetricDropdown
+import de.amosproj3.ziofa.ui.visualization.composables.MetricSelection
+import de.amosproj3.ziofa.ui.visualization.composables.SelectMetricPrompt
 import de.amosproj3.ziofa.ui.visualization.composables.SwitchModeFab
-import de.amosproj3.ziofa.ui.visualization.composables.ToggleAutoscrollFab
 import de.amosproj3.ziofa.ui.visualization.composables.ToggleAutoscrollFab
 import de.amosproj3.ziofa.ui.visualization.composables.VicoBar
 import de.amosproj3.ziofa.ui.visualization.composables.VicoTimeSeries
-import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
-import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
 import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
@@ -48,7 +41,7 @@ fun VisualizationScreen(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         val visualizationScreenState by
-        remember { viewModel.visualizationScreenState }.collectAsState()
+            remember { viewModel.visualizationScreenState }.collectAsState()
         var autoScrollActive by remember { mutableStateOf(true) }
 
         val state = visualizationScreenState
@@ -70,7 +63,7 @@ fun VisualizationScreen(
                             EventListViewer(
                                 eventListData = state.graphedData,
                                 eventListMetadata = state.eventListMetadata,
-                                autoScrollActive = autoScrollActive
+                                autoScrollActive = autoScrollActive,
                             )
                     }
                 }
@@ -81,6 +74,7 @@ fun VisualizationScreen(
                         optionSelected = { viewModel.optionSelected(it) },
                     )
 
+                    // Show a prompt to explain the incomplete selection
                     when (state) {
                         is VisualizationScreenState.Incomplete.WaitingForMetricSelection ->
                             SelectMetricPrompt()
@@ -95,6 +89,7 @@ fun VisualizationScreen(
             }
         }
 
+        // Show autoscroll toggle on event list view
         if (state is VisualizationScreenState.Valid.EventListView) {
             ToggleAutoscrollFab(
                 autoScrollActive = autoScrollActive,
@@ -103,32 +98,16 @@ fun VisualizationScreen(
             )
         }
 
+        // Show switch mode fab on incomplete or valid states
         if (
             state is VisualizationScreenState.Valid || state is VisualizationScreenState.Incomplete
         ) {
             SwitchModeFab(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(20.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
                 onDisplayModeSelected = { viewModel.switchMode(it) },
             )
         }
     }
-}
-
-@Composable
-fun SelectMetricPrompt() {
-    CenteredInfoText(text = "Please make a valid selection.")
-}
-
-@Composable
-fun VisualizationNonExistentPrompt() {
-    CenteredInfoText(
-        text =
-        "There is no visualization configured for this feature. \n" +
-                "Please switch to a different mode.",
-        icon = Icons.Filled.Warning,
-    )
 }
 
 @Composable
@@ -141,51 +120,6 @@ fun ChartViewer(data: GraphedData) {
             VicoBar(seriesData = data.seriesData, chartMetadata = data.metaData)
 
         GraphedData.EMPTY -> {}
-        else -> TODO()
-    }
-}
-
-@Composable
-fun MetricSelection(
-    selectionData: SelectionData,
-    optionSelected: (DropdownOption) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier.fillMaxWidth()) {
-        val dropdownModifier = Modifier
-            .weight(1f)
-            .padding(end = 0.dp)
-
-        MetricDropdown(
-            selectionData.componentOptions,
-            "Select a package",
-            modifier = dropdownModifier,
-            optionSelected = { optionSelected(it) },
-            selectedOption = selectionData.selectedComponent.displayName,
-        )
-        selectionData.metricOptions
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { metricOptions ->
-                MetricDropdown(
-                    metricOptions,
-                    "Select a metric",
-                    modifier = dropdownModifier,
-                    optionSelected = { optionSelected(it) },
-                    selectedOption = selectionData.selectedMetric?.displayName
-                        ?: "Please select...",
-                )
-            } ?: Spacer(Modifier.weight(1f))
-        selectionData.timeframeOptions
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { timeframeOptions ->
-                MetricDropdown(
-                    timeframeOptions,
-                    "Select an interval for aggregation",
-                    modifier = dropdownModifier,
-                    optionSelected = { optionSelected(it) },
-                    selectedOption =
-                    selectionData.selectedTimeframe?.displayName ?: "Please select...",
-                )
-            } ?: Spacer(Modifier.weight(1f))
+        else -> TODO() // crash because we havent implemented the visualization type yet
     }
 }
