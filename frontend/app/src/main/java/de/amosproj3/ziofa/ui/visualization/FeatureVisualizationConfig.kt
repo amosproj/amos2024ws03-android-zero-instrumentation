@@ -19,6 +19,7 @@ import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
 import de.amosproj3.ziofa.ui.visualization.utils.toCombinedReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toEventList
 import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -178,9 +179,9 @@ fun DataStreamProvider.getChartData(
                 .map {
                     it.copy(
                         seriesData =
-                            it.seriesData.map { pair ->
-                                pair.copy(second = pair.second / 1_000_000)
-                            }
+                            it.seriesData
+                                .map { pair -> pair.copy(second = pair.second / 1_000_000) }
+                                .toImmutableList()
                     )
                 }
 

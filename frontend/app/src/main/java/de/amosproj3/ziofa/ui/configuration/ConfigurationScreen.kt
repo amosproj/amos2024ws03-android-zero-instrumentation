@@ -27,6 +27,9 @@ import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
 import de.amosproj3.ziofa.ui.configuration.data.FeatureType
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -36,7 +39,7 @@ import org.koin.core.parameter.parametersOf
 fun ConfigurationScreen(
     modifier: Modifier = Modifier,
     onAddUprobeSelected: () -> Unit = {},
-    pids: List<UInt>? = listOf(),
+    pids: ImmutableList<UInt>? = persistentListOf(),
 ) {
 
     val viewModel: ConfigurationViewModel = koinViewModel(parameters = { parametersOf(pids) })
@@ -71,9 +74,9 @@ fun ConfigurationScreen(
                     item {
                         EbpfUprobeFeatureOptions(
                             options =
-                                state.options.mapNotNull {
-                                    it as? BackendFeatureOptions.UprobeOption
-                                },
+                                state.options
+                                    .mapNotNull { it as? BackendFeatureOptions.UprobeOption }
+                                    .toImmutableList(),
                             onOptionDeleted = { option ->
                                 viewModel.optionChanged(option, active = false)
                             },

@@ -37,6 +37,8 @@ import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
 import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.VICO_LINE_COLOR
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -44,7 +46,7 @@ import timber.log.Timber
 @Composable
 fun VicoBar(
     chartMetadata: ChartMetadata,
-    seriesData: List<Pair<ULong, ULong>>,
+    seriesData: ImmutableList<Pair<ULong, ULong>>,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -57,7 +59,7 @@ fun VicoBar(
             modelProducer.SeriesUpdate(seriesData.map { it.second.toInt() })
             modelProducer.TimeSeriesChart(
                 chartMetadata = chartMetadata,
-                xLabels = seriesData.map { it.first.toString() },
+                xLabels = seriesData.map { it.first.toString() }.toImmutableList(),
             )
         }
     }
@@ -66,7 +68,7 @@ fun VicoBar(
 @Composable
 private fun CartesianChartModelProducer.TimeSeriesChart(
     chartMetadata: ChartMetadata,
-    xLabels: List<String>,
+    xLabels: ImmutableList<String>,
     modifier: Modifier = Modifier,
 ) {
     CartesianChartHost(

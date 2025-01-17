@@ -7,7 +7,6 @@ package de.amosproj3.ziofa.ui.visualization.composables
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -17,7 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ToggleAutoscrollFab(autoScrollActive: Boolean, onClick: () -> Unit, modifier: Modifier) {
+fun ToggleAutoscrollFab(
+    autoScrollActive: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     ExtendedFloatingActionButton(
         modifier = modifier.padding(25.dp),
         onClick = onClick,

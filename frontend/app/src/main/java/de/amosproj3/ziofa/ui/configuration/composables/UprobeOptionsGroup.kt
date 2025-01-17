@@ -24,10 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.FeatureType
+import kotlinx.collections.immutable.ImmutableList
 
 @Composable
 fun EbpfUprobeFeatureOptions(
-    options: List<BackendFeatureOptions.UprobeOption>,
+    options: ImmutableList<BackendFeatureOptions.UprobeOption>,
     onOptionDeleted: (BackendFeatureOptions.UprobeOption) -> Unit,
     onAddUprobeSelected: () -> Unit,
     modifier: Modifier = Modifier,

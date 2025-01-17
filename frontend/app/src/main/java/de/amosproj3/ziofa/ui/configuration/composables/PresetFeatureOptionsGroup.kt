@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.FeatureType
+import kotlinx.collections.immutable.ImmutableList
 
 /**
  * Displays a group of options along with a title. All [options] must be of the specified [type] and
@@ -32,7 +33,7 @@ import de.amosproj3.ziofa.ui.configuration.data.FeatureType
  */
 @Composable
 fun PresetFeatureOptionsGroup(
-    options: List<BackendFeatureOptions>,
+    options: ImmutableList<BackendFeatureOptions>,
     type: FeatureType,
     onOptionChanged: (BackendFeatureOptions, Boolean) -> Unit,
     modifier: Modifier = Modifier,

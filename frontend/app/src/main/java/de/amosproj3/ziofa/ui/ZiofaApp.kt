@@ -30,6 +30,7 @@ import de.amosproj3.ziofa.ui.shared.deserializePIDs
 import de.amosproj3.ziofa.ui.shared.validPIDsOrNull
 import de.amosproj3.ziofa.ui.symbols.SymbolsScreen
 import de.amosproj3.ziofa.ui.visualization.VisualizationScreen
+import kotlinx.collections.immutable.toImmutableList
 
 val GLOBAL_CONFIGURATION_ROUTE =
     "${Routes.IndividualConfiguration.name}?displayName=${Uri.encode("all processes")}?pids=-1"
@@ -100,7 +101,12 @@ fun ZIOFAApp() {
             ) {
                 ConfigurationScreen(
                     Modifier.padding(innerPadding),
-                    pids = it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull(),
+                    pids =
+                        it.arguments
+                            ?.getString("pids")
+                            ?.deserializePIDs()
+                            ?.validPIDsOrNull()
+                            ?.toImmutableList(),
                     onAddUprobeSelected = {
                         navController.navigate(it.arguments.copyToSymbolsRoute())
                     },
