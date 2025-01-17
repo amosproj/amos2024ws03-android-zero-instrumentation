@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import de.amosproj3.ziofa.api.processes.InstalledPackageInfo
 
+/** Provides information about the installed packages on the system and caches this information. */
 class PackageInformationProvider(private val packageManager: PackageManager) {
 
     private val installedPackagesCache: Map<String, InstalledPackageInfo> by lazy {

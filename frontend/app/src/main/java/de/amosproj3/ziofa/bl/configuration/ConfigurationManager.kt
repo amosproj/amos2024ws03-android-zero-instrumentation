@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
  * @param clientFactory the client factory for backend communication
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("TooGenericException") // all exceptions should be forwarded for display
 class ConfigurationManager(clientFactory: ClientFactory) :
     FlowReduxStateMachine<ConfigurationState, ConfigurationAction>(
         initialState = ConfigurationState.Uninitialized(clientFactory = clientFactory)
@@ -59,9 +60,13 @@ class ConfigurationManager(clientFactory: ClientFactory) :
         spec {
             inState<ConfigurationState.Uninitialized> {
                 onEnter { state ->
-                    val client = state.snapshot.clientFactory.connect()
-                    val configuration = client.initializeConfiguration()
-                    state.override { configuration.synchronizedOrErrorState(client) }
+                    try {
+                        val client = state.snapshot.clientFactory.connect()
+                        val configuration = client.initializeConfiguration()
+                        state.override { configuration.synchronizedOrErrorState(client) }
+                    } catch (e: Exception) {
+                        state.override { ConfigurationState.Error(e) }
+                    }
                 }
             }
 
@@ -142,6 +147,10 @@ class ConfigurationManager(clientFactory: ClientFactory) :
             this.getConfiguration()
         }
 
+    /**
+     * Try to get the configuration and if it fails, obtain set an empty configuration
+     * (configuration has possibly never been written)
+     */
     private suspend fun Client.initializeConfiguration() =
         try {
             Either.Right(this.getConfiguration())
