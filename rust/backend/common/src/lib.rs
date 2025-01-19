@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
-// SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
+// SPDX-FileCopyrightText: 2025 Tom Weisshuhn <tom.weisshuhn@fau.de>
 // SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -131,12 +131,34 @@ impl SysSigquitCall {
     }
 }
 
+
+// garbage collection
 #[repr(C)]
 #[derive(Debug, Copy, Clone, CheckedBitPattern)]
 pub struct SysGcCall {
     pub pid: u32,
     pub tid: u32,
     pub heap: Heap
+}
+
+
+// ---------------------------------------
+// SysFdTracking: track the creation/ destruction of file descriptors
+
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
+pub enum SysFdAction {
+    Created,
+    Destroyed,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, CheckedBitPattern)]
+pub struct SysFdActionCall {
+    pub pid: u32,
+    pub tid: u32,
+    pub time_stamp: u64,
+    pub fd_action: SysFdAction,
 }
 
 // ----------------------------------
