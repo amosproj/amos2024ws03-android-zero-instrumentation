@@ -95,6 +95,7 @@ message Event {
         JniReferencesEvent jni_references = 3;
         SysSigquitEvent sys_sigquit = 4;
         GcEvent gc = 5;
+        SysFdTrackingEvent sys_fd_tracking = 6;
     }
 }
 

@@ -4,7 +4,7 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 // SPDX-FileCopyrightText: 2025 Tom Weisshuhn <tom.weisshuhn@fau.de>
-// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -41,6 +41,12 @@ impl TryFromRaw for SysSigquitCall {
 }
 
 impl TryFromRaw for SysGcCall {
+    fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
+        Ok(*bytemuck::checked::try_from_bytes(raw)?)
+    }
+}
+
+impl TryFromRaw for SysFdActionCall {
     fn try_from_raw(raw: &[u8]) -> Result<Self, CheckedCastError> {
         Ok(*bytemuck::checked::try_from_bytes(raw)?)
     }

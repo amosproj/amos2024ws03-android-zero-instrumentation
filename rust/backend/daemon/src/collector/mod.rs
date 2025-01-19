@@ -4,10 +4,11 @@
 //
 // SPDX-License-Identifier: MIT
 
-use backend_common::{JNICall, JNIMethodName, SysGcCall, SysSendmsgCall, SysSigquitCall, VfsWriteCall};
-use shared::ziofa::{Event, GcEvent, JniReferencesEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent};
+use backend_common::{JNICall, JNIMethodName, SysFdActionCall, SysGcCall, SysSendmsgCall, SysSigquitCall, VfsWriteCall, SysFdAction};
+use shared::ziofa::{Event, GcEvent, JniReferencesEvent, SysFdTrackingEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent};
 use shared::ziofa::event::EventData;
 use shared::ziofa::jni_references_event::JniMethodName;
+use shared::ziofa::sys_fd_tracking_event;
 mod ring_buf;
 mod supervisor;
 mod event_dipatcher;
@@ -94,6 +95,22 @@ impl IntoEvent for SysGcCall {
                 freed_los_objects: self.heap.freed_los_objects,
                 freed_los_bytes: self.heap.freed_los_bytes,
                 pause_times: self.heap.pause_times.to_vec(),
+            }))
+        }
+    }
+}
+
+impl IntoEvent for SysFdActionCall {
+    fn into_event(self) -> Event {
+        Event {
+            event_data: Some(EventData::SysFdTracking(SysFdTrackingEvent {
+                pid: self.pid,
+                tid: self.tid,
+                time_stamp: self.time_stamp,
+                fd_action: (match self.fd_action {
+                    SysFdAction::Created => sys_fd_tracking_event::SysFdAction::Created,
+                    SysFdAction::Destroyed => sys_fd_tracking_event::SysFdAction::Destroyed,
+                }).into(),
             }))
         }
     }
