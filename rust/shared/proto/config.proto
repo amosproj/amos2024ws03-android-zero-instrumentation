@@ -24,6 +24,7 @@ message Configuration {
   optional SysSigquitConfig sys_sigquit = 4;
   repeated UprobeConfig uprobes = 5;
   optional GcConfig gc = 6;
+  optional SysFdTrackingConfig sys_fd_tracking = 7;
 }
 
 message VfsWriteConfig {
@@ -43,3 +44,7 @@ message SysSigquitConfig {
 }
 
 message GcConfig { }
+
+message SysFdTrackingConfig {
+  repeated uint32 pids = 1;
+}

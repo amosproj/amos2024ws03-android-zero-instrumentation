@@ -149,3 +149,15 @@ message GcEvent {
     int64 freed_los_bytes = 11;
     repeated uint64 pause_times = 12;
 }
+
+message SysFdTrackingEvent {
+    enum SysFdAction {
+        Undefined = 0;
+        Created = 1;
+        Destroyed = 2;
+    }
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 time_stamp = 3;
+    SysFdAction fd_action = 4;
+}
