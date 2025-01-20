@@ -34,6 +34,7 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "SysSigquitConfig",
             "GcConfig",
             "GcEvent",
+            "TimeSeriesType"
         ]
     } else {
         vec![]

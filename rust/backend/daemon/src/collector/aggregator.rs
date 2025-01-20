@@ -9,7 +9,7 @@ use ractor::{cast, Actor, ActorProcessingErr, ActorRef};
 use shared::ziofa::event::EventType;
 use shared::ziofa::log_event::EventData;
 use shared::ziofa::time_series_event::EventTypeEnum;
-use shared::ziofa::time_series_event::TimeSeries as ZioTimeSeries;
+use shared::ziofa::time_series_event::TimeSeriesType;
 use shared::ziofa::{Event, TimeSeriesEvent as ZioTimeSeriesEvent};
 use std::collections::HashMap;
 use tokio::time;
@@ -18,8 +18,8 @@ pub struct Aggregator;
 impl Aggregator {
     fn convert_map_to_prototype(
         time_series_map: HashMap<u32, TimeSeries>,
-    ) -> HashMap<u32, ZioTimeSeries> {
-        let mut map = HashMap::<u32, ZioTimeSeries>::with_capacity(time_series_map.len());
+    ) -> HashMap<u32, TimeSeriesType> {
+        let mut map = HashMap::<u32, TimeSeriesType>::with_capacity(time_series_map.len());
         for (id, time_series) in time_series_map {
             map.insert(id, time_series.into());
         }

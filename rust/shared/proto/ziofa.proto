@@ -153,11 +153,11 @@ message TimeSeriesEvent {
   EventTypeEnum event_type_enum = 1;
   uint32 timeframe_ms = 2;
 
-  message time_series{
+  message TimeSeriesType{
       repeated uint64 list = 1;
   }
 
-  map<uint32, time_series>time_series_map = 3;
+  map<uint32, TimeSeriesType>time_series_map = 3;
 }
 
 
