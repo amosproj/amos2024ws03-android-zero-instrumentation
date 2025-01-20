@@ -2,14 +2,16 @@
 //
 // SPDX-License-Identifier: MIT
 
+use crate::collector::time_series::TimeSeries;
+use crate::constants::TIMESERIES_LENGTH;
 use ractor::concurrency::{Duration, JoinHandle};
 use ractor::{cast, Actor, ActorProcessingErr, ActorRef};
 use shared::ziofa::event::EventType;
+use shared::ziofa::log_event::EventData;
 use shared::ziofa::time_series_event::EventTypeEnum;
 use shared::ziofa::{Event, TimeSeriesEvent as ZioTimeSeries};
+use std::collections::HashMap;
 use tokio::time;
-use crate::collector::time_series::TimeSeries;
-use crate::constants::TIMESERIES_LENGTH;
 
 pub struct Aggregator;
 
@@ -21,11 +23,11 @@ impl Default for Aggregator {
 
 pub struct AggregatorState {
     event_type: EventTypeEnum,
-    event_count: u32,
+    event_count_map: HashMap<u32, u64>, // map pid to count
     timeframe: Duration,
     event_actor: ActorRef<Event>,
     timer: Option<JoinHandle<()>>,
-    timeseries: TimeSeries
+    timeseries: HashMap<u32, TimeSeries>,
 }
 
 pub struct AggregatorArguments {
@@ -53,11 +55,11 @@ impl TryFrom<AggregatorArguments> for AggregatorState {
     fn try_from(args: AggregatorArguments) -> Result<AggregatorState, Self::Error> {
         Ok(AggregatorState {
             event_type: args.event_type_enum,
-            event_count: 0,
+            event_count_map: HashMap::new(),
             timeframe: args.timeframe,
             event_actor: args.event_actor,
             timer: None,
-            timeseries: TimeSeries::new(TIMESERIES_LENGTH),
+            timeseries: HashMap::new(),
         })
     }
 }
@@ -103,6 +105,14 @@ impl Actor for Aggregator {
     ) -> Result<(), ActorProcessingErr> {
         match msg.event_type {
             Some(EventType::Log(event)) => {
+                let pid = match event.clone() {
+                    EventData::VfsWrite(item) => item.pid,
+                    EventData::SysSendmsg(item) => item.pid,
+                    EventData::JniReferences(item) => item.pid,
+                    EventData::SysSigquit(item) => item.pid,
+                    EventData::Gc(item) => item.pid,
+                };
+
                 let msg_event_type = EventTypeEnum::from(event);
 
                 if msg_event_type != state.event_type {
@@ -111,17 +121,28 @@ impl Actor for Aggregator {
                         state.event_type, msg_event_type
                     );
                 }
-                state.event_count += 1;
+                if !state.event_count_map.contains_key(&pid) {
+                    state.event_count_map.insert(pid, 1);
+                }
             }
             _ => {
                 // event type is none -> timer was triggered -> send the metric
-                state.timeseries.append(state.event_count as u64);
+                for (key, value) in state.event_count_map.iter() {
+                    if !state.timeseries.contains_key(key) {
+                        let mut new_ts = TimeSeries::new(TIMESERIES_LENGTH);
+                        new_ts.append(*value);
+                        state.timeseries.insert(*key, new_ts);
+                    } else {
+                        state.timeseries.get_mut(key).unwrap().append(*value);
+                    }
+                }
+
                 let time_series = ZioTimeSeries {
                     event_type_enum: state.event_type.into(),
                     timeframe_ms: state.timeframe.as_millis() as u32,
-                    data: state.timeseries.as_array(),
+                    time_series_map: state.timeseries.clone().into(),
                 };
-                
+
                 cast!(
                     state.event_actor,
                     Event {
@@ -129,7 +150,10 @@ impl Actor for Aggregator {
                     }
                 )
                 .map_err(|_| ActorProcessingErr::from("Failed to send metric to event actor"))?;
-                state.event_count = 0;
+                for key in state.event_count_map.keys() {
+                    let mut count = state.event_count_map.get_mut(key).unwrap();
+                    *count = 0;
+                }
             }
         }
         Ok(())

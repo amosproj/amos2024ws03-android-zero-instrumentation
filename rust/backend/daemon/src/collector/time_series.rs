@@ -40,6 +40,15 @@ impl TimeSeries {
 }
 
 
+impl Into<shared::ziofa::time_series_event::TimeSeries> for TimeSeries {
+    fn into(self) -> shared::ziofa::time_series_event::TimeSeries {
+        shared::ziofa::time_series_event::TimeSeries{
+            list: self.as_array(),
+        }
+    }
+}
+
+
 
 
 

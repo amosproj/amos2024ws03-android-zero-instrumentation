@@ -147,11 +147,19 @@ message TimeSeriesEvent {
     VfsWriteEvent = 0;
     SysSendmsgEvent = 1;
     JniReferencesEvent = 2;
+    SysSigquitEvent = 3;
+    GcEvent = 4;
   }
   EventTypeEnum event_type_enum = 1;
   uint32 timeframe_ms = 2;
-  repeated uint64 data = 3;
+
+  message time_series{
+      repeated uint64 list = 1;
+  }
+
+  map<uint32, time_series>time_series_map = 3;
 }
+
 
 message GcEvent {
     uint32 pid = 1;

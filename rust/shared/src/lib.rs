@@ -46,7 +46,18 @@ impl TryInto<EventTypeEnum> for Event {
                     Some(EventType::Log(LogEvent {
                         event_data: Some(EventData::JniReferences(_)),
                     })),
-            } => Ok(EventTypeEnum::JniReferencesEvent),
+            } => Ok(EventTypeEnum::JniReferencesEvent),Event {
+                event_type:
+                    Some(EventType::Log(LogEvent {
+                        event_data: Some(EventData::SysSigquit(_)),
+                    })),
+            } => Ok(EventTypeEnum::SysSigquitEvent),
+            Event{
+                event_type:
+                Some(EventType::Log(LogEvent {
+                    event_data: Some(EventData::Gc(_)),
+                                    }))
+            } => Ok(EventTypeEnum::GcEvent),
             _ => Err(()),
         }
     }
