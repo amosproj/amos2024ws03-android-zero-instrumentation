@@ -9,11 +9,23 @@ use ractor::{cast, Actor, ActorProcessingErr, ActorRef};
 use shared::ziofa::event::EventType;
 use shared::ziofa::log_event::EventData;
 use shared::ziofa::time_series_event::EventTypeEnum;
-use shared::ziofa::{Event, TimeSeriesEvent as ZioTimeSeries};
+use shared::ziofa::time_series_event::TimeSeries as ZioTimeSeries;
+use shared::ziofa::{Event, TimeSeriesEvent as ZioTimeSeriesEvent};
 use std::collections::HashMap;
 use tokio::time;
 
 pub struct Aggregator;
+impl Aggregator {
+    fn convert_map_to_prototype(
+        time_series_map: HashMap<u32, TimeSeries>,
+    ) -> HashMap<u32, ZioTimeSeries> {
+        let mut map = HashMap::<u32, ZioTimeSeries>::with_capacity(time_series_map.len());
+        for (id, time_series) in time_series_map {
+            map.insert(id, time_series.into());
+        }
+        map
+    }
+}
 
 impl Default for Aggregator {
     fn default() -> Self {
@@ -27,7 +39,7 @@ pub struct AggregatorState {
     timeframe: Duration,
     event_actor: ActorRef<Event>,
     timer: Option<JoinHandle<()>>,
-    timeseries: HashMap<u32, TimeSeries>,
+    time_series_map: HashMap<u32, TimeSeries>,
 }
 
 pub struct AggregatorArguments {
@@ -59,7 +71,7 @@ impl TryFrom<AggregatorArguments> for AggregatorState {
             timeframe: args.timeframe,
             event_actor: args.event_actor,
             timer: None,
-            timeseries: HashMap::new(),
+            time_series_map: HashMap::new(),
         })
     }
 }
@@ -105,12 +117,15 @@ impl Actor for Aggregator {
     ) -> Result<(), ActorProcessingErr> {
         match msg.event_type {
             Some(EventType::Log(event)) => {
-                let pid = match event.clone() {
-                    EventData::VfsWrite(item) => item.pid,
-                    EventData::SysSendmsg(item) => item.pid,
-                    EventData::JniReferences(item) => item.pid,
-                    EventData::SysSigquit(item) => item.pid,
-                    EventData::Gc(item) => item.pid,
+                let pid = match event.event_data.clone() {
+                    Some(EventData::VfsWrite(item)) => item.pid,
+                    Some(EventData::SysSendmsg(item)) => item.pid,
+                    Some(EventData::JniReferences(item)) => item.pid,
+                    Some(EventData::SysSigquit(item)) => item.pid,
+                    Some(EventData::Gc(item)) => item.pid,
+                    _ => {
+                        panic!("unexpected event type");
+                    }
                 };
 
                 let msg_event_type = EventTypeEnum::from(event);
@@ -121,26 +136,27 @@ impl Actor for Aggregator {
                         state.event_type, msg_event_type
                     );
                 }
-                if !state.event_count_map.contains_key(&pid) {
-                    state.event_count_map.insert(pid, 1);
-                }
+                state.event_count_map.entry(pid).or_insert(1);
             }
             _ => {
                 // event type is none -> timer was triggered -> send the metric
                 for (key, value) in state.event_count_map.iter() {
-                    if !state.timeseries.contains_key(key) {
+                    if !state.time_series_map.contains_key(key) {
                         let mut new_ts = TimeSeries::new(TIMESERIES_LENGTH);
                         new_ts.append(*value);
-                        state.timeseries.insert(*key, new_ts);
+                        state.time_series_map.insert(*key, new_ts);
                     } else {
-                        state.timeseries.get_mut(key).unwrap().append(*value);
+                        state.time_series_map.get_mut(key).unwrap().append(*value);
                     }
                 }
 
-                let time_series = ZioTimeSeries {
+                //convert type for sending
+                //ziofa::time_series_event::TimeSeries
+
+                let time_series = ZioTimeSeriesEvent {
                     event_type_enum: state.event_type.into(),
                     timeframe_ms: state.timeframe.as_millis() as u32,
-                    time_series_map: state.timeseries.clone().into(),
+                    time_series_map: Self::convert_map_to_prototype(state.time_series_map.clone()),
                 };
 
                 cast!(
@@ -150,9 +166,8 @@ impl Actor for Aggregator {
                     }
                 )
                 .map_err(|_| ActorProcessingErr::from("Failed to send metric to event actor"))?;
-                for key in state.event_count_map.keys() {
-                    let mut count = state.event_count_map.get_mut(key).unwrap();
-                    *count = 0;
+                for (_, value) in state.event_count_map.iter_mut() {
+                    *value = 0;
                 }
             }
         }

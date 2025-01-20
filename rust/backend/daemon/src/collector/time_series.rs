@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+#[derive(Clone)]
 pub struct TimeSeries {
     internal_time_series: Vec<u64>,
     internal_head_pointer: usize,
@@ -39,19 +40,13 @@ impl TimeSeries {
     }
 }
 
-
-impl Into<shared::ziofa::time_series_event::TimeSeries> for TimeSeries {
-    fn into(self) -> shared::ziofa::time_series_event::TimeSeries {
-        shared::ziofa::time_series_event::TimeSeries{
-            list: self.as_array(),
+impl From<TimeSeries> for shared::ziofa::time_series_event::TimeSeries {
+    fn from(series: TimeSeries) -> Self {
+        shared::ziofa::time_series_event::TimeSeries {
+            list: series.as_array(),
         }
     }
 }
-
-
-
-
-
 
 #[test]
 fn some_test() {
