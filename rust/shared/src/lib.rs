@@ -40,13 +40,13 @@ impl TryInto<EventTypeEnum> for Event {
                     Some(EventType::Log(LogEvent {
                         event_data: Some(EventData::SysSendmsg(_)),
                     })),
-            } => Ok(EventTypeEnum::JniReferencesEvent),
+            } => Ok(EventTypeEnum::SysSendmsgEvent),
             Event {
                 event_type:
                     Some(EventType::Log(LogEvent {
                         event_data: Some(EventData::JniReferences(_)),
                     })),
-            } => Ok(EventTypeEnum::SysSendmsgEvent),
+            } => Ok(EventTypeEnum::JniReferencesEvent),
             _ => Err(()),
         }
     }
