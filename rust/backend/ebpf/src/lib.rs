@@ -3,6 +3,7 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2025 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -13,3 +14,4 @@ pub mod sys_sendmsg;
 pub mod jni_references;
 pub mod sys_sigquit;
 pub mod garbage_collection;
+pub mod sys_fd_tracking;
