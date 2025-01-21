@@ -95,6 +95,7 @@ fun ZIOFAApp() {
                     },
                 )
             }
+
             parameterizedScreen(
                 "${Routes.IndividualConfiguration.name}?displayName={displayName}?pids={pids}",
                 arguments = listOf(DISPLAY_NAME_ARG, PIDS_ARG),

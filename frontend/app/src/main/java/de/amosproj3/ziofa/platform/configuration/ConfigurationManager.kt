@@ -4,7 +4,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl.configuration
+package de.amosproj3.ziofa.platform.configuration
 
 import arrow.core.Either
 import com.freeletics.flowredux.dsl.ExecutionPolicy

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl.processes
+package de.amosproj3.ziofa.platform.processes
 
 import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess

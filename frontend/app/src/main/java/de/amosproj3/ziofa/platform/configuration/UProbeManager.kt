@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl.configuration
+package de.amosproj3.ziofa.platform.configuration
 
 import de.amosproj3.ziofa.api.configuration.GetSymbolsRequestState
 import de.amosproj3.ziofa.api.configuration.SymbolsAccess

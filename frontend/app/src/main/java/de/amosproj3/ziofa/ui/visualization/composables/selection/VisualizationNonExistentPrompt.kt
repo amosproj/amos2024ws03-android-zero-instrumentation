@@ -1,11 +1,14 @@
-// SPDX-FileCopyrightText: 2025 Luca Bretting <luca.bretting@fau.de>
+package de.amosproj3.ziofa.ui.visualization.composables.selection // SPDX-FileCopyrightText: 2025
+
+// Luca Bretting
+// <luca.bretting@fau.de>
+
 //
 // SPDX-License-Identifier: MIT
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
-import de.amosproj3.ziofa.ui.visualization.composables.CenteredInfoText
 
 @Composable
 fun VisualizationNonExistentPrompt() {
