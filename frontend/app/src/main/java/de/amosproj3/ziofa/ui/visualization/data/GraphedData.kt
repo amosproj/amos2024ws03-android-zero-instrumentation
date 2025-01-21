@@ -14,6 +14,11 @@ sealed class GraphedData {
         val metaData: ChartMetadata,
     ) : GraphedData()
 
+    data class MultiTimeSeriesData(
+        val seriesData: ImmutableList<Pair<Float, Pair<Float, Float>>>,
+        val metaData: ChartMetadata,
+    ) : GraphedData()
+
     data class HistogramData(
         val seriesData: ImmutableList<Pair<ULong, ULong>>,
         val metaData: ChartMetadata,

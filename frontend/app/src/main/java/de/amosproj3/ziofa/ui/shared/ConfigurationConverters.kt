@@ -54,6 +54,15 @@ fun Configuration.toUIOptionsForPids(
             } ?: BackendFeatureOptions.SigquitOption(enabled = false, pids = setOf())
         )
 
+        options.add(
+            this.gc?.let {
+                BackendFeatureOptions.GcOption(
+                    enabled = it.pids.anyPidsEnabled(relevantPids),
+                    it.pids
+                )
+            } ?: BackendFeatureOptions.GcOption(enabled = false, setOf())
+        )
+
         this.uprobes
             .filter { it.pid == null || relevantPids.contains(it.pid!!.toUInt()) }
             .forEach { uprobeConfig ->

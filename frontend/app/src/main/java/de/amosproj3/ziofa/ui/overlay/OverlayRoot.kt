@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.visualization.composables.chart.VicoTimeSeries
+import de.amosproj3.ziofa.ui.visualization.composables.chart.YChartsMultiTimeSeries
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
@@ -36,13 +37,14 @@ fun OverlayRoot(viewModel: OverlayViewModel = koinViewModel(), modifier: Modifie
 
     Box(
         modifier =
-            modifier.size(
-                width = screenWidth * overlaySettings.pctOfScreen,
-                height = screenHeight * overlaySettings.pctOfScreen,
-            )
+        modifier.size(
+            width = screenWidth * overlaySettings.pctOfScreen,
+            height = screenHeight * overlaySettings.pctOfScreen,
+        )
     ) {
         when (data) {
             is GraphedData.TimeSeriesData -> TimeSeriesOverlay(data)
+            is GraphedData.MultiTimeSeriesData -> MultiTimeSeriesOverlay(data)
             else -> Unsupported(data::class.simpleName.toString())
         }
     }
@@ -59,6 +61,16 @@ fun TimeSeriesOverlay(data: GraphedData.TimeSeriesData, modifier: Modifier = Mod
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
             Text("ZIOFA OVERLAY", color = Color.Red)
             VicoTimeSeries(seriesData = data.seriesData, data.metaData, highContrastMode = true)
+        }
+    }
+}
+
+@Composable
+fun MultiTimeSeriesOverlay(data: GraphedData.MultiTimeSeriesData, modifier: Modifier = Modifier) {
+    if (data.seriesData.isNotEmpty()) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
+            Text("ZIOFA OVERLAY", color = Color.Red)
+            YChartsMultiTimeSeries(seriesData = data.seriesData, data.metaData, overlayMode = true)
         }
     }
 }

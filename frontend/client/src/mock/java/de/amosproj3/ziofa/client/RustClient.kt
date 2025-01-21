@@ -11,6 +11,7 @@ import kotlin.random.nextUInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+var gcPids = setOf<UInt>()
 
 const val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -22,7 +23,7 @@ object RustClient : Client {
             uprobes = listOf(),
             jniReferences = JniReferencesConfig(pids = listOf(1u)),
             sysSigquit = SysSigquitConfig(pids = listOf()),
-            gc = GcConfig,
+            gc = GcConfig(pids = gcPids),
             sysFdTracking = SysFdTrackingConfig(pids = listOf()),
         )
 

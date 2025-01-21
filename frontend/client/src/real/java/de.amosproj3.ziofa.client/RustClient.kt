@@ -19,6 +19,9 @@ import uniffi.shared.EventType
 import uniffi.shared.JniMethodName
 import uniffi.shared.SysFdAction
 
+//TODO: remove this hack
+var gcPids = setOf<UInt>()
+
 private fun uniffi.shared.Process.into() =
     Process(
         pid,
@@ -134,7 +137,7 @@ private fun uniffi.shared.Configuration.into() =
             },
         jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
         sysSigquit = sysSigquit?.let { SysSigquitConfig(pids = it.pids) },
-        gc = gc?.let { GcConfig },
+        gc = gc?.let { GcConfig(de.amosproj3.ziofa.client.gcPids) },
         sysFdTracking = sysFdTracking?.let { SysFdTrackingConfig(pids = it.pids) },
     )
 
@@ -153,7 +156,10 @@ private fun Configuration.into() =
             },
         jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
         sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
-        gc = gc?.let { uniffi.shared.GcConfig() },
+        gc = gc?.let {
+            de.amosproj3.ziofa.client.gcPids = it.pids
+            uniffi.shared.GcConfig()
+                     },
         sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
     )
 
@@ -183,8 +189,9 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
 
+    //TODO remove the workarounds
     override suspend fun setConfiguration(configuration: Configuration) =
-        inner.setConfiguration(configuration.into())
+        inner.setConfiguration(configuration.copy(jniReferences=null).into())
 
     override suspend fun getOdexFiles(pid: UInt): Flow<String> =
         inner.getOdexFilesFlow(pid).mapNotNull { it.into().name }

@@ -115,6 +115,8 @@ dependencies {
     implementation(libs.arrow.fx.coroutines)
     detektPlugins(libs.detekt.compose.rules)
     implementation(libs.kotlinx.collections.immutable)
+    implementation("co.yml:ycharts:2.1.0")
+
 
 }
 

@@ -51,6 +51,15 @@ sealed class BackendFeatureOptions(
             active = enabled,
         )
 
+    data class GcOption(val enabled: Boolean, val pids: Set<UInt>) :
+        BackendFeatureOptions(
+            name = "Garbage Collector Analysis",
+            type = FeatureType.IO,
+            description =
+            "TODO",
+            active = enabled,
+        )
+
     data class UprobeOption(
         val method: String,
         val enabled: Boolean,

@@ -44,4 +44,8 @@ val DEFAULT_CHART_METADATA = // TODO replace with reasonable defaults
 val DEFAULT_EVENT_LIST_METADATA = EventListMetadata("unknown", "unknown", "unknown", "unknown")
 
 const val LIGHT_PURPLE = 0xffa485e0
+const val LIGHT_YELLOW = 0xFFFFED
+
 val VICO_LINE_COLOR = Color(LIGHT_PURPLE)
+val VICO_LINE_COLOR_2 = Color(LIGHT_YELLOW)
+

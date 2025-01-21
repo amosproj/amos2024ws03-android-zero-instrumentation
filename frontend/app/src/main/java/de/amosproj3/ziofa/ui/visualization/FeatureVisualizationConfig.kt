@@ -19,10 +19,13 @@ import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
 import de.amosproj3.ziofa.ui.visualization.utils.toCombinedReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toEventList
 import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
+import de.amosproj3.ziofa.ui.visualization.utils.toMultiMemoryGraphData
+import de.amosproj3.ziofa.ui.visualization.utils.toTimestampedMultiSeries
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
+import kotlin.time.toDuration
 
 /*
  * When adding new features, the event visualizations have to be configured in this file.
@@ -83,6 +86,14 @@ fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
                 label2 = "Origin TID",
                 label3 = "Target PID",
                 label4 = "Timestamp",
+            )
+
+        is BackendFeatureOptions.GcOption ->
+            EventListMetadata(
+                label1 = "PID",
+                label2 = "TargetFootprint",
+                label3 = "Allocated bytes",
+                label4 = "Freed bytes",
             )
 
         else -> {
@@ -151,6 +162,18 @@ fun DataStreamProvider.getEventListData(
                 }
                 .toEventList()
 
+        is BackendFeatureOptions.GcOption ->
+            this.gcEvents(pids = pids)
+                .map {
+                    EventListEntry(
+                        col1 = "${it.pid}",
+                        col2 = "${it.targetFootprint}",
+                        col3 = "${it.numBytesAllocated}",
+                        col4 = "${it.freedBytes}"
+                    )
+                }
+                .toEventList()
+
         else -> null
     }
 }
@@ -179,15 +202,25 @@ fun DataStreamProvider.getChartData(
                 .map {
                     it.copy(
                         seriesData =
-                            it.seriesData
-                                .map { pair -> pair.copy(second = pair.second / 1_000_000) }
-                                .toImmutableList()
+                        it.seriesData
+                            .map { pair -> pair.copy(second = pair.second / 1_000_000) }
+                            .toImmutableList()
                     )
                 }
 
         is BackendFeatureOptions.JniReferencesOption ->
             this.jniReferenceEvents(pids = pids)
                 .toCombinedReferenceCount(chartMetadata, selectedTimeframe)
+
+
+        is BackendFeatureOptions.GcOption ->
+            this.gcEvents(pids = pids)
+                .toMultiMemoryGraphData(selectedTimeframe.amount.toDuration(selectedTimeframe.unit).inWholeMilliseconds)
+                .toTimestampedMultiSeries(
+                    10,
+                    selectedTimeframe.amount.toDuration(selectedTimeframe.unit).inWholeSeconds.toFloat()
+                )
+                .map { GraphedData.MultiTimeSeriesData(it.toImmutableList(), DEFAULT_CHART_METADATA) }
 
         else -> null
     }
