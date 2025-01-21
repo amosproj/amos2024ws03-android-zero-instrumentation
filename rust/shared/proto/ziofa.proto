@@ -95,6 +95,7 @@ message Event {
         JniReferencesEvent jni_references = 3;
         SysSigquitEvent sys_sigquit = 4;
         GcEvent gc = 5;
+        SysFdTrackingEvent sys_fd_tracking = 6;
     }
 }
 
@@ -148,4 +149,16 @@ message GcEvent {
     uint64 freed_los_objects = 10;
     int64 freed_los_bytes = 11;
     repeated uint64 pause_times = 12;
+}
+
+message SysFdTrackingEvent {
+    enum SysFdAction {
+        Undefined = 0;
+        Created = 1;
+        Destroyed = 2;
+    }
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 time_stamp = 3;
+    SysFdAction fd_action = 4;
 }

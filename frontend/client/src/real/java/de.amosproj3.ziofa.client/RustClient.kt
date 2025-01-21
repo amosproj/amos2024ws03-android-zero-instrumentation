@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -12,9 +12,11 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uniffi.client.jniMethodNameFromI32
+import uniffi.client.sysFdActionFromI32
 import uniffi.shared.Cmd
 import uniffi.shared.EventData
 import uniffi.shared.JniMethodName
+import uniffi.shared.SysFdAction
 
 private fun uniffi.shared.Process.into() =
     Process(
@@ -86,6 +88,18 @@ private fun uniffi.shared.Event.into() =
                 freedLosBytes = d.v1.freedLosBytes,
                 pauseTimes = d.v1.pauseTimes,
             )
+        is EventData.SysFdTracking ->
+            Event.SysFdTracking(
+                pid = d.v1.pid,
+                tid = d.v1.tid,
+                timeStamp = d.v1.timeStamp,
+                fdAction =
+                    when (sysFdActionFromI32(d.v1.fdAction)) {
+                        SysFdAction.CREATED -> Event.SysFdTracking.SysFdAction.Created
+                        SysFdAction.DESTROYED -> Event.SysFdTracking.SysFdAction.Destroyed
+                        SysFdAction.UNDEFINED -> null
+                    },
+            )
         null -> null
     }
 
@@ -105,6 +119,7 @@ private fun uniffi.shared.Configuration.into() =
         jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
         sysSigquit = sysSigquit?.let { SysSigquitConfig(pids = it.pids) },
         gc = gc?.let { GcConfig },
+        sysFdTracking = sysFdTracking?.let { SysFdTrackingConfig(pids = it.pids) },
     )
 
 private fun Configuration.into() =
@@ -123,6 +138,7 @@ private fun Configuration.into() =
         jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
         sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
         gc = gc?.let { uniffi.shared.GcConfig() },
+        sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
     )
 
 private fun uniffi.shared.StringResponse.into() = StringResponse(name)

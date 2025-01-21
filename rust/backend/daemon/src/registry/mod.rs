@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -12,7 +13,7 @@ mod typed_ringbuf;
 
 use aya::{maps::{HashMap, MapData, MapError, RingBuf}, programs::{KProbe, ProbeKind, ProgramError, TracePoint, UProbe}, EbpfError, EbpfLoader};
 use aya_log::EbpfLogger;
-use backend_common::{JNICall, SysGcCall, SysSendmsgCall, SysSigquitCall, VfsWriteCall};
+use backend_common::{JNICall, SysFdActionCall, SysGcCall, SysSendmsgCall, SysSigquitCall, VfsWriteCall};
 use bytemuck::bytes_of;
 use garbage_collection::HeapMetadata;
 use pinning::{LoadAndPin, TryMapFromPin};
@@ -35,6 +36,7 @@ pub struct EbpfConfigRegistry {
     pub sys_sendmsg_pids: RegistryItem<OwnedHashMap<u32, u64>>,
     pub jni_ref_pids: RegistryItem<OwnedHashMap<u32, u64>>,
     pub sys_sigquit_pids: RegistryItem<OwnedHashMap<u32, u64>>,
+    pub sys_fd_tracking_pids: RegistryItem<OwnedHashMap<u32, u64>>,
 }
 
 #[derive(Clone)]
@@ -44,6 +46,7 @@ pub struct EbpfEventRegistry {
     pub jni_ref_calls: RegistryItem<TypedRingBuffer<JNICall>>,
     pub sys_sigquit_events: RegistryItem<TypedRingBuffer<SysSigquitCall>>,
     pub gc_events: RegistryItem<TypedRingBuffer<SysGcCall>>,
+    pub sys_fd_tracking_events: RegistryItem<TypedRingBuffer<SysFdActionCall>>,
 }
 
 #[derive(Clone)]
@@ -59,6 +62,8 @@ pub struct EbpfProgramRegistry {
     pub sys_sigquit: RegistryItem<TracePoint>,
     pub collect_garbage_internal: RegistryItem<UProbe>,
     pub collect_garbage_internal_ret: RegistryItem<UProbe>,
+    pub sys_create_fd: RegistryItem<TracePoint>,
+    pub sys_destroy_fd: RegistryItem<TracePoint>,
 }
 
 impl EbpfRegistry {
@@ -78,6 +83,7 @@ impl EbpfConfigRegistry {
             sys_sendmsg_pids: HashMap::<_, u32, u64>::try_from_pin(path("SYS_SENDMSG_PIDS"))?.into(),
             jni_ref_pids: HashMap::<_, u32, u64>::try_from_pin(path("JNI_REF_PIDS"))?.into(),
             sys_sigquit_pids: HashMap::<_, u32, u64>::try_from_pin(path("SYS_SIGQUIT_PIDS"))?.into(),
+            sys_fd_tracking_pids: HashMap::<_, u32, u64>::try_from_pin(path("SYS_FDTRACKING_PIDS"))?.into(),
         })
     }
 }
@@ -90,6 +96,7 @@ impl EbpfEventRegistry {
             jni_ref_calls: RingBuf::try_from_pin(path("JNI_REF_CALLS"))?.into(),
             sys_sigquit_events: RingBuf::try_from_pin(path("SYS_SIGQUIT_EVENTS"))?.into(),
             gc_events: RingBuf::try_from_pin(path("GC_EVENTS"))?.into(),
+            sys_fd_tracking_events: RingBuf::try_from_pin(path("SYS_FDTRACKING_EVENTS"))?.into(),
         })
     }
 }
@@ -108,6 +115,8 @@ impl EbpfProgramRegistry {
             sys_sigquit: TracePoint::from_pin(path("sys_sigquit"))?.into(),
             collect_garbage_internal: UProbe::from_pin(path("collect_garbage_internal"), ProbeKind::UProbe)?.into(),
             collect_garbage_internal_ret: UProbe::from_pin(path("collect_garbage_internal_ret"), ProbeKind::URetProbe)?.into(),
+            sys_create_fd: TracePoint::from_pin(path("sys_create_fd"))?.into(),
+            sys_destroy_fd: TracePoint::from_pin(path("sys_destroy_fd"))?.into(),
         })
     }
 }
@@ -141,6 +150,8 @@ pub fn load_and_pin() -> Result<EbpfRegistry, EbpfError> {
     ebpf.load_and_pin::<TracePoint>("sys_sigquit", ZIOFA_EBPF_PATH).unwrap();
     ebpf.load_and_pin::<UProbe>("collect_garbage_internal", ZIOFA_EBPF_PATH).unwrap();
     ebpf.load_and_pin::<UProbe>("collect_garbage_internal_ret", ZIOFA_EBPF_PATH).unwrap();
+    ebpf.load_and_pin::<TracePoint>("sys_create_fd", ZIOFA_EBPF_PATH).unwrap();
+    ebpf.load_and_pin::<TracePoint>("sys_destroy_fd", ZIOFA_EBPF_PATH).unwrap();
 
     EbpfRegistry::from_pin()
 }
