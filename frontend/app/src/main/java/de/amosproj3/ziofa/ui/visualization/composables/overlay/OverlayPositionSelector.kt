@@ -51,11 +51,7 @@ fun OverlayPositionSelector(
                 trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
             )
-            ExposedDropdownMenu(
-                modifier = modifier,
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option.displayName) },

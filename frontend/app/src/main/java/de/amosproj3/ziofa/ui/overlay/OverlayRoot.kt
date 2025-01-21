@@ -23,7 +23,7 @@ import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
 
 @Composable
-fun OverlayRoot(viewModel: OverlayViewModel = koinViewModel()) {
+fun OverlayRoot(viewModel: OverlayViewModel = koinViewModel(), modifier: Modifier = Modifier) {
 
     val overlayData by remember(viewModel) { viewModel.overlayData }.collectAsState()
     val overlaySettings by remember(viewModel) { viewModel.overlaySettings }.collectAsState()
@@ -36,7 +36,7 @@ fun OverlayRoot(viewModel: OverlayViewModel = koinViewModel()) {
 
     Box(
         modifier =
-            Modifier.size(
+            modifier.size(
                 width = screenWidth * overlaySettings.pctOfScreen,
                 height = screenHeight * overlaySettings.pctOfScreen,
             )
@@ -49,14 +49,14 @@ fun OverlayRoot(viewModel: OverlayViewModel = koinViewModel()) {
 }
 
 @Composable
-fun Unsupported(visualizationType: String) {
-    Text("Overlay mode unsupported for visualization type $visualizationType")
+fun Unsupported(visualizationType: String, modifier: Modifier = Modifier) {
+    Text("Overlay mode unsupported for visualization type $visualizationType", modifier = modifier)
 }
 
 @Composable
-fun TimeSeriesOverlay(data: GraphedData.TimeSeriesData) {
+fun TimeSeriesOverlay(data: GraphedData.TimeSeriesData, modifier: Modifier = Modifier) {
     if (data.seriesData.isNotEmpty()) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
             Text("ZIOFA OVERLAY", color = Color.Red)
             VicoTimeSeries(seriesData = data.seriesData, data.metaData, highContrastMode = true)
         }

@@ -27,17 +27,22 @@ import de.amosproj3.ziofa.ui.visualization.composables.overlay.TrafficLightIndic
 import de.amosproj3.ziofa.ui.visualization.data.OverlaySettings
 import kotlinx.collections.immutable.toImmutableList
 
+private const val OVERLAY_TITLE_SIZE = 30f
+private const val OVERLAY_BUTTON_SIZE = 20f
+
+@Suppress("MagicNumber") // does not improve readability
 @Composable
 fun OverlayLauncher(
     overlaySettings: OverlaySettings,
     overlayEnabled: Boolean,
     overlayStatusChanged: (Boolean) -> Unit,
     overlaySettingsChanged: (OverlaySettings) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceEvenly,
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
     ) {
         Column(
             modifier = Modifier.weight(0.3f),
@@ -52,7 +57,7 @@ fun OverlayLauncher(
         ) {
             Text(
                 "Overlay Settings",
-                fontSize = TextUnit(30f, TextUnitType.Sp),
+                fontSize = TextUnit(OVERLAY_TITLE_SIZE, TextUnitType.Sp),
                 fontWeight = FontWeight.Bold,
             )
 
@@ -78,7 +83,7 @@ fun OverlayLauncher(
                 content = {
                     Text(
                         text = if (overlayEnabled) "Disable overlay" else "Enable overlay",
-                        fontSize = TextUnit(20f, TextUnitType.Sp),
+                        fontSize = TextUnit(OVERLAY_BUTTON_SIZE, TextUnitType.Sp),
                     )
                 },
             )
