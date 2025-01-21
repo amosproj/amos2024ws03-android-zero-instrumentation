@@ -24,11 +24,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import kotlinx.collections.immutable.ImmutableList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MetricDropdown(
-    options: List<DropdownOption>,
+    options: ImmutableList<DropdownOption>,
     title: String,
     modifier: Modifier = Modifier,
     optionSelected: (DropdownOption) -> Unit,

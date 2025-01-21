@@ -38,12 +38,13 @@ import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.VICO_LINE_COLOR
 import de.amosproj3.ziofa.ui.visualization.utils.isDefaultSeries
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
 fun VicoTimeSeries(
-    seriesData: List<Pair<Float, Float>>,
+    seriesData: ImmutableList<Pair<Float, Float>>,
     chartMetadata: ChartMetadata,
     modifier: Modifier = Modifier,
 ) {
