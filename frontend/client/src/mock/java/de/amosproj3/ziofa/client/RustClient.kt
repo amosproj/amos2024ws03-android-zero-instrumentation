@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -23,6 +23,7 @@ object RustClient : Client {
             jniReferences = JniReferencesConfig(pids = listOf()),
             sysSigquit = SysSigquitConfig(pids = listOf()),
             gc = GcConfig,
+            sysFdTracking = SysFdTrackingConfig(pids = listOf()),
         )
 
     override suspend fun serverCount(): Flow<UInt> = flow {
@@ -140,6 +141,16 @@ object RustClient : Client {
                         tid = 1234u,
                         timeStamp = 12312412u,
                         targetPid = 12874u,
+                    )
+                )
+            }
+            configuration.sysFdTracking?.pids?.forEach {
+                emit(
+                    Event.SysFdTracking(
+                        pid = it,
+                        tid = 1234u,
+                        timeStamp = 12312412u,
+                        fdAction = Event.SysFdTracking.SysFdAction.Created,
                     )
                 )
             }

@@ -58,6 +58,12 @@ impl TryInto<EventTypeEnum> for Event {
                     event_data: Some(EventData::Gc(_)),
                                     }))
             } => Ok(EventTypeEnum::GcEvent),
+            Event{
+                event_type:
+                Some(EventType::Log(LogEvent {
+                    event_data: Some(EventData::SysFdTracking(_)),
+                                    }))
+            } => Ok(EventTypeEnum::SysFdTrackingEvent),
             _ => Err(()),
         }
     }

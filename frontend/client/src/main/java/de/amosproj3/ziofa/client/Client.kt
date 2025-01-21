@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -14,6 +14,7 @@ data class Configuration(
     val jniReferences: JniReferencesConfig?,
     val sysSigquit: SysSigquitConfig?,
     val gc: GcConfig?,
+    val sysFdTracking: SysFdTrackingConfig?,
 )
 
 data class VfsWriteConfig(val entries: Map<UInt, ULong>)
@@ -27,6 +28,8 @@ data class JniReferencesConfig(val pids: List<UInt>)
 data class SysSigquitConfig(val pids: List<UInt>)
 
 data object GcConfig
+
+data class SysFdTrackingConfig(val pids: List<UInt>)
 
 sealed class Event {
     data class VfsWrite(
@@ -80,6 +83,18 @@ sealed class Event {
         var freedLosBytes: Long,
         var pauseTimes: List<ULong>,
     ) : Event()
+
+    data class SysFdTracking(
+        val pid: UInt,
+        val tid: UInt,
+        val timeStamp: ULong,
+        val fdAction: SysFdAction?,
+    ) : Event() {
+        enum class SysFdAction {
+            Created,
+            Destroyed,
+        }
+    }
 }
 
 data class Process(val pid: UInt, val ppid: UInt, val state: String, val cmd: Command?)

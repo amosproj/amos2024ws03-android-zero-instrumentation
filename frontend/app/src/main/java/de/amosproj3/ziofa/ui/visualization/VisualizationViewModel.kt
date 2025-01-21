@@ -21,6 +21,7 @@ import de.amosproj3.ziofa.ui.visualization.utils.getActiveMetricsForPids
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
 import de.amosproj3.ziofa.ui.visualization.utils.isValidSelection
 import de.amosproj3.ziofa.ui.visualization.utils.toUIOptions
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,7 +74,15 @@ class VisualizationViewModel(
                     selectedComponent = activeComponent,
                     selectedMetric = activeMetric,
                     selectedTimeframe = activeTimeframe,
-                    componentOptions = configuredComponents.toUIOptions(),
+                    componentOptions =
+                        configuredComponents
+                            .toUIOptions()
+                            .plus(
+                                activeComponent
+                            ) // prevent the selected component from disappearing if process ends
+                            .toSet() // convert to set to remove the duplicate if it is already in
+                            // the list
+                            .toImmutableList(),
                     metricOptions =
                         config.getActiveMetricsForPids(pids = activeComponent.getPIDsOrNull()),
                     timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,

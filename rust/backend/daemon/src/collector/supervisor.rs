@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -21,6 +22,7 @@ enum CollectorT {
     JniCall,
     SysSigquit,
     Gc,
+    SysFdTracking,
 }
 
 pub struct CollectorSupervisor;
@@ -54,7 +56,7 @@ impl CollectorRefs {
         self.collectors.remove(cell)
     }
     async fn start_all(&mut self, registry: &EbpfEventRegistry, event_actor: &ActorRef<Event>, supervisor: &ActorCell) -> Result<(), ActorProcessingErr> {
-        for who in [CollectorT::VfsWrite, CollectorT::SysSendmsg, CollectorT::JniCall, CollectorT::SysSigquit, CollectorT::Gc] {
+        for who in [CollectorT::VfsWrite, CollectorT::SysSendmsg, CollectorT::JniCall, CollectorT::SysSigquit, CollectorT::Gc, CollectorT::SysFdTracking] {
             self.start(who, registry, event_actor, supervisor).await?;
         }
         Ok(())
@@ -72,6 +74,7 @@ impl CollectorRefs {
             CollectorT::JniCall => start_collector(registry.jni_ref_calls.clone(), event_actor.clone(), supervisor.clone()).await?,
             CollectorT::SysSigquit => start_collector(registry.sys_sigquit_events.clone(), event_actor.clone(), supervisor.clone()).await?,
             CollectorT::Gc => start_collector(registry.gc_events.clone(), event_actor.clone(), supervisor.clone()).await?,
+            CollectorT::SysFdTracking => start_collector(registry.sys_fd_tracking_events.clone(), event_actor.clone(), supervisor.clone()).await?,
         };
         self.collectors.insert(actor_ref.get_cell(), who);
         Ok(())

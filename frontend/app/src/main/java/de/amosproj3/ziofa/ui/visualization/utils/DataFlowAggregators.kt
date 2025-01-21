@@ -12,6 +12,7 @@ import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.EventListEntry
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import kotlin.time.toDuration
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -21,7 +22,7 @@ fun Flow<Event.VfsWrite>.toBucketedHistogram(
 ) =
     this.toBucketedData(timeframe.amount.toDuration(timeframe.unit).inWholeMilliseconds.toULong())
         .sortAndClip(HISTOGRAM_BUCKETS)
-        .map { GraphedData.HistogramData(it, chartMetadata) }
+        .map { GraphedData.HistogramData(it.toImmutableList(), chartMetadata) }
 
 fun Flow<Event.SysSendmsg>.toMovingAverage(
     chartMetadata: ChartMetadata,
@@ -31,15 +32,15 @@ fun Flow<Event.SysSendmsg>.toMovingAverage(
             TIME_SERIES_SIZE,
             timeframe.amount.toDuration(timeframe.unit).inWholeMilliseconds,
         )
-        .map { GraphedData.TimeSeriesData(it, chartMetadata) }
+        .map { GraphedData.TimeSeriesData(it.toImmutableList(), chartMetadata) }
 
 fun Flow<Event.JniReferences>.toCombinedReferenceCount(
     chartMetadata: ChartMetadata,
     timeframe: DropdownOption.Timeframe,
 ) =
     this.toReferenceCount().toTimestampedSeries(TIME_SERIES_SIZE, timeframe.amount.toFloat()).map {
-        GraphedData.TimeSeriesData(seriesData = it, metaData = chartMetadata)
+        GraphedData.TimeSeriesData(seriesData = it.toImmutableList(), metaData = chartMetadata)
     }
 
 fun Flow<EventListEntry>.toEventList() =
-    this.accumulateEvents().map { GraphedData.EventListData(it) }
+    this.accumulateEvents().map { GraphedData.EventListData(it.toImmutableList()) }

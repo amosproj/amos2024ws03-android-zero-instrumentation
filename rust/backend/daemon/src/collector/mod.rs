@@ -4,11 +4,17 @@
 //
 // SPDX-License-Identifier: MIT
 
-use backend_common::{JNICall, JNIMethodName, SysSendmsgCall, SysSigquitCall, VfsWriteCall, SysGcCall};
+use backend_common::{
+    JNICall, JNIMethodName, SysFdAction, SysFdActionCall, SysGcCall, SysSendmsgCall,
+    SysSigquitCall, VfsWriteCall,
+};
 use shared::ziofa::event::EventType;
-use shared::ziofa::{Event, GcEvent, JniReferencesEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent, LogEvent};
 use shared::ziofa::jni_references_event::JniMethodName;
 use shared::ziofa::log_event::EventData;
+use shared::ziofa::{
+    sys_fd_tracking_event, Event, GcEvent, JniReferencesEvent, LogEvent, SysFdTrackingEvent,
+    SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent,
+};
 
 mod aggregator;
 mod event_dispatcher;
@@ -84,8 +90,8 @@ impl IntoEvent for SysSigquitCall {
                     tid: self.tid,
                     time_stamp: self.time_stamp,
                     target_pid: self.target_pid,
-                }))
-            }))
+                })),
+            })),
         }
     }
 }
@@ -107,8 +113,27 @@ impl IntoEvent for SysGcCall {
                     freed_los_objects: self.heap.freed_los_objects,
                     freed_los_bytes: self.heap.freed_los_bytes,
                     pause_times: self.heap.pause_times.to_vec(),
-                }))
-            }))
+                })),
+            })),
+        }
+    }
+}
+
+impl IntoEvent for SysFdActionCall {
+    fn into_event(self) -> Event {
+        Event {
+            event_type: Some(EventType::Log(LogEvent {
+                event_data: Some(EventData::SysFdTracking(SysFdTrackingEvent {
+                    pid: self.pid,
+                    tid: self.tid,
+                    time_stamp: self.time_stamp,
+                    fd_action: (match self.fd_action {
+                        SysFdAction::Created => sys_fd_tracking_event::SysFdAction::Created,
+                        SysFdAction::Destroyed => sys_fd_tracking_event::SysFdAction::Destroyed,
+                    })
+                    .into(),
+                })),
+            })),
         }
     }
 }

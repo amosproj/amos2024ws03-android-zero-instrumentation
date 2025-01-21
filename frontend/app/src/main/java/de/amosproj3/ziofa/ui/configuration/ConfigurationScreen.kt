@@ -6,10 +6,10 @@
 package de.amosproj3.ziofa.ui.configuration
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -20,14 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import de.amosproj3.ziofa.ui.configuration.composables.EbpfIOFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.composables.EbpfUprobeFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
-import de.amosproj3.ziofa.ui.configuration.composables.SectionTitleRow
+import de.amosproj3.ziofa.ui.configuration.composables.PresetFeatureOptionsGroup
 import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.configuration.data.ConfigurationScreenState
 import de.amosproj3.ziofa.ui.configuration.data.FeatureType
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -37,7 +39,7 @@ import org.koin.core.parameter.parametersOf
 fun ConfigurationScreen(
     modifier: Modifier = Modifier,
     onAddUprobeSelected: () -> Unit = {},
-    pids: List<UInt>? = listOf(),
+    pids: ImmutableList<UInt>? = persistentListOf(),
 ) {
 
     val viewModel: ConfigurationViewModel = koinViewModel(parameters = { parametersOf(pids) })
@@ -47,34 +49,40 @@ fun ConfigurationScreen(
         val configurationChangedByUser by remember { viewModel.changed }.collectAsState()
         when (val state = screenState) { // needed for immutability
             is ConfigurationScreenState.Valid -> {
+                // Render list of options
+                LazyColumn(Modifier.fillMaxWidth()) {
+                    item {
+                        PresetFeatureOptionsGroup(
+                            options = state.options,
+                            type = FeatureType.IO,
+                            onOptionChanged = { option, newState ->
+                                viewModel.optionChanged(option, newState)
+                            },
+                        )
+                    }
 
-                Column(Modifier.fillMaxWidth()) {
-                    // Render list of options
-                    SectionTitleRow(FeatureType.IO.displayName)
-                    EbpfIOFeatureOptions(
-                        options = state.options.filter { it.featureType == FeatureType.IO },
-                        onOptionChanged = { option, newState ->
-                            viewModel.optionChanged(option, newState)
-                        },
-                    )
+                    item {
+                        PresetFeatureOptionsGroup(
+                            options = state.options,
+                            type = FeatureType.SIGNALS,
+                            onOptionChanged = { option, newState ->
+                                viewModel.optionChanged(option, newState)
+                            },
+                        )
+                    }
 
-                    SectionTitleRow(FeatureType.SIGNALS.displayName)
-                    EbpfIOFeatureOptions(
-                        options = state.options.filter { it.featureType == FeatureType.SIGNALS },
-                        onOptionChanged = { option, newState ->
-                            viewModel.optionChanged(option, newState)
-                        },
-                    )
-
-                    SectionTitleRow(FeatureType.UPROBES.displayName)
-                    EbpfUprobeFeatureOptions(
-                        options =
-                            state.options.mapNotNull { it as? BackendFeatureOptions.UprobeOption },
-                        onOptionDeleted = { option ->
-                            viewModel.optionChanged(option, active = false)
-                        },
-                        onAddUprobeSelected = onAddUprobeSelected,
-                    )
+                    item {
+                        EbpfUprobeFeatureOptions(
+                            options =
+                                state.options
+                                    .mapNotNull { it as? BackendFeatureOptions.UprobeOption }
+                                    .toImmutableList(),
+                            onOptionDeleted = { option ->
+                                viewModel.optionChanged(option, active = false)
+                            },
+                            onAddUprobeSelected = onAddUprobeSelected,
+                        )
+                    }
                 }
 
                 // Show the submit button if the user changed settings

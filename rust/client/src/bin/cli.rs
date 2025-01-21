@@ -9,6 +9,7 @@ use clap::Subcommand;
 use client::Client;
 use client::ClientError;
 use shared::config::GcConfig;
+use shared::config::SysFdTrackingConfig;
 use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig, SysSigquitConfig};
 use std::collections::HashMap;
 use tokio_stream::StreamExt;
@@ -115,7 +116,8 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
             }),
             jni_references: None,
             sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-            gc: Some(GcConfig { })
+            gc: Some(GcConfig { }),
+            sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
         })
         .await?;
 
@@ -140,7 +142,8 @@ async fn set_config(client: &mut Client) -> Result<()> {
             }),
             jni_references: Some(JniReferencesConfig { pids: vec![] }),
             sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-            gc: Some(GcConfig { })
+            gc: Some(GcConfig { }),
+            sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
         })
         .await?;
     println!("Success");
