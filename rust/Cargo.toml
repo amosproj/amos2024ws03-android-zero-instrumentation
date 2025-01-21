@@ -27,6 +27,9 @@ default-members = [
   "shared",
   "client",
 ]
+exclude = [
+  "playground/ebpf-refactored"
+]
 
 [workspace.package]
 license = "MIT"
