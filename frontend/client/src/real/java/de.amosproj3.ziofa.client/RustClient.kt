@@ -101,17 +101,17 @@ private fun uniffi.shared.Event.into() =
                     )
 
                 is EventData.SysFdTracking ->
-                            Event.SysFdTracking(
-                                pid = d.v1.pid,
-                                tid = d.v1.tid,
-                                timeStamp = d.v1.timeStamp,
-                                fdAction =
-                                    when (sysFdActionFromI32(d.v1.fdAction)) {
-                                        SysFdAction.CREATED -> Event.SysFdTracking.SysFdAction.Created
-                                        SysFdAction.DESTROYED -> Event.SysFdTracking.SysFdAction.Destroyed
-                                        SysFdAction.UNDEFINED -> null
-                                    },
-                            )
+                    Event.SysFdTracking(
+                        pid = d.v1.pid,
+                        tid = d.v1.tid,
+                        timeStamp = d.v1.timeStamp,
+                        fdAction =
+                            when (sysFdActionFromI32(d.v1.fdAction)) {
+                                SysFdAction.CREATED -> Event.SysFdTracking.SysFdAction.Created
+                                SysFdAction.DESTROYED -> Event.SysFdTracking.SysFdAction.Destroyed
+                                SysFdAction.UNDEFINED -> null
+                            },
+                    )
 
                 null -> null
             }
