@@ -77,7 +77,7 @@
 
             sdkPkgs = with pkgs.androidSdkPackages; [
               cmdline-tools-latest
-              ndk-28-0-12433566
+	      ndk-28-0-12916984
               build-tools-35-0-0
               platform-tools
               platforms-android-35
@@ -184,8 +184,10 @@
           };
 
           toolsDevShell = pkgs.mkShell {
-            packages = packageGroups.combined;
+            packages = packageGroups.combined ++ [ pkgs.llvmPackages_19.clang pkgs.llvmPackages_19.bintools ];
             ANDROID_NDK_TOOLCHAIN_DIR = "${(pkgs.androidSdk (_: packageGroups.sdkPkgs))}/share/android-sdk/ndk";
+	    NIX_HARDENING_ENABLE = "";
+	    LIBCLANG_PATH = pkgs.lib.makeLibraryPath [ pkgs.llvmPackages_19.libclang.lib ];
           };
 
           generateSbom =
