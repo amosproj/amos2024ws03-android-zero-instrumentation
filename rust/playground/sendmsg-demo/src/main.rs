@@ -68,6 +68,8 @@ pub struct Bars {
 }
 
 impl Bars {
+
+    #[allow(clippy::literal_string_with_formatting_args)]
     pub fn new(packet_amount: u64, time_between_packets: u64, time_to_block: u64) -> Self {
         let multi = MultiProgress::new();
 

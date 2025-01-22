@@ -1,5 +1,9 @@
 #![no_std]
 
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use bytemuck::{AnyBitPattern, CheckedBitPattern};
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]

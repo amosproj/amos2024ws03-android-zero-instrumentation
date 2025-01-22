@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use aya_ebpf::{
     helpers::{bpf_get_current_task, bpf_ktime_get_ns},
     macros::{map, raw_tracepoint},

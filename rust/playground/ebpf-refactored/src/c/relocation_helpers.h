@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 #ifndef __RELOCATION_HELPERS_H__
 #define __RELOCATION_HELPERS_H__
 

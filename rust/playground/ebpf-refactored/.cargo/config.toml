@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
 [target.'cfg(not(target_arch = "bpf"))']
 rustflags = ["-C", "linker-plugin-lto", "-C", "linker=clang", "-C", "link-arg=-fuse-ld=lld"]
 

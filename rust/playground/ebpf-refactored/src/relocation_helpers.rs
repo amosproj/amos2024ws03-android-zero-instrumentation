@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use aya_ebpf::bindings::task_struct;
 
 #[cfg(test)]
