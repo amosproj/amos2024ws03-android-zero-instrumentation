@@ -6,6 +6,8 @@ package de.amosproj3.ziofa.ui.shared
 
 import de.amosproj3.ziofa.client.Configuration
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 
 /**
  * Convert [Configuration] to UI Options ([BackendFeatureOptions] ). Show as enabled depending on
@@ -13,7 +15,7 @@ import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
  */
 fun Configuration.toUIOptionsForPids(
     relevantPids: List<UInt>? = null
-): List<BackendFeatureOptions> {
+): ImmutableList<BackendFeatureOptions> {
     val options = mutableListOf<BackendFeatureOptions>()
     if (relevantPids != null) {
         options.add(
@@ -66,5 +68,5 @@ fun Configuration.toUIOptionsForPids(
                 )
             }
     }
-    return options.toList()
+    return options.toImmutableList()
 }

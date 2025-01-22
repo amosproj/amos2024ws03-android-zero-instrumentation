@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 use client::Client;
-use shared::config::{Configuration, GcConfig, SysSendmsgConfig, SysSigquitConfig, VfsWriteConfig};
+use shared::config::{Configuration, GcConfig, SysFdTrackingConfig, SysSendmsgConfig, SysSigquitConfig, VfsWriteConfig};
 use shared::ziofa::process::Cmd;
 
 // client tests assume daemon is running!
@@ -24,7 +24,7 @@ async fn list_processes() {
     let server_process = processes.iter().find(|process| match &process.cmd {
         Some(Cmd::Cmdline(d)) => {
             if let Some(name) = d.args.first() {
-                name.split('/').last() == Some("backend-daemon")
+                name.split('/').next_back() == Some("backend-daemon")
             } else {
                 false
             }
@@ -56,7 +56,8 @@ async fn set_get_empty_config() {
         // jni_references: Some(JniReferencesConfig { pids: vec![] }),
         jni_references: None,
         sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-        gc: Some(GcConfig { })
+        gc: Some(GcConfig { }),
+        sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
     };
 
     client

@@ -19,11 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsEntry
+import kotlinx.collections.immutable.ImmutableMap
 
 @Suppress("MagicNumber") // does not improve readability
 @Composable
 fun SearchResultList(
-    symbols: Map<SymbolsEntry, Boolean>,
+    symbols: ImmutableMap<SymbolsEntry, Boolean>,
     onOptionChanged: (SymbolsEntry, Boolean) -> Unit,
 ) {
 

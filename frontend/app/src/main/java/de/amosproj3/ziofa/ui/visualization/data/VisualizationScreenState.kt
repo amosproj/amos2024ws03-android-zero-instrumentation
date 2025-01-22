@@ -22,6 +22,13 @@ sealed class VisualizationScreenState {
             override val selectionData: SelectionData,
             val eventListMetadata: EventListMetadata,
         ) : Valid(selectionData)
+
+        /** Screen displays the overlay launcher. */
+        data class OverlayView(
+            override val selectionData: SelectionData,
+            val overlaySettings: OverlaySettings,
+            val overlayEnabled: Boolean,
+        ) : Valid(selectionData)
     }
 
     /** States that are not errors, but are waiting for a valid selection. */

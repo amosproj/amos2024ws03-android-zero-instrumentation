@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 //
 // SPDX-License-Identifier: MIT
 
@@ -8,6 +9,7 @@ use clap::Subcommand;
 use client::Client;
 use client::ClientError;
 use shared::config::GcConfig;
+use shared::config::SysFdTrackingConfig;
 use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig, SysSigquitConfig};
 use std::collections::HashMap;
 use tokio_stream::StreamExt;
@@ -114,7 +116,8 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
             }),
             jni_references: None,
             sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-            gc: Some(GcConfig { })
+            gc: Some(GcConfig { }),
+            sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
         })
         .await?;
 
@@ -132,14 +135,15 @@ async fn set_config(client: &mut Client) -> Result<()> {
         .set_configuration(Configuration {
             uprobes: vec![],
             vfs_write: Some(VfsWriteConfig {
-                entries: std::collections::HashMap::new(),
+                entries: HashMap::new(),
             }),
             sys_sendmsg: Some(SysSendmsgConfig {
-                entries: std::collections::HashMap::new(),
+                entries: HashMap::new(),
             }),
             jni_references: Some(JniReferencesConfig { pids: vec![] }),
             sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-            gc: Some(GcConfig { })
+            gc: Some(GcConfig { }),
+            sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
         })
         .await?;
     println!("Success");

@@ -27,6 +27,11 @@ default-members = [
   "shared",
   "client",
 ]
+exclude = [
+  "playground/ebpf-refactored",
+  "playground/ebpf-test-refactored",
+  "playground/ebpf-types",
+]
 
 [workspace.package]
 license = "MIT"

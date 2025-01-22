@@ -5,8 +5,11 @@
 
 package de.amosproj3.ziofa.ui.configuration.data
 
+import kotlinx.collections.immutable.ImmutableList
+
 sealed class ConfigurationScreenState {
-    data class Valid(val options: List<BackendFeatureOptions>) : ConfigurationScreenState()
+    data class Valid(val options: ImmutableList<BackendFeatureOptions>) :
+        ConfigurationScreenState()
 
     data class Invalid(val errorMessage: String) : ConfigurationScreenState()
 

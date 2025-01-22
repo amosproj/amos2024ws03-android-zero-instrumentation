@@ -10,6 +10,7 @@ mod vfs_write_feature;
 mod sys_sendmsg_feature;
 mod sys_sigquit_feature;
 mod garbage_collection_feature;
+mod sys_fd_tracking_feature;
 
 use std::collections::BTreeSet;
 use aya::EbpfError;
@@ -20,6 +21,7 @@ use shared::config::Configuration;
 use sys_sendmsg_feature::SysSendmsgFeature;
 use sys_sigquit_feature::SysSigquitFeature;
 use vfs_write_feature::VfsWriteFeature;
+use sys_fd_tracking_feature::SysFdTrackingFeature;
 
 use crate::{registry::{EbpfRegistry, OwnedHashMap, RegistryGuard}, symbols::actors::SymbolActorMsg};
 
@@ -38,6 +40,7 @@ pub struct Features {
     vfs_write_feature: VfsWriteFeature,
     jni_reference_feature: JNIReferencesFeature,
     gc_feature: GcFeature,
+    sys_fd_tracking_feature: SysFdTrackingFeature,
 }
 
 impl Features {
@@ -48,6 +51,7 @@ impl Features {
         let jni_reference_feature = JNIReferencesFeature::init(registry, Some(symbol_actor_ref));
         let sys_sigquit_feature = SysSigquitFeature::init(registry, None);
         let gc_feature = GcFeature::init(registry, None);
+        let sys_fd_tracking_feature = SysFdTrackingFeature::init(registry, None);
 
         Self {
             sys_sendmsg_feature,
@@ -55,6 +59,7 @@ impl Features {
             jni_reference_feature,
             sys_sigquit_feature,
             gc_feature,
+            sys_fd_tracking_feature,
         }
     }
 
@@ -68,6 +73,7 @@ impl Features {
         self.jni_reference_feature.apply( &config.jni_references).await?;
         self.sys_sigquit_feature.apply( &config.sys_sigquit).await?;
         self.gc_feature.apply( &config.gc).await?;
+        self.sys_fd_tracking_feature.apply( &config.sys_fd_tracking).await?;
 
         Ok(())
     }

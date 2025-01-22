@@ -19,6 +19,7 @@ import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
 import de.amosproj3.ziofa.ui.visualization.utils.toCombinedReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toEventList
 import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -65,7 +66,7 @@ fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
                 label1 = "Process ID",
                 label2 = "File Descriptor",
                 label3 = "Event time since Boot in s",
-                label4 = "Duration in ms",
+                label4 = "Duration in seconds",
             )
 
         is BackendFeatureOptions.JniReferencesOption ->
@@ -173,7 +174,16 @@ fun DataStreamProvider.getChartData(
             this.vfsWriteEvents(pids = pids).toBucketedHistogram(chartMetadata, selectedTimeframe)
 
         is BackendFeatureOptions.SendMessageOption ->
-            this.sendMessageEvents(pids = pids).toMovingAverage(chartMetadata, selectedTimeframe)
+            this.sendMessageEvents(pids = pids)
+                .toMovingAverage(chartMetadata, selectedTimeframe)
+                .map {
+                    it.copy(
+                        seriesData =
+                            it.seriesData
+                                .map { pair -> pair.copy(second = pair.second / 1_000_000) }
+                                .toImmutableList()
+                    )
+                }
 
         is BackendFeatureOptions.JniReferencesOption ->
             this.jniReferenceEvents(pids = pids)

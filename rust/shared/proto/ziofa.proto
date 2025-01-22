@@ -23,7 +23,7 @@ service Ziofa {
     rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
-    
+
     rpc IndexSymbols(google.protobuf.Empty) returns (google.protobuf.Empty) {}
     rpc SearchSymbols(SearchSymbolsRequest) returns (SearchSymbolsResponse) {}
     rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
@@ -89,12 +89,20 @@ message CmdlineData {
 }
 
 message Event {
+    oneof event_type {
+        TimeSeriesEvent time_series = 1;
+        LogEvent log = 2;
+    }
+}
+
+message LogEvent {
     oneof event_data {
         VfsWriteEvent vfs_write = 1;
         SysSendmsgEvent sys_sendmsg = 2;
         JniReferencesEvent jni_references = 3;
         SysSigquitEvent sys_sigquit = 4;
         GcEvent gc = 5;
+        SysFdTrackingEvent sys_fd_tracking = 6;
     }
 }
 
@@ -135,6 +143,26 @@ message SysSigquitEvent {
     uint64 target_pid = 4;
 }
 
+message TimeSeriesEvent {
+  enum EventTypeEnum{
+    VfsWriteEvent = 0;
+    SysSendmsgEvent = 1;
+    JniReferencesEvent = 2;
+    SysSigquitEvent = 3;
+    GcEvent = 4;
+    SysFdTrackingEvent =5;
+  }
+  EventTypeEnum event_type_enum = 1;
+  uint32 timeframe_ms = 2;
+
+  message TimeSeriesType{
+      repeated uint64 list = 1;
+  }
+
+  map<uint32, TimeSeriesType>time_series_map = 3;
+}
+
+
 message GcEvent {
     uint32 pid = 1;
     uint32 tid = 2;
@@ -148,4 +176,16 @@ message GcEvent {
     uint64 freed_los_objects = 10;
     int64 freed_los_bytes = 11;
     repeated uint64 pause_times = 12;
+}
+
+message SysFdTrackingEvent {
+    enum SysFdAction {
+        Undefined = 0;
+        Created = 1;
+        Destroyed = 2;
+    }
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 time_stamp = 3;
+    SysFdAction fd_action = 4;
 }
