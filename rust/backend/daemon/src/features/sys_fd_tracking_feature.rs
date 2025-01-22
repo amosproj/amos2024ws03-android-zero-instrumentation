@@ -31,14 +31,11 @@ pub struct SysFdTrackingFeature {
     trace_link_timerfd_create: Option<TracePointLink>,
     trace_link_memfd_create: Option<TracePointLink>,
     trace_link_userfaultfd: Option<TracePointLink>,
-    trace_link_fanotify_init: Option<TracePointLink>,
     trace_link_inotify_init: Option<TracePointLink>,
     trace_link_clone: Option<TracePointLink>,
     trace_link_pidfd_open: Option<TracePointLink>,
-    trace_link_open_by_handle_at: Option<TracePointLink>,
 
     trace_link_close: Option<TracePointLink>,
-    trace_link_closefrom: Option<TracePointLink>,
     trace_link_close_range: Option<TracePointLink>,
     trace_link_dup: Option<TracePointLink>,
 
@@ -64,14 +61,11 @@ impl SysFdTrackingFeature {
             trace_link_timerfd_create: None,
             trace_link_memfd_create: None,
             trace_link_userfaultfd: None,
-            trace_link_fanotify_init: None,
             trace_link_inotify_init: None,
             trace_link_clone: None,
             trace_link_pidfd_open: None,
-            trace_link_open_by_handle_at: None,
 
             trace_link_close: None,
-            trace_link_closefrom: None,
             trace_link_close_range: None,
             trace_link_dup: None,
 
@@ -96,96 +90,80 @@ impl SysFdTrackingFeature {
 
     pub async fn attach(&mut self) -> Result<(), EbpfError> {
         self.trace_link_open
-            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "open")?);
+            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "sys_enter_open")?);
         self.trace_link_creat
-            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "creat")?);
+            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "sys_enter_creat")?);
         self.trace_link_socket
-            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "socket")?);
+            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "sys_enter_socket")?);
         self.trace_link_accept
-            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "accept")?);
+            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "sys_enter_accept")?);
         self.trace_link_socketpair
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "socketpair",
+                "sys_enter_socketpair",
             )?);
         self.trace_link_pipe
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "pipe",
+                "sys_enter_pipe",
             )?);
         self.trace_link_epoll_create
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "epoll_create",
+                "sys_enter_epoll_create",
             )?);
         self.trace_link_signalfd
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "signalfd",
+                "sys_enter_signalfd",
             )?);
         self.trace_link_eventfd
-            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "eventfd")?);
+            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "sys_enter_eventfd")?);
         self.trace_link_timerfd_create
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "timerfd_create",
+                "sys_enter_timerfd_create",
             )?);
         self.trace_link_memfd_create
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "memfd_create",
+                "sys_enter_memfd_create",
             )?);
         self.trace_link_userfaultfd
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "userfaultfd",
-            )?);
-        self.trace_link_fanotify_init
-            .get_or_insert(Self::try_attach_open(
-                &mut self.trace_create_fd,
-                "fanotify_init",
+                "sys_enter_userfaultfd",
             )?);
         self.trace_link_inotify_init
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "inotify_init",
+                "sys_enter_inotify_init",
             )?);
         self.trace_link_clone
-            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "clone")?);
+            .get_or_insert(Self::try_attach_open(&mut self.trace_create_fd, "sys_enter_clone")?);
         self.trace_link_pidfd_open
             .get_or_insert(Self::try_attach_open(
                 &mut self.trace_create_fd,
-                "pidfd_open",
+                "sys_enter_pidfd_open",
             )?);
-        self.trace_link_open_by_handle_at
-            .get_or_insert(Self::try_attach_open(
-                &mut self.trace_create_fd,
-                "open_by_handle_at",
-            )?);
-
         self.trace_link_close
             .get_or_insert(Self::try_attach_destroy(
                 &mut self.trace_destroy_fd,
-                "close",
-            )?);
-        self.trace_link_closefrom
-            .get_or_insert(Self::try_attach_destroy(
-                &mut self.trace_destroy_fd,
-                "closefrom",
+                "sys_enter_close",
             )?);
         self.trace_link_close_range
             .get_or_insert(Self::try_attach_destroy(
                 &mut self.trace_destroy_fd,
-                "close_range",
+                "sys_enter_close_range",
             )?);
         self.trace_link_dup.get_or_insert(Self::try_attach_open(
             &mut self.trace_create_fd,
-            "dup",
+            "sys_enter_dup",
         )?);
 
         self.trace_link_openat.get_or_insert(Self::try_attach_open(
             &mut self.trace_create_fd,
-            "openat",
+            "sys_enter_openat",
         )?);
 
         Ok(())
@@ -204,14 +182,11 @@ impl SysFdTrackingFeature {
         let _ = self.trace_link_timerfd_create.take();
         let _ = self.trace_link_memfd_create.take();
         let _ = self.trace_link_userfaultfd.take();
-        let _ = self.trace_link_fanotify_init.take();
         let _ = self.trace_link_inotify_init.take();
         let _ = self.trace_link_clone.take();
         let _ = self.trace_link_pidfd_open.take();
-        let _ = self.trace_link_open_by_handle_at.take();
 
         let _ = self.trace_link_close.take();
-        let _ = self.trace_link_closefrom.take();
         let _ = self.trace_link_close_range.take();
         let _ = self.trace_link_dup.take();
 
