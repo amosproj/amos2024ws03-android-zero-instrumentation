@@ -24,7 +24,7 @@ async fn list_processes() {
     let server_process = processes.iter().find(|process| match &process.cmd {
         Some(Cmd::Cmdline(d)) => {
             if let Some(name) = d.args.first() {
-                name.split('/').last() == Some("backend-daemon")
+                name.split('/').next_back() == Some("backend-daemon")
             } else {
                 false
             }

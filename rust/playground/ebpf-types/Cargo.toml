@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+#
+# SPDX-License-Identifier: MIT
+
+[package]
+name = "ebpf-types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aya = { version = "0.13.1", default-features = false, optional = true }
+bytemuck = { version = "1.21.0", features = ["derive"] }
+
+[features]
+user = ["dep:aya"]
