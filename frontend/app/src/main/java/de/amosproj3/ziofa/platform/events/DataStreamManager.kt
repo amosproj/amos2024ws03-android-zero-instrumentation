@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl.events
+package de.amosproj3.ziofa.platform.events
 
 import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.client.ClientFactory

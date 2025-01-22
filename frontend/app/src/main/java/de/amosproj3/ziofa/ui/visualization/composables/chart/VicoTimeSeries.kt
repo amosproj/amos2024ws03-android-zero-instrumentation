@@ -3,10 +3,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.ui.visualization.composables
+package de.amosproj3.ziofa.ui.visualization.composables.chart
 
+import android.graphics.Typeface
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -20,10 +20,10 @@ import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.cartesianLayerPadding
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
-import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import com.patrykandpatrick.vico.compose.common.component.shapeComponent
@@ -32,33 +32,30 @@ import com.patrykandpatrick.vico.compose.common.fill
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
-import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
+import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
+import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.core.common.shape.CorneredShape
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.VICO_LINE_COLOR
+import de.amosproj3.ziofa.ui.visualization.utils.isDefaultSeries
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 @Composable
-fun VicoBar(
+fun VicoTimeSeries(
+    seriesData: ImmutableList<Pair<Float, Float>>,
     chartMetadata: ChartMetadata,
-    seriesData: List<Pair<ULong, ULong>>,
     modifier: Modifier = Modifier,
+    highContrastMode: Boolean = false, // for overlay
 ) {
-    Column(
-        modifier.padding(10.dp).fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Timber.i("$seriesData")
+    Column(modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         val modelProducer = remember { CartesianChartModelProducer() }
-        if (seriesData.isNotEmpty()) {
-            Timber.e("bar data $seriesData")
-            modelProducer.SeriesUpdate(seriesData.map { it.second.toInt() })
-            modelProducer.TimeSeriesChart(
-                chartMetadata = chartMetadata,
-                xLabels = seriesData.map { it.first.toString() },
-            )
+        if (seriesData.isNotEmpty() && !seriesData.isDefaultSeries()) {
+            modelProducer.SeriesUpdate(seriesData)
+            modelProducer.TimeSeriesChart(chartMetadata, highContrastMode)
         }
     }
 }
@@ -66,29 +63,31 @@ fun VicoBar(
 @Composable
 private fun CartesianChartModelProducer.TimeSeriesChart(
     chartMetadata: ChartMetadata,
-    xLabels: List<String>,
+    highContrastMode: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val mainColor = remember { if (highContrastMode) Color.Red else Color.Black }
+    val typeface = remember { if (highContrastMode) Typeface.DEFAULT_BOLD else Typeface.DEFAULT }
+    val xLabel = remember { chartMetadata.xLabel }
+    val yLabel = remember { chartMetadata.yLabel }
+
     CartesianChartHost(
         chart =
             rememberCartesianChart(
-                rememberColumnCartesianLayer(
-                    ColumnCartesianLayer.ColumnProvider.series(
-                        xLabels.map { _ ->
-                            rememberLineComponent(
-                                fill = fill(VICO_LINE_COLOR),
-                                shape =
-                                    CorneredShape.rounded(
-                                        bottomLeftPercent = 40,
-                                        bottomRightPercent = 40,
-                                    ),
-                            )
-                        }
+                rememberLineCartesianLayer(
+                    LineCartesianLayer.LineProvider.series(
+                        LineCartesianLayer.rememberLine(
+                            remember {
+                                LineCartesianLayer.LineFill.single(
+                                    fill(if (highContrastMode) mainColor else VICO_LINE_COLOR)
+                                )
+                            }
+                        )
                     )
                 ),
                 startAxis =
                     VerticalAxis.rememberStart(
-                        label = rememberTextComponent(),
+                        label = rememberTextComponent(color = mainColor, typeface = typeface),
                         titleComponent =
                             rememberTextComponent(
                                 color = Color.White,
@@ -100,10 +99,11 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                                         shape = CorneredShape.Pill,
                                     ),
                             ),
-                        title = chartMetadata.yLabel,
+                        title = yLabel,
                     ),
                 bottomAxis =
                     HorizontalAxis.rememberBottom(
+                        label = rememberTextComponent(color = mainColor, typeface = typeface),
                         titleComponent =
                             rememberTextComponent(
                                 color = Color.White,
@@ -115,13 +115,9 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                                         shape = CorneredShape.Pill,
                                     ),
                             ),
-                        title = chartMetadata.xLabel,
-                        label = rememberTextComponent(),
+                        title = xLabel,
                         guideline = null,
                         itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented() },
-                        valueFormatter = { _, value, _ ->
-                            xLabels.getOrNull(value.toInt()) ?: "UNKNOWN"
-                        },
                     ),
                 layerPadding = cartesianLayerPadding(scalableStart = 16.dp, scalableEnd = 16.dp),
             ),
@@ -132,13 +128,11 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
 }
 
 @Composable
-private fun CartesianChartModelProducer.SeriesUpdate(update: List<Int>) {
+private fun CartesianChartModelProducer.SeriesUpdate(update: List<Pair<Float, Float>>) {
     LaunchedEffect(update) {
         withContext(Dispatchers.Default) {
             this@SeriesUpdate.runTransaction {
-                this.extras {}
-                Timber.e(update.toString())
-                columnSeries { series(x = update.indices.toList().reversed(), y = update) }
+                lineSeries { series(update.map { (x, _) -> x }, update.map { (_, y) -> y }) }
             }
         }
     }

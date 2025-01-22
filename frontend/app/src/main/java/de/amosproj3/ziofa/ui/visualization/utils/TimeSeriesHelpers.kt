@@ -103,7 +103,7 @@ fun Flow<List<Pair<ULong, ULong>>>.sortAndClip(limit: Int) =
 @Suppress("MagicNumber") // unit conversion
 fun ULong.nanosToSeconds(): String {
     val locale = Locale.current.platformLocale
-    return String.format(locale, "%.2f", this.toDouble() / 1_000_000_000)
+    return String.format(locale, "%.4f", this.toDouble() / 1_000_000_000)
 }
 
 fun <E> Flow<E>.accumulateEvents() =

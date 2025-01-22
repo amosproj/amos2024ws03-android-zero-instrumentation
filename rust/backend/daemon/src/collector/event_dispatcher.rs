@@ -23,9 +23,9 @@ impl EventDispatcherState {
 
 
 impl Actor for EventDispatcher {
-    type Arguments = EventDispatcherState;
     type Msg = Event;
     type State = EventDispatcherState;
+    type Arguments = EventDispatcherState;
     
     async fn pre_start(
             &self,

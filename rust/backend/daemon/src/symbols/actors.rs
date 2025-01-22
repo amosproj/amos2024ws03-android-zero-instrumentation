@@ -22,9 +22,9 @@ unsafe impl<S> Sync for SymbolFilePathCollector<S> where S: Stream + State {}
 
 impl<S> Actor for SymbolFilePathCollector<S>
 where S: Stream<Item = SymbolFilePath> + State + Unpin {
-    type Arguments = (S, ActorRef<SymbolFilePath>);
-    type State = (S, ActorRef<SymbolFilePath>);
     type Msg = ();
+    type State = (S, ActorRef<SymbolFilePath>);
+    type Arguments = (S, ActorRef<SymbolFilePath>);
     
     async fn pre_start(
             &self,
@@ -54,16 +54,16 @@ where S: Stream<Item = SymbolFilePath> + State + Unpin {
 struct SymbolFileParserProxy;
 
 impl Actor for SymbolFileParserProxy {
-    type Arguments = (usize, ActorCell, ActorRef<SymbolWithPath>);
-    type State = ActorRef<FactoryMessage<(), SymbolFilePath>>;
     type Msg = SymbolFilePath;
+    type State = ActorRef<FactoryMessage<(), SymbolFilePath>>;
+    type Arguments = (usize, ActorCell, ActorRef<SymbolWithPath>);
     
     async fn pre_start(
             &self,
             _: ActorRef<Self::Msg>,
             args: Self::Arguments,
         ) -> Result<Self::State, ActorProcessingErr> {
-        let factory_def = Factory::<(), SymbolFilePath, ActorRef<SymbolWithPath>, SymbolFileParser, QueuerRouting<(), SymbolFilePath>, DefaultQueue::<(), SymbolFilePath>>::default();
+        let factory_def = Factory::<(), SymbolFilePath, ActorRef<SymbolWithPath>, SymbolFileParser, QueuerRouting<(), SymbolFilePath>, DefaultQueue<(), SymbolFilePath>>::default();
         let factory_args = FactoryArguments::builder()
             .num_initial_workers(args.0)
             .worker_builder(Box::new(SymbolFileParserBuilder(args.2.clone())))
@@ -75,7 +75,15 @@ impl Actor for SymbolFileParserProxy {
 
         Ok(actor_ref)
     }
-    
+
+    async fn post_stop(
+            &self,
+            _: ActorRef<Self::Msg>,
+            state: &mut Self::State,
+        ) -> Result<(), ActorProcessingErr> {
+        Ok(cast!(state, FactoryMessage::DrainRequests)?)
+    }
+
     async fn handle(
             &self,
             _: ActorRef<Self::Msg>,
@@ -83,14 +91,6 @@ impl Actor for SymbolFileParserProxy {
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
         Ok(cast!(state, FactoryMessage::Dispatch(Job { key: (), accepted: None, msg: message, options: JobOptions::default() }))?)
-    }
-    
-    async fn post_stop(
-            &self,
-            _: ActorRef<Self::Msg>,
-            state: &mut Self::State,
-        ) -> Result<(), ActorProcessingErr> {
-        Ok(cast!(state, FactoryMessage::DrainRequests)?)
     }
 
     async fn handle_supervisor_evt(
@@ -122,9 +122,9 @@ impl WorkerBuilder<SymbolFileParser, ActorRef<SymbolWithPath>> for SymbolFilePar
 struct SymbolFileParser;
 
 impl Actor for SymbolFileParser {
-    type Arguments = WorkerStartContext<(), SymbolFilePath, ActorRef<SymbolWithPath>>;
-    type State = WorkerStartContext<(), SymbolFilePath, ActorRef<SymbolWithPath>>;
     type Msg = WorkerMessage<(), SymbolFilePath>;
+    type State = WorkerStartContext<(), SymbolFilePath, ActorRef<SymbolWithPath>>;
+    type Arguments = WorkerStartContext<(), SymbolFilePath, ActorRef<SymbolWithPath>>;
     
     async fn pre_start(
             &self,
@@ -167,9 +167,9 @@ impl Actor for SymbolFileParser {
 struct SymbolIndexer;
 
 impl Actor for SymbolIndexer {
-    type Arguments = Arc<IndexWriter>;
-    type State = (Field, Field, Field, Field, Arc<IndexWriter>);
     type Msg = SymbolWithPath;
+    type State = (Field, Field, Field, Field, Arc<IndexWriter>);
+    type Arguments = Arc<IndexWriter>;
     
     async fn pre_start(
             &self,
@@ -240,8 +240,8 @@ pub enum SymbolActorMsg {
 
 impl Actor for SymbolActor {
     type Msg = SymbolActorMsg;
-    type Arguments = ();
     type State = Index;
+    type Arguments = ();
     
     async fn pre_start(
             &self,

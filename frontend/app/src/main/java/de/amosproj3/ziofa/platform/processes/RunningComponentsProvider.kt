@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package de.amosproj3.ziofa.bl.processes
+package de.amosproj3.ziofa.platform.processes
 
 import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
@@ -21,6 +21,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
+/**
+ * Provides an updating list of running components, with components being apps (groups of processes)
+ * or standalone processes like native processes based on backend data and package info.
+ */
 class RunningComponentsProvider(
     private val clientFactory: ClientFactory,
     private val packageInformationProvider: PackageInformationProvider,
@@ -43,6 +47,10 @@ class RunningComponentsProvider(
         }
     }
 
+    /**
+     * Start polling the backend process list and update the [processesList] every
+     * [PROCESS_LIST_REFRESH_INTERVAL_MS] milliseconds.
+     */
     private suspend fun startPollingProcessList() {
         while (true) {
             delay(PROCESS_LIST_REFRESH_INTERVAL_MS)
@@ -51,11 +59,17 @@ class RunningComponentsProvider(
         }
     }
 
+    /** Group processes based on the [Process.cmd]. */
     private fun Flow<List<Process>>.groupByProcessName() =
         this.map { processList ->
             processList.groupBy { process -> process.cmd.toReadableString() }
         }
 
+    /**
+     * Separate grouped processes into apps and standalone processes like native processes. All
+     * processes where [Process.cmd] is a package name will be treated as
+     * [RunningComponent.Application].
+     */
     private fun Flow<Map<String, List<Process>>>.splitIntoAppsAndStandaloneProcesses() =
         this.map { packageProcessMap ->
             packageProcessMap.entries.map { (packageOrProcessName, processList) ->

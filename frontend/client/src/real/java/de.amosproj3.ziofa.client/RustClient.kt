@@ -15,6 +15,7 @@ import uniffi.client.jniMethodNameFromI32
 import uniffi.client.sysFdActionFromI32
 import uniffi.shared.Cmd
 import uniffi.shared.EventData
+import uniffi.shared.EventType
 import uniffi.shared.JniMethodName
 import uniffi.shared.SysFdAction
 
@@ -32,74 +33,89 @@ private fun uniffi.shared.Process.into() =
     )
 
 private fun uniffi.shared.Event.into() =
-    when (val d = eventData) {
-        is EventData.VfsWrite ->
-            Event.VfsWrite(
-                pid = d.v1.pid,
-                tid = d.v1.tid,
-                beginTimeStamp = d.v1.beginTimeStamp,
-                fp = d.v1.fp,
-                bytesWritten = d.v1.bytesWritten,
-            )
-        is EventData.SysSendmsg ->
-            Event.SysSendmsg(
-                pid = d.v1.pid,
-                tid = d.v1.tid,
-                beginTimeStamp = d.v1.beginTimeStamp,
-                fd = d.v1.fd,
-                durationNanoSecs = d.v1.durationNanoSec,
-            )
-        is EventData.JniReferences ->
-            Event.JniReferences(
-                pid = d.v1.pid,
-                tid = d.v1.tid,
-                beginTimeStamp = d.v1.beginTimeStamp,
-                jniMethodName =
-                    when (jniMethodNameFromI32(d.v1.jniMethodName)) {
-                        JniMethodName.ADD_LOCAL_REF -> Event.JniReferences.JniMethodName.AddLocalRef
-                        JniMethodName.DELETE_LOCAL_REF ->
-                            Event.JniReferences.JniMethodName.DeleteLocalRef
-                        JniMethodName.ADD_GLOBAL_REF ->
-                            Event.JniReferences.JniMethodName.AddGlobalRef
-                        JniMethodName.DELETE_GLOBAL_REF ->
-                            Event.JniReferences.JniMethodName.DeleteGlobalRef
-                        JniMethodName.UNDEFINED -> null
-                    },
-            )
-        is EventData.SysSigquit ->
-            Event.SysSigquit(
-                pid = d.v1.pid,
-                tid = d.v1.tid,
-                timeStamp = d.v1.timeStamp,
-                targetPid = d.v1.targetPid,
-            )
-        is EventData.Gc ->
-            Event.Gc(
-                pid = d.v1.pid,
-                tid = d.v1.tid,
-                targetFootprint = d.v1.targetFootprint,
-                numBytesAllocated = d.v1.numBytesAllocated,
-                gcsCompleted = d.v1.gcsCompleted,
-                gcCause = d.v1.gcCause,
-                durationNs = d.v1.durationNs,
-                freedObjects = d.v1.freedObjects,
-                freedBytes = d.v1.freedBytes,
-                freedLosObjects = d.v1.freedLosObjects,
-                freedLosBytes = d.v1.freedLosBytes,
-                pauseTimes = d.v1.pauseTimes,
-            )
-        is EventData.SysFdTracking ->
-            Event.SysFdTracking(
-                pid = d.v1.pid,
-                tid = d.v1.tid,
-                timeStamp = d.v1.timeStamp,
-                fdAction =
-                    when (sysFdActionFromI32(d.v1.fdAction)) {
-                        SysFdAction.CREATED -> Event.SysFdTracking.SysFdAction.Created
-                        SysFdAction.DESTROYED -> Event.SysFdTracking.SysFdAction.Destroyed
-                        SysFdAction.UNDEFINED -> null
-                    },
-            )
+    when (val x = eventType) {
+        is EventType.Log ->
+            when (val d = x.v1.eventData) {
+                is EventData.VfsWrite ->
+                    Event.VfsWrite(
+                        pid = d.v1.pid,
+                        tid = d.v1.tid,
+                        beginTimeStamp = d.v1.beginTimeStamp,
+                        fp = d.v1.fp,
+                        bytesWritten = d.v1.bytesWritten,
+                    )
+
+                is EventData.SysSendmsg ->
+                    Event.SysSendmsg(
+                        pid = d.v1.pid,
+                        tid = d.v1.tid,
+                        beginTimeStamp = d.v1.beginTimeStamp,
+                        fd = d.v1.fd,
+                        durationNanoSecs = d.v1.durationNanoSec,
+                    )
+
+                is EventData.JniReferences ->
+                    Event.JniReferences(
+                        pid = d.v1.pid,
+                        tid = d.v1.tid,
+                        beginTimeStamp = d.v1.beginTimeStamp,
+                        jniMethodName =
+                            when (jniMethodNameFromI32(d.v1.jniMethodName)) {
+                                JniMethodName.ADD_LOCAL_REF ->
+                                    Event.JniReferences.JniMethodName.AddLocalRef
+                                JniMethodName.DELETE_LOCAL_REF ->
+                                    Event.JniReferences.JniMethodName.DeleteLocalRef
+
+                                JniMethodName.ADD_GLOBAL_REF ->
+                                    Event.JniReferences.JniMethodName.AddGlobalRef
+
+                                JniMethodName.DELETE_GLOBAL_REF ->
+                                    Event.JniReferences.JniMethodName.DeleteGlobalRef
+
+                                JniMethodName.UNDEFINED -> null
+                            },
+                    )
+
+                is EventData.SysSigquit ->
+                    Event.SysSigquit(
+                        pid = d.v1.pid,
+                        tid = d.v1.tid,
+                        timeStamp = d.v1.timeStamp,
+                        targetPid = d.v1.targetPid,
+                    )
+
+                is EventData.Gc ->
+                    Event.Gc(
+                        pid = d.v1.pid,
+                        tid = d.v1.tid,
+                        targetFootprint = d.v1.targetFootprint,
+                        numBytesAllocated = d.v1.numBytesAllocated,
+                        gcsCompleted = d.v1.gcsCompleted,
+                        gcCause = d.v1.gcCause,
+                        durationNs = d.v1.durationNs,
+                        freedObjects = d.v1.freedObjects,
+                        freedBytes = d.v1.freedBytes,
+                        freedLosObjects = d.v1.freedLosObjects,
+                        freedLosBytes = d.v1.freedLosBytes,
+                        pauseTimes = d.v1.pauseTimes,
+                    )
+
+                is EventData.SysFdTracking ->
+                    Event.SysFdTracking(
+                        pid = d.v1.pid,
+                        tid = d.v1.tid,
+                        timeStamp = d.v1.timeStamp,
+                        fdAction =
+                            when (sysFdActionFromI32(d.v1.fdAction)) {
+                                SysFdAction.CREATED -> Event.SysFdTracking.SysFdAction.Created
+                                SysFdAction.DESTROYED -> Event.SysFdTracking.SysFdAction.Destroyed
+                                SysFdAction.UNDEFINED -> null
+                            },
+                    )
+
+                null -> null
+            }
+        is EventType.TimeSeries -> null
         null -> null
     }
 
