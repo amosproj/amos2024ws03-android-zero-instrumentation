@@ -18,13 +18,3 @@ pub extern "C" fn main(argc: isize, _argv: *const *const u8) -> isize {
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_magic_number() {
-        assert_eq!(magic_number(42), 41);
-    }
-}

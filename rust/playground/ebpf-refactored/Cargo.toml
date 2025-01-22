@@ -27,3 +27,6 @@ panic = "abort"
 [profile.release]
 lto = "thin"
 panic = "abort"
+
+[dev-dependencies]
+paste = "1.0.15"

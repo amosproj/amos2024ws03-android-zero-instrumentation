@@ -1,8 +1,8 @@
 use std::{env, path::PathBuf};
 
 pub fn main() {
-    println!("cargo::rerun-if-changed=src/c/relocation_helper.c");
-    println!("cargo::rerun-if-changed=src/c/relocation_helper.h");
+    println!("cargo:rerun-if-changed=src/c/relocation_helper.c");
+    println!("cargo:rerun-if-changed=src/c/relocation_helper.h");
     
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH")
         .expect("`CARGO_CFG_TARGET_ARCH` should be set in a buildscript");
@@ -17,19 +17,31 @@ pub fn main() {
 }
 
 fn build_helpers_bpf() {
+    let endian = env::var("CARGO_CFG_TARGET_ENDIAN")
+        .expect("`CARGO_CFG_TARGET_ENDIAN` should be set in a buildscript");
+    
+    let target = if endian == "little" {
+        "bpfel"
+    } else if endian == "big" {
+        "bpfeb"
+    } else {
+        panic!("unsupported target endian");
+    };
+
     let bitcode_file = cc::Build::new()
         .compiler("clang")
         .no_default_flags(true)
         .file("src/c/relocation_helpers.c")
         .flag("-g")
         .flag("-emit-llvm")
+        .flag(format!("--target={}", target))
         .compile_intermediates()
         .into_iter()
         .next()
         .expect("bitcode file should be compiled");
 
-    println!("cargo::rustc-link-arg={}", bitcode_file.display());
-    println!("cargo::rustc-link-arg=--btf");
+    println!("cargo:rustc-link-arg={}", bitcode_file.display());
+    println!("cargo:rustc-link-arg=--btf");
 }
 
 fn build_helpers_not_bpf() {
@@ -40,7 +52,7 @@ fn build_helpers_not_bpf() {
         .flag("-flto=thin")
         .compile("relocation_helpers");
 
-    println!("cargo::rustc-link-arg=-lc");
+    println!("cargo:rustc-link-arg=-lc");
 }
 
 fn generate_bindings() {
