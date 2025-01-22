@@ -1,9 +1,5 @@
 #include "relocation_helpers.h"
 
-__attribute__((always_inline)) int magic_number(int x) {
-  return x - 1;
-}
-
 __attribute__((always_inline)) struct mm_struct **
 task_struct_mm(struct task_struct *task) {
   return &task->mm;

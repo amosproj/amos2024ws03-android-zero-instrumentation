@@ -1,0 +1,11 @@
+[package]
+name = "ebpf-types"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aya = { version = "0.13.1", default-features = false, optional = true }
+bytemuck = { version = "1.21.0", features = ["derive"] }
+
+[features]
+user = ["dep:aya"]

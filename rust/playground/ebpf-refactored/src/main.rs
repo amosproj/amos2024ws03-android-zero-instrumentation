@@ -4,13 +4,12 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
 
-mod relocation_helpers;
-use relocation_helpers::magic_number;
+pub use ebpf_refactored::*;
 
 #[cfg(all(not(target_arch = "bpf"), not(test)))]
 #[no_mangle]
-pub extern "C" fn main(argc: isize, _argv: *const *const u8) -> isize {
-    magic_number(argc as i32) as isize
+pub extern "C" fn main(_argc: isize, _argv: *const *const u8) -> isize {
+    0
 }
 
 #[cfg(not(test))]

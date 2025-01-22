@@ -28,7 +28,9 @@ default-members = [
   "client",
 ]
 exclude = [
-  "playground/ebpf-refactored"
+  "playground/ebpf-refactored",
+  "playground/ebpf-test-refactored",
+  "playground/ebpf-types",
 ]
 
 [workspace.package]

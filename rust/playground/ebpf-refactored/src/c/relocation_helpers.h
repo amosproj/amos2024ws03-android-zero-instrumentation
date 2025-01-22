@@ -1,8 +1,6 @@
 #ifndef __RELOCATION_HELPERS_H__
 #define __RELOCATION_HELPERS_H__
 
-int magic_number(int x);
-
 typedef long long unsigned int u64;
 typedef unsigned int u32;
 typedef int s32;

@@ -3,23 +3,23 @@ use std::{env, path::PathBuf};
 pub fn main() {
     println!("cargo:rerun-if-changed=src/c/relocation_helper.c");
     println!("cargo:rerun-if-changed=src/c/relocation_helper.h");
-    
+
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH")
         .expect("`CARGO_CFG_TARGET_ARCH` should be set in a buildscript");
-    
+
     if target_arch == "bpf" {
         build_helpers_bpf();
     } else {
         build_helpers_not_bpf();
     }
-    
+
     generate_bindings();
 }
 
 fn build_helpers_bpf() {
     let endian = env::var("CARGO_CFG_TARGET_ENDIAN")
         .expect("`CARGO_CFG_TARGET_ENDIAN` should be set in a buildscript");
-    
+
     let target = if endian == "little" {
         "bpfel"
     } else if endian == "big" {
