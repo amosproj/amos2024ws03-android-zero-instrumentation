@@ -8,13 +8,15 @@ use std::{
     process::id,
 };
 
-use aya::{maps::HashMap, programs::RawTracePoint, Ebpf, EbpfLoader};
+use aya::{
+    maps::{HashMap, RingBuf},
+    programs::RawTracePoint, Ebpf, EbpfLoader,
+};
 use aya_log::EbpfLogger;
 use aya_obj::generated::{bpf_attr, bpf_cmd::BPF_PROG_TEST_RUN};
-use ebpf_types::TaskContext;
-use libc::{
-    syscall, SYS_bpf, SYS_gettid,
-};
+use bytemuck::checked;
+use ebpf_types::{Event, EventKind, TaskContext};
+use libc::{syscall, SYS_bpf, SYS_gettid};
 
 const PROG_BYTES: &[u8] = aya::include_bytes_aligned!(concat!(env!("OUT_DIR"), "/ebpf.o"));
 
@@ -84,4 +86,40 @@ async fn prog_test_example() {
 
     assert_eq!(entry.cmdline, cmdline);
     assert_eq!(entry.comm, comm);
+}
+
+#[test_log::test(tokio::test)]
+async fn test_vfs_write() {
+    let mut ebpf = setup();
+
+    let prog: &mut RawTracePoint = ebpf.program_mut("vfs_write_test").unwrap().try_into().unwrap();
+
+    prog.load().unwrap();
+
+    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
+
+    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+
+    let args = [0u64, 0, 66, 0];
+
+    attr.test.prog_fd = fd as u32;
+    attr.test.ctx_in = args.as_ptr() as u64;
+    attr.test.ctx_size_in = 4 * 8;
+
+    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
+
+    if ret < 0 {
+        panic!("Failed to run test: {:?}", io::Error::last_os_error());
+    }
+
+    let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
+    let event = events.next().unwrap();
+    let event = checked::from_bytes::<Event>(&*event);
+
+    let kind = match event.kind {
+        EventKind::VfsWrite(kind) => kind,
+        _ => panic!("Expected VfsWrite"),
+    };
+
+    assert_eq!(kind.bytes_written, 66);
 }

@@ -1,6 +1,6 @@
 #![no_std]
 
-use bytemuck::AnyBitPattern;
+use bytemuck::{AnyBitPattern, CheckedBitPattern};
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]
@@ -31,3 +31,69 @@ impl Default for TaskContext {
 
 #[cfg(feature = "user")]
 unsafe impl aya::Pod for TaskContext {}
+
+#[derive(Debug, Clone, Copy, AnyBitPattern)]
+#[repr(C)]
+pub struct EventContext {
+    pub task: TaskContext,
+    pub timestamp: u64,
+}
+
+#[derive(Debug, Clone, Copy, CheckedBitPattern)]
+#[repr(C, align(8))]
+pub struct Event {
+    pub context: EventContext,
+    pub kind: EventKind,
+}
+
+#[derive(Debug, Clone, Copy, CheckedBitPattern)]
+#[repr(C)]
+pub enum EventKind {
+    VfsWrite(VfsWrite),
+    SendMsg(SendMsg),
+    Jni(Jni),
+    SigQuit(SigQuit),
+    GarbaceCollect(GarbageCollect),
+    FileOp(FileDescriptorOp),    
+}
+
+
+#[derive(Debug, Clone, Copy, AnyBitPattern)]
+#[repr(C)]
+pub struct VfsWrite {
+    pub bytes_written: u64,
+}
+
+#[derive(Debug, Clone, Copy, AnyBitPattern)]
+#[repr(C)]
+pub struct SendMsg {
+    pub file_descriptor: u64,
+}
+
+#[derive(Debug, Clone, Copy, CheckedBitPattern)]
+#[repr(u8)]
+pub enum Jni {
+    AddLocalRef,
+    DeleteLocalRef,
+    AddGlobalRef,
+    DeleteGlobalRef,
+}
+
+#[derive(Debug, Clone, Copy, AnyBitPattern)]
+#[repr(C)]
+pub struct SigQuit {
+    pub target_pid: u32,
+}
+
+#[derive(Debug, Clone, Copy, AnyBitPattern)]
+#[repr(C)]
+pub struct GarbageCollect {
+    pub _unused: [u8; 0]
+}
+
+#[derive(Debug, Clone, Copy, CheckedBitPattern)]
+#[repr(u8)]
+pub enum FileDescriptorOp {
+    Create,
+    Destroy,
+}

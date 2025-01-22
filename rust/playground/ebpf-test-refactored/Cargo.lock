@@ -227,6 +227,7 @@ dependencies = [
  "aya",
  "aya-log",
  "aya-obj",
+ "bytemuck",
  "ebpf-types",
  "libc",
  "test-log",

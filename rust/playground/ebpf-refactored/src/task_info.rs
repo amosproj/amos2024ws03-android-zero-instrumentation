@@ -22,6 +22,7 @@ static TASK_INFO_SCRATCH: PerCpuArray<TaskContext> = PerCpuArray::with_max_entri
 /// # SAFETY
 ///
 /// Must point to a valid `task_struct` struct.
+#[inline(always)]
 pub unsafe fn task_info_from_task(task: *mut task_struct) -> Option<*mut TaskContext> {
     let tid = task_struct_pid(task).ok()? as u32;
 
