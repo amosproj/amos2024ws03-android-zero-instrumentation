@@ -5,5 +5,25 @@
 [package]
 name = "ebpf-refactored"
 version = "0.1.0"
+edition = "2021"
+
+include = [
+    "src/c/relocation_helpers.c",
+    "src/c/relocation_helpers.h",
+]
 
 [dependencies]
+aya-ebpf = { version = "0.1.1", default-features = false }
+aya-log-common = { version = "0.1.15", default-features = false }
+aya-log-ebpf = { version = "0.1.1", default-features = false }
+
+[build-dependencies]
+bindgen = { version = "0.71.1", default-features = false, features = ["runtime"] }
+cc = { version = "1.2.10", default-features = false }
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+lto = "thin"
+panic = "abort"
