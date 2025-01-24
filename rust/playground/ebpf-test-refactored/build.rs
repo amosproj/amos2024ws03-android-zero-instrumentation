@@ -20,6 +20,7 @@ pub fn main() {
         "--bin=ebpf-refactored",
         "--target=bpfel-unknown-none",
         "--release",
+        "--features=bounds-check",
     ]);
 
     let ebpf_target_dir = out_dir.join("backend/ebpf");

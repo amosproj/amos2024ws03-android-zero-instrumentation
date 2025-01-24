@@ -1,30 +1,15 @@
 // SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
 //
 // SPDX-License-Identifier: MIT
-
-use aya_ebpf::bindings::task_struct;
+#![allow(clippy::len_without_is_empty)]
 
 #[cfg(test)]
 fn bpf_probe_read_kernel<T>(ptr: *const T) -> Result<T, i64> {
     unsafe { Ok(core::ptr::read(ptr)) }
 }
 
-#[cfg(test)]
-fn bpf_probe_read_kernel_buf<T>(ptr: *const T, buf: &mut [u8]) -> Result<(), i64> {
-    unsafe { core::ptr::copy_nonoverlapping(ptr, buf.as_mut_ptr() as *mut _, buf.len()) };
-    Ok(())
-}
-
-#[cfg(test)]
-fn bpf_probe_read_user_buf<T>(ptr: *const T, buf: &mut [u8]) -> Result<(), i64> {
-    unsafe { core::ptr::copy_nonoverlapping(ptr, buf.as_mut_ptr() as *mut _, buf.len()) };
-    Ok(())
-}
-
 #[cfg(not(test))]
-pub use aya_ebpf::helpers::{
-    bpf_probe_read_kernel, bpf_probe_read_kernel_buf, bpf_probe_read_user_buf,
-};
+use aya_ebpf::helpers::bpf_probe_read_kernel;
 
 mod ffi {
     #![allow(non_upper_case_globals)]
@@ -32,171 +17,324 @@ mod ffi {
     #![allow(non_snake_case)]
     #![allow(dead_code)]
 
+    #[repr(C, packed)]
+    pub struct qstr {
+        pub hash: u32,
+        pub len: u32,
+        pub name: *const u8,
+    }
+
     include!(concat!(env!("OUT_DIR"), "/relocation_helpers.rs"));
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-#[allow(non_camel_case_types)]
-pub struct mm_struct {
-    _unused: [u8; 0],
+use ffi::*;
+
+macro_rules! gen_accessor {
+    (plain: $parent:ident => $name:ident, $type:ty) => {
+        gen_accessor_plain!($parent => $name, $type);
+    };
+    (wrapper: $parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            gen_accessor_wrapper!($parent => $name, [< $type >]);
+        }
+    };
+    (no_read: $parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            gen_accessor_no_read!($parent => $name, $type);
+        }
+    };
+    (no_read_wrapped: $parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            gen_accessor_no_read_wrapped!($parent => $name, [< $type >]);
+        }
+    };
+    (no_read_container: $parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            gen_accessor_no_read_container!($parent => $name, [< $type >]);
+        }
+    };
 }
 
-/// # SAFETY
-///
-/// Must point to a valid `task_struct` struct.
-#[inline(always)]
-pub unsafe fn task_struct_mm(task: *mut task_struct) -> Result<*mut mm_struct, i64> {
-    bpf_probe_read_kernel(ffi::task_struct_mm(task as *mut _) as *const _)
-}
+#[cfg(test)]
+macro_rules! gen_accessor_raw_test {
+    ($parent_type:ident => $field_name:ident, $field_type:ty) => {
+        paste::paste! {
+            #[test]
+            fn [< $parent_type _ $field_name _raw >]() {
+                let mut parent = unsafe { core::mem::zeroed::<$parent_type>() };
+                let expected = &raw mut parent.$field_name;
 
-/// # SAFETY
-///
-/// Must point to a valid `task_struct` struct.
-#[inline(always)]
-pub unsafe fn task_struct_pid(task: *mut task_struct) -> Result<i32, i64> {
-    bpf_probe_read_kernel(ffi::task_struct_pid(task as *mut _))
-}
-
-/// # SAFETY
-///
-/// Must point to a valid `task_struct` struct.
-#[inline(always)]
-pub unsafe fn task_struct_tgid(task: *mut task_struct) -> Result<i32, i64> {
-    bpf_probe_read_kernel(ffi::task_struct_tgid(task as *mut _))
-}
-
-/// # SAFETY
-///
-/// Must point to a valid `task_struct` struct.
-#[inline(always)]
-pub unsafe fn task_struct_start_time(task: *mut task_struct) -> Result<u64, i64> {
-    bpf_probe_read_kernel(ffi::task_struct_start_time(task as *mut _))
-}
-
-/// # SAFETY
-///
-/// Must point to a valid `task_struct` struct.
-#[inline(always)]
-pub unsafe fn task_struct_comm(task: *mut task_struct, buf: &mut [u8; 16]) -> Result<(), i64> {
-    bpf_probe_read_kernel_buf(ffi::task_struct_comm(task as *mut _) as *const u8, buf)
-}
-
-/// # SAFETY
-///
-/// Must point to a valid `task_struct` struct.
-#[inline(always)]
-pub unsafe fn task_struct_real_parent(task: *mut task_struct) -> Result<*mut task_struct, i64> {
-    let task = bpf_probe_read_kernel(ffi::task_struct_real_parent(task as *mut _))?;
-    Ok(task as *mut _)
-}
-
-/// # SAFETY
-///
-/// Must point to a valid `task_struct` struct.
-#[inline(always)]
-pub unsafe fn task_struct_group_leader(task: *mut task_struct) -> Result<*mut task_struct, i64> {
-    let task = bpf_probe_read_kernel(ffi::task_struct_group_leader(task as *mut _))?;
-    Ok(task as *mut _)
-}
-
-/// # SAFETY
-///
-/// Must point to a valid `mm_struct` struct.
-#[inline(always)]
-pub unsafe fn mm_struct_arg_start(mm: *mut mm_struct) -> Result<u64, i64> {
-    bpf_probe_read_kernel(ffi::mm_struct_arg_start(mm as *mut _))
-}
-
-/// # SAFETY
-///
-/// Must point to a valid `mm_struct` struct.
-#[inline(always)]
-pub unsafe fn mm_struct_arg_end(mm: *mut mm_struct) -> Result<u64, i64> {
-    bpf_probe_read_kernel(ffi::mm_struct_arg_end(mm as *mut _))
-}
-
-/// # SAFETY
-///
-/// `arg_start` and `arg_end` must point to valid memory.
-#[inline(always)]
-pub unsafe fn proc_cmdline(arg_start: u64, arg_end: u64, buf: &mut [u8; 256]) -> Result<(), i64> {
-    let len = arg_end.saturating_sub(arg_start) as usize;
-    let len = len & 255;
-    let dst = &mut buf[..len];
-
-    bpf_probe_read_user_buf(arg_start as *const u8, dst)
-}
-
-#[cfg(all(test, not(target_arch = "bpf")))]
-mod tests {
-    use core::mem;
-
-    use super::*;
-
-    macro_rules! do_test {
-        ($type:ident, $field:ident, $in:expr, $out:expr) => {
-            paste::paste! {
-                let mut value = unsafe { mem::zeroed::<ffi::$type>() };
-                value.$field = $in;
-                let $field = unsafe { [< $type _ $field >](&raw mut value as *mut $type).unwrap()  };
-                assert_eq!($field, $out);
+                let actual = unsafe { [< $parent_type _ $field_name >](&raw mut  parent) };
+                assert_eq!(actual, expected);
             }
-        };
-    }
+        }
+    };
+    (plain: $parent:ident => $name:ident, $type:ty) => {
+        gen_accessor_raw_test!($parent => $name, $type);
+    };
+    (wrapper: $parent:ident => $name:ident, $type:ty) => {
+        gen_accessor_raw_test!($parent => $name, $type);
+    };
+    (no_read: $parent:ident => $name:ident, $type:ty) => {
+        gen_accessor_raw_test!($parent => $name, $type);
+    };
+    (no_read_wrapped: $parent:ident => $name:ident, $type:ty) => {
+        gen_accessor_raw_test!($parent => $name, $type);
+    };
+    (no_read_container: $parent:ident => $name:ident, $type:ty) => {};
+}
 
-    macro_rules! gen_tests {
-        ($type:ident => $($field:ident: $in:expr, $out:expr),+) => {
-            paste::paste! {
+#[cfg(test)]
+macro_rules! gen_accessor_test {
+    (plain: $parent:ident => $name:ident, $type:ty) => {
+        gen_accessor_plain_test!($parent => $name, $type);
+    };
+    (wrapper: $parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            gen_accessor_wrapper_test!($parent => $name, [< $type >]);
+        }
+    };
+    (no_read: $parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            gen_accessor_no_read_test!($parent => $name, $type);
+        }
+    };
+    (no_read_wrapped: $parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            gen_accessor_no_read_wrapped_test!($parent => $name, $type);
+        }
+    };
+    (no_read_container: $parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            gen_accessor_no_read_container_test!($parent => $name, [< $type >]);
+        }
+    };
+}
+
+macro_rules! gen_accessors {
+    ($parent:ident => { $($variant:ident $name:ident: $type:ty),* $(,)? }) => {
+        paste::paste! {
+            #[doc = "Represents `*mut " $parent "` with CO:RE relocations."]
+            #[repr(transparent)]
+            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+            pub struct [< $parent:camel >] {
+                inner: *mut $parent,
+            }
+
+            impl [< $parent:camel >] {
                 $(
-                    #[test]
-                    fn [< test_ $type _ $field >]() {
-                        do_test!($type, $field, $in, $out);
-                    }
-                )+
+                    gen_accessor!($variant: $parent => $name, $type);
+                )*
             }
-        };
-    }
 
-    gen_tests! {task_struct =>
-        mm: 1 as *mut ffi::mm_struct, 1 as *mut mm_struct,
-        pid: 1, 1,
-        tgid: 1, 1,
-        start_time: 1, 1,
-        real_parent: 1 as *mut ffi::task_struct, 1 as *mut task_struct,
-        group_leader: 1 as *mut ffi::task_struct, 1 as *mut task_struct
-    }
+            #[cfg(test)]
+            mod [< test_ $parent >] {
+                use super::*;
 
-    #[test]
-    fn test_task_struct_comm() {
-        let expected = [1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-        let mut value = unsafe { mem::zeroed::<ffi::task_struct>() };
-        value.comm = unsafe { *(&raw const expected as *const [i8; 16]) };
-        let mut buf = [0; 16];
-        unsafe { task_struct_comm(&raw mut value as *mut task_struct, &mut buf).unwrap() };
-        assert_eq!(buf, expected);
-    }
+                $(
+                    gen_accessor_test!($variant: $parent => $name, $type);
+                    gen_accessor_raw_test!($variant: $parent => $name, $type);
+                )*
+            }
+        }
+    };
+}
 
-    gen_tests! {mm_struct =>
-        arg_start: 1, 1,
-        arg_end: 1, 1
-    }
+macro_rules! gen_accessor_plain {
+    ($parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            #[doc = "Reads the value of the field `" $parent "." $name "` with CO:RE relocations."]
+            #[inline(always)]
+            pub fn $name(&self) -> Result<$type, i64> {
+                unsafe { bpf_probe_read_kernel([< $parent _ $name >](self.inner) as *const _) }
+            }
+        }
+    };
+}
 
-    #[test]
-    fn test_proc_cmdline() {
-        let (expected, len) = {
-            let mut buf = [0; 256];
-            let package_name = b"com.androidx.car";
-            buf[..package_name.len()].copy_from_slice(package_name);
-            (buf, package_name.len() as u64)
-        };
+#[cfg(test)]
+macro_rules! gen_accessor_plain_test {
+    ($parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            #[test]
+            fn $name() {
+                let mut raw_parent = unsafe { core::mem::zeroed::<$parent>() };
+                unsafe { core::ptr::write_bytes(&raw mut raw_parent.$name, 1, 1) };
+                let parent = [< $parent:camel >] { inner: &raw mut raw_parent };
+                let actual = parent.$name().unwrap();
+                let actual_as_slice = unsafe { core::slice::from_raw_parts(&raw const actual as *const u8, core::mem::size_of::<$type>()) };
+                let expected_as_slice = unsafe { core::slice::from_raw_parts(&raw const raw_parent.$name as *const u8, core::mem::size_of::<$type>()) };
+                assert_eq!(actual_as_slice, expected_as_slice);
+            }
+        }
+    };
+}
 
-        let arg_start = (&raw const expected[0]) as u64;
-        let arg_end = arg_start + len;
+macro_rules! gen_accessor_wrapper {
+    ($parent:ident => $name:ident, $type:ident) => {
+        paste::paste! {
+            #[doc = "Reads the value of the field `" $parent "." $name "` with CO:RE relocations."]
+            #[inline(always)]
+            pub fn $name(&self) -> Result<$type, i64> {
+                Ok($type { inner: unsafe { bpf_probe_read_kernel([< $parent _ $name >](self.inner) as *const _) }? })
+            }
+        }
+    };
+}
 
-        let mut buf = [0; 256];
-        unsafe { proc_cmdline(arg_start, arg_end, &mut buf).unwrap() };
+#[cfg(test)]
+macro_rules! gen_accessor_wrapper_test {
+    ($parent:ident => $name:ident, $type:ident) => {
+        paste::paste! {
+            #[test]
+            fn $name() {
+                let mut raw_parent = unsafe { core::mem::zeroed::<$parent>() };
+                unsafe { core::ptr::write_bytes(&raw mut raw_parent.$name, 1, 1) };
+                let parent = [< $parent:camel >] { inner: &raw mut raw_parent };
+                let actual = parent.$name().unwrap().inner;
+                let actual_as_slice = unsafe { core::slice::from_raw_parts(&raw const actual as *const u8, core::mem::size_of::<$type>()) };
+                let expected_as_slice = unsafe { core::slice::from_raw_parts(&raw const raw_parent.$name as *const u8, core::mem::size_of::<$type>()) };
+                assert_eq!(actual_as_slice, expected_as_slice);
+            }
+        }
+    };
+}
 
-        assert_eq!(buf, expected);
+macro_rules! gen_accessor_no_read_wrapped {
+    ($parent:ident => $name:ident, $type:ident) => {
+        paste::paste! {
+            #[doc = "Reads the value of the field `" $parent "." $name "` with CO:RE relocations."]
+            #[inline(always)]
+            pub fn $name(&self) -> $type {
+                unsafe { $type { inner: [< $parent _ $name >](self.inner) } }
+            }
+        }
+    };
+}
+
+macro_rules! gen_accessor_no_read {
+    ($parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            #[doc = "Reads the value of the field `" $parent "." $name "` with CO:RE relocations."]
+            #[inline(always)]
+            pub fn $name(&self) -> $type {
+                unsafe { [< $parent _ $name >](self.inner) }
+            }
+        }
+    };
+}
+
+macro_rules! gen_accessor_no_read_container {
+    ($parent:ident => $name:ident, $type:ident) => {
+        paste::paste! {
+            #[inline(always)]
+            pub fn container(&self) -> $type {
+                unsafe { $type { inner: [< $parent _ container >](self.inner) } }
+            }
+        }
+    };
+}
+
+#[cfg(test)]
+macro_rules! gen_accessor_no_read_test {
+    ($parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            #[test]
+            fn $name() {
+                let mut raw_parent = unsafe { core::mem::zeroed::<$parent>() };
+                unsafe { core::ptr::write_bytes(&raw mut raw_parent.$name, 1, 1) };
+                let parent = [< $parent:camel >] { inner: &raw mut raw_parent };
+                let actual = parent.$name();
+                let actual_as_slice = unsafe { core::slice::from_raw_parts(actual as *const u8, core::mem::size_of::<$type>()) };
+                let expected_as_slice = unsafe { core::slice::from_raw_parts(&raw const raw_parent.$name as *const u8, core::mem::size_of::<$type>()) };
+                assert_eq!(actual_as_slice, expected_as_slice);
+            }
+        }
+    };
+}
+
+#[cfg(test)]
+macro_rules! gen_accessor_no_read_wrapped_test {
+    ($parent:ident => $name:ident, $type:ty) => {
+        paste::paste! {
+            #[test]
+            fn $name() {
+                let mut raw_parent = unsafe { core::mem::zeroed::<$parent>() };
+                unsafe { core::ptr::write_bytes(&raw mut raw_parent.$name, 1, 1) };
+                let parent = [< $parent:camel >] { inner: &raw mut raw_parent };
+                let actual = parent.$name().inner;
+                let actual_as_slice = unsafe { core::slice::from_raw_parts(actual as *const u8, core::mem::size_of::<$type>()) };
+                let expected_as_slice = unsafe { core::slice::from_raw_parts(&raw const raw_parent.$name as *const u8, core::mem::size_of::<$type>()) };
+                assert_eq!(actual_as_slice, expected_as_slice);
+            }
+        }
+    };
+}
+
+#[cfg(test)]
+macro_rules! gen_accessor_no_read_container_test {
+    ($parent:ident => $name:ident, $type:ident) => {
+        paste::paste! {
+            #[test]
+            fn $name() {
+                let mut raw_parent = unsafe { core::mem::zeroed() };
+                let _ = [< $type:camel >] { inner: &raw mut raw_parent };
+                let child = [< $parent:camel >] { inner: &raw mut raw_parent.$name };
+                let actual = child.container().inner;
+                assert_eq!(actual, &raw mut raw_parent);
+            }
+        }
+    };
+}
+
+impl TaskStruct {
+    /// # SAFETY
+    ///
+    /// Must point to a valid `task_struct` struct.
+    pub unsafe fn new(inner: *mut aya_ebpf::bindings::task_struct) -> Self {
+        Self {
+            inner: inner as *mut _,
+        }
     }
 }
+
+gen_accessors!(task_struct => {
+    wrapper mm: MmStruct,
+    plain pid: u32,
+    plain tgid: u32,
+    plain start_time: u64,
+    wrapper real_parent: TaskStruct,
+    wrapper group_leader: TaskStruct,
+    no_read comm: *mut [i8; 16],
+});
+
+gen_accessors!(mm_struct => {
+    plain arg_start: u64,
+    plain arg_end: u64,
+    wrapper exe_file: File,
+});
+gen_accessors!(file => {
+    no_read_wrapped f_path: Path,
+});
+gen_accessors!(path => {
+    wrapper dentry: Dentry,
+    wrapper mnt: Vfsmount,
+});
+gen_accessors!(dentry => {
+    no_read_wrapped d_name: Qstr,
+    wrapper d_parent: Dentry,
+});
+gen_accessors!(vfsmount => {
+    no_read_container mnt: Mount,
+    wrapper mnt_root: Dentry,
+});
+
+gen_accessors!(qstr => {
+    plain len: u32,
+    plain name: *const u8,
+});
+gen_accessors!(mount => {
+    wrapper mnt_parent: Mount,
+    wrapper mnt_mountpoint: Dentry,
+    no_read_wrapped mnt: Vfsmount,
+});

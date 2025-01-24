@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: MIT
 
+use core::str;
 use std::{
+    env::current_exe,
     fs, io,
     mem::{self},
     os::{
@@ -14,7 +16,8 @@ use std::{
 
 use aya::{
     maps::{HashMap, RingBuf},
-    programs::RawTracePoint, Ebpf, EbpfLoader,
+    programs::RawTracePoint,
+    Ebpf, EbpfLoader,
 };
 use aya_log::EbpfLogger;
 use aya_obj::generated::{bpf_attr, bpf_cmd::BPF_PROG_TEST_RUN};
@@ -96,7 +99,11 @@ async fn prog_test_example() {
 async fn test_vfs_write() {
     let mut ebpf = setup();
 
-    let prog: &mut RawTracePoint = ebpf.program_mut("vfs_write_test").unwrap().try_into().unwrap();
+    let prog: &mut RawTracePoint = ebpf
+        .program_mut("vfs_write_test")
+        .unwrap()
+        .try_into()
+        .unwrap();
 
     prog.load().unwrap();
 
@@ -126,4 +133,42 @@ async fn test_vfs_write() {
     };
 
     assert_eq!(kind.bytes_written, 66);
+}
+
+#[test_log::test(tokio::test)]
+async fn test_bin_path() {
+    let mut ebpf = setup();
+
+    let prog: &mut RawTracePoint = ebpf
+        .program_mut("bin_path_test")
+        .unwrap()
+        .try_into()
+        .unwrap();
+
+    prog.load().unwrap();
+
+    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
+
+    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+
+    attr.test.prog_fd = fd as u32;
+    attr.test.ctx_in = 0;
+    attr.test.ctx_size_in = 0;
+
+    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
+
+    if ret < 0 {
+        panic!("Failed to run test: {:?}", io::Error::last_os_error());
+    }
+
+    let exe_path = current_exe().unwrap();
+    let expected = exe_path.to_str().unwrap();
+
+    let mut binary_path_map: RingBuf<_> = ebpf.map_mut("BINARY_PATH").unwrap().try_into().unwrap();
+
+    let entry = binary_path_map.next().unwrap();
+    let len = entry.iter().position(|&x| x == 0).unwrap();
+    let actual = str::from_utf8(&entry[..len]).unwrap();
+
+    assert_eq!(actual, expected);
 }

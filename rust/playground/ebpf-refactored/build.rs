@@ -46,6 +46,7 @@ fn build_helpers_bpf() {
 
     println!("cargo:rustc-link-arg={}", bitcode_file.display());
     println!("cargo:rustc-link-arg=--btf");
+    //println!("cargo:rustc-link-arg=--emit=llvm-ir");
 }
 
 fn build_helpers_not_bpf() {
@@ -63,6 +64,7 @@ fn generate_bindings() {
     let bindings = bindgen::Builder::default()
         .use_core()
         .header("src/c/relocation_helpers.h")
+        .blocklist_type("qstr")
         .generate()
         .expect("generating bindings should not fail");
 
