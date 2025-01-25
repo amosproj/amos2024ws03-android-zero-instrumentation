@@ -4,6 +4,8 @@
 
 #![cfg_attr(not(test), no_std)]
 
+pub mod bounds_check;
+pub mod iterator_ext;
 pub mod path;
 pub mod relocation_helpers;
 

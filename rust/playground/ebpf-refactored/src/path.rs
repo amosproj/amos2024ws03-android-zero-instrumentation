@@ -2,9 +2,15 @@
 //
 // SPDX-License-Identifier: MIT
 
-use core::ptr::slice_from_raw_parts;
+use core::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
 
-use crate::relocation_helpers::{Dentry, Mount, Path, Vfsmount};
+use aya_ebpf::helpers::bpf_probe_read_kernel_buf;
+
+use crate::{
+    bounds_check::EbpfBoundsCheck,
+    iterator_ext::IteratorExt,
+    relocation_helpers::{Dentry, Mount, Path, Vfsmount},
+};
 
 pub struct PathWalker {
     vfs_mount: Vfsmount,
@@ -96,4 +102,50 @@ impl Iterator for PathWalker {
     fn next(&mut self) -> Option<Self::Item> {
         self.next_inner().ok().flatten()
     }
+}
+
+pub const PATH_MAX: usize = 4096;
+
+struct Offset<'a> {
+    max: usize,
+    off: usize,
+    buf: &'a mut [u8],
+}
+
+impl<'a> Offset<'a> {
+    pub fn new(buf: &'a mut [u8], max: usize) -> Self {
+        Self { max, off: max, buf }
+    }
+
+    unsafe fn next_slice(&mut self, len: usize) -> Option<&'a mut [u8]> {
+        self.off = (self.off - len).bounded(self.max)?;
+
+        let ptr = self.buf.as_mut_ptr().add(self.off);
+        let slice = &mut *slice_from_raw_parts_mut(ptr, len);
+
+        Some(slice)
+    }
+}
+
+pub fn get_path_str(path: Path, buf: &mut [u8; PATH_MAX * 2]) -> Option<usize> {
+    let mut offset = Offset::new(buf.as_mut_slice(), PATH_MAX);
+
+    let components = PathWalker::new(path)
+        .ok()?
+        .const_take::<20>()
+        .filter_map(|item| match item {
+            PathComponent::Name(name) => Some(name),
+            PathComponent::Mount => None,
+        });
+
+    for name in components {
+        let len = unsafe { name.len().bounded(PATH_MAX)? };
+
+        let slice = unsafe { offset.next_slice(len + 1)? };
+
+        slice[0] = b'/';
+        unsafe { bpf_probe_read_kernel_buf(name as *const u8, &mut slice[1..]).ok()? };
+    }
+
+    Some(offset.off)
 }

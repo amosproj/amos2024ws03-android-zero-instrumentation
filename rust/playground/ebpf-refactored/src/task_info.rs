@@ -12,7 +12,7 @@ use aya_ebpf::{
 };
 use ebpf_types::TaskContext;
 
-use crate::{programs::EbpfBoundsCheck, relocation_helpers::TaskStruct};
+use crate::{bounds_check::EbpfBoundsCheck, relocation_helpers::TaskStruct};
 
 #[map]
 static TASK_INFO: LruHashMap<u32, TaskContext> = LruHashMap::with_max_entries(10240, 0);
