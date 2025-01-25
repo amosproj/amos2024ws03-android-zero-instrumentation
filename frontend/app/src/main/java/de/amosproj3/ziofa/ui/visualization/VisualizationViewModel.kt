@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -58,7 +59,7 @@ class VisualizationViewModel(
     private val dataStreamProvider = dataStreamProviderFactory(viewModelScope)
 
     // Mutable state
-    private val selectedComponent = MutableStateFlow<DropdownOption>(DropdownOption.Global)
+    private val selectedComponent = MutableStateFlow<DropdownOption?>(null)
     private val selectedMetric = MutableStateFlow<DropdownOption.Metric?>(null)
     private val selectedTimeframe = MutableStateFlow<DropdownOption.Timeframe?>(null)
     private val displayMode = MutableStateFlow(VisualizationDisplayMode.EVENTS)
@@ -78,40 +79,41 @@ class VisualizationViewModel(
      */
     private val selectionData =
         combine(
-                selectedComponent,
-                selectedMetric,
-                selectedTimeframe,
-                runningComponentsAccess.runningComponentsList,
-                configurationAccess.configurationState,
-            ) { activeComponent, activeMetric, activeTimeframe, runningComponents, configState ->
-                val config =
-                    when (configState) {
-                        is ConfigurationState.Synchronized -> configState.configuration
-                        is ConfigurationState.Different -> configState.backendConfiguration
-                        else -> return@combine DEFAULT_SELECTION_DATA
-                    }
-                val configuredComponents =
-                    runningComponents.filter { runningComponent ->
-                        config.toUIOptionsForPids(runningComponent.pids).any { it.active }
-                    }
-                SelectionData(
-                    selectedComponent = activeComponent,
-                    selectedMetric = activeMetric,
-                    selectedTimeframe = activeTimeframe,
-                    componentOptions =
-                        configuredComponents
-                            .toUIOptions()
-                            .plus(
-                                activeComponent
-                            ) // prevent the selected component from disappearing if process ends
-                            .toSet() // convert to set to remove the duplicate if it is already in
-                            // the list
-                            .toImmutableList(),
-                    metricOptions =
-                        config.getActiveMetricsForPids(pids = activeComponent.getPIDsOrNull()),
-                    timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
-                )
-            }
+            selectedComponent,
+            selectedMetric,
+            selectedTimeframe,
+            runningComponentsAccess.runningComponentsList,
+            configurationAccess.configurationState,
+        ) { activeComponent, activeMetric, activeTimeframe, runningComponents, configState ->
+            val config =
+                when (configState) {
+                    is ConfigurationState.Synchronized -> configState.configuration
+                    is ConfigurationState.Different -> configState.backendConfiguration
+                    else -> return@combine DEFAULT_SELECTION_DATA
+                }
+            val configuredComponents =
+                runningComponents.filter { runningComponent ->
+                    config.toUIOptionsForPids(runningComponent.pids).any { it.active }
+                }
+            val availableMetricsForComponent =
+                activeComponent?.let { config.getActiveMetricsForPids(pids = it.getPIDsOrNull()) }
+            SelectionData(
+                selectedComponent = activeComponent,
+                selectedMetric = activeMetric,
+                selectedTimeframe = activeTimeframe,
+                componentOptions =
+                configuredComponents
+                    .toUIOptions()
+                    .plus(
+                        activeComponent?.let { listOf(it) } ?: listOf()
+                    ) // prevent the selected component from disappearing if process ends
+                    .toSet() // convert to set to remove the duplicate if it is already in
+                    // the list
+                    .toImmutableList(),
+                metricOptions = availableMetricsForComponent,
+                timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
+            )
+        }.onEach { Timber.i("updated selection data $it") }
             .stateIn(viewModelScope, SharingStarted.Lazily, DEFAULT_SELECTION_DATA)
 
     /**
@@ -122,30 +124,39 @@ class VisualizationViewModel(
     @OptIn(ExperimentalCoroutinesApi::class)
     val visualizationScreenState =
         combine(selectionData, displayMode, overlaySettings, overlayEnabled) { a, b, c, d ->
-                VisualizationSettings(a, b, c, d)
-            }
+            VisualizationSettings(a, b, c, d)
+        }
             .flatMapLatest {
                 val selection = it.selection
+                val selectedComponent = it.selection.selectedComponent
+                val selectedMetric = it.selection.selectedMetric
+                val selectedTimeframe = it.selection.selectedTimeframe
                 val mode = it.mode
 
+
                 Timber.i("Data flow changed!")
-                if (isValidSelection(selection.selectedMetric, selection.selectedTimeframe)) {
+                if (isValidSelection(
+                        selectedComponent,
+                        selectedMetric,
+                        selectedTimeframe
+                    )
+                ) {
                     when (mode) {
                         VisualizationDisplayMode.CHART ->
                             dataStreamProvider
                                 .getChartData(
-                                    selectedComponent = selection.selectedComponent,
-                                    selectedMetric = selection.selectedMetric,
-                                    selectedTimeframe = selection.selectedTimeframe,
-                                    chartMetadata = selection.selectedMetric.getChartMetadata(),
+                                    selectedComponent = selectedComponent,
+                                    selectedMetric = selectedMetric,
+                                    selectedTimeframe = selectedTimeframe,
+                                    chartMetadata = selectedMetric.getChartMetadata(),
                                 )
                                 .toChartViewOrNull(selection)
 
                         VisualizationDisplayMode.EVENTS ->
                             dataStreamProvider
                                 .getEventListData(
-                                    selectedComponent = selection.selectedComponent,
-                                    selectedMetric = selection.selectedMetric,
+                                    selectedComponent = selectedComponent,
+                                    selectedMetric = selectedMetric,
                                 )
                                 .toEventListViewOrNull(selection)
 

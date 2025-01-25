@@ -30,6 +30,7 @@ import de.amosproj3.ziofa.ui.processes.composables.EditButton
 import de.amosproj3.ziofa.ui.processes.composables.IconAndName
 import de.amosproj3.ziofa.ui.processes.composables.ProcessesHeader
 import de.amosproj3.ziofa.ui.processes.composables.ProcessesSearchBar
+import de.amosproj3.ziofa.ui.processes.data.ProcessesListState
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -40,7 +41,7 @@ fun ProcessesScreen(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column {
-            val options by remember { viewModel.applicationsAndProcessesList }.collectAsState()
+            val processesListState by remember { viewModel.processListState }.collectAsState()
             var searchQuery by remember { mutableStateOf("") }
 
             ProcessesSearchBar(
@@ -49,15 +50,23 @@ fun ProcessesScreen(
                 onStartSearch = { viewModel.startSearch(query = searchQuery) },
             )
             ProcessesHeader()
-            if (options.isNotEmpty()) {
-                LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
-                    items(options) { option ->
+            when (val state = processesListState) {
+                is ProcessesListState.Loading -> Box(modifier.fillMaxSize()) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+
+                is ProcessesListState.NoResults -> Box(modifier.fillMaxSize()) {
+                    Text(text = "No processes found.", modifier = Modifier.align(Alignment.Center))
+                }
+
+                is ProcessesListState.Valid -> LazyColumn(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .fillMaxSize()
+                ) {
+                    items(state.list) { option ->
                         ProcessListRow(option = option, onClickEdit = onClickEdit)
                     }
-                }
-            } else {
-                Box(modifier.fillMaxSize()) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
             }
         }
@@ -71,7 +80,9 @@ fun ProcessListRow(
     onClickEdit: (RunningComponent) -> Unit = {},
 ) {
     Row(
-        modifier = modifier.fillMaxSize().padding(vertical = 10.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {

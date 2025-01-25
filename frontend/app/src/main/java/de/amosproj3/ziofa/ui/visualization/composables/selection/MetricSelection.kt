@@ -28,7 +28,7 @@ fun MetricSelection(
             "Select a package",
             modifier = dropdownModifier,
             optionSelected = { optionSelected(it) },
-            selectedOption = selectionData.selectedComponent.displayName,
+            selectedOption = selectionData.selectedComponent?.displayName,
         )
         selectionData.metricOptions
             ?.takeIf { it.isNotEmpty() }

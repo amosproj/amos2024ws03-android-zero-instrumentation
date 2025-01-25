@@ -30,10 +30,10 @@ val DEFAULT_GRAPHED_DATA = GraphedData.EMPTY // TODO replace with reasonable def
 
 val DEFAULT_SELECTION_DATA =
     SelectionData(
-        componentOptions = persistentListOf(DropdownOption.Global),
+        componentOptions = persistentListOf(),
         metricOptions = null,
         timeframeOptions = null,
-        selectedComponent = DropdownOption.Global,
+        selectedComponent = null,
         selectedMetric = null,
         selectedTimeframe = null,
     )

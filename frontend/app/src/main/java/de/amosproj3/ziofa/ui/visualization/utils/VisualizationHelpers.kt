@@ -24,36 +24,45 @@ fun DropdownOption.getPIDsOrNull(): List<UInt>? {
 
 fun List<RunningComponent>.toUIOptions() =
     this.map { component ->
-            when (component) {
-                is RunningComponent.Application ->
-                    DropdownOption.App(
-                        appName = component.packageInfo.displayName,
-                        packageName = component.packageInfo.displayName,
-                        icon = component.packageInfo.icon,
-                        pids = component.processList.map { it.pid },
-                    )
+        when (component) {
+            is RunningComponent.Application ->
+                DropdownOption.App(
+                    appName = component.packageInfo.displayName,
+                    packageName = component.packageInfo.displayName,
+                    icon = component.packageInfo.icon,
+                    pids = component.processList.map { it.pid },
+                )
 
-                is RunningComponent.StandaloneProcess ->
-                    DropdownOption.Process(
-                        component.process.cmd.toReadableString(),
-                        pid = component.process.pid,
-                    )
-            }
+            is RunningComponent.StandaloneProcess ->
+                DropdownOption.Process(
+                    component.process.cmd.toReadableString(),
+                    pid = component.process.pid,
+                )
         }
+    }
         .toImmutableList()
 
+/** Assert that the selection is valid (not-null) and has the correct subclasses */
 @OptIn(ExperimentalContracts::class)
-fun isValidSelection(selectedMetric: DropdownOption?, selectedTimeframe: DropdownOption?): Boolean {
+fun isValidSelection(
+    selectedComponent: DropdownOption?,
+    selectedMetric: DropdownOption?,
+    selectedTimeframe: DropdownOption?
+): Boolean {
     contract {
         returns(true) implies
-            (selectedMetric is DropdownOption.Metric &&
-                selectedTimeframe is DropdownOption.Timeframe)
+                ((selectedComponent is DropdownOption.Process || selectedComponent is DropdownOption.App)
+                        && selectedComponent != null
+                        && selectedMetric is DropdownOption.Metric
+                        && selectedTimeframe is DropdownOption.Timeframe)
     }
 
-    return selectedMetric != null &&
-        selectedMetric is DropdownOption.Metric &&
-        selectedTimeframe != null &&
-        selectedTimeframe is DropdownOption.Timeframe
+    return selectedComponent != null &&
+            (selectedComponent is DropdownOption.App || selectedComponent is DropdownOption.Process)
+            && selectedMetric != null
+            && selectedMetric is DropdownOption.Metric
+            && selectedTimeframe != null
+            && selectedTimeframe is DropdownOption.Timeframe
 }
 
 fun bytesToHumanReadableSize(bytes: Double) =

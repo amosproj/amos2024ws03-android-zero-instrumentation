@@ -8,7 +8,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.amosproj3.ziofa.api.processes.RunningComponent
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
+import de.amosproj3.ziofa.ui.processes.data.ProcessesListState
 import de.amosproj3.ziofa.ui.shared.getDisplayName
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,22 +22,26 @@ class ProcessesViewModel(runningComponentsProvider: RunningComponentsAccess) : V
 
     private val searchQuery = MutableStateFlow<String?>(null)
 
-    val applicationsAndProcessesList =
-        combine(runningComponentsProvider.runningComponentsList, searchQuery) {
-                runningComponents,
-                query ->
-                if (query == null) return@combine runningComponents
-                runningComponents.filter {
-                    it.getDisplayName().lowercase().contains(query.lowercase())
-                }
+    val processListState =
+        combine(
+            runningComponentsProvider.runningComponentsList,
+            searchQuery
+        ) { runningComponents, query ->
+            if (query == null) return@combine ProcessesListState.Valid(
+                runningComponents.sortApplicationsFirst().toImmutableList()
+            )
+            val filtered = runningComponents.filter {
+                it.getDisplayName().lowercase().contains(query.lowercase())
             }
-            .sortApplicationsFirst()
-            .stateIn(viewModelScope, started = SharingStarted.Lazily, listOf())
+            if (filtered.isEmpty()) ProcessesListState.NoResults else ProcessesListState.Valid(
+                filtered.toImmutableList()
+            )
+        }.stateIn(viewModelScope, started = SharingStarted.Lazily, ProcessesListState.Loading)
 
     fun startSearch(query: String) {
         searchQuery.value = query
     }
 
-    private fun Flow<List<RunningComponent>>.sortApplicationsFirst() =
-        this.map { list -> list.sortedBy { if (it is RunningComponent.Application) -1 else 1 } }
+    private fun List<RunningComponent>.sortApplicationsFirst() =
+        this.sortedBy { if (it is RunningComponent.Application) -1 else 1 }
 }
