@@ -26,7 +26,7 @@ fun ChartViewer(data: GraphedData) {
             VicoBar(seriesData = data.seriesData, chartMetadata = data.metaData)
 
         is GraphedData.MultiTimeSeriesData ->
-            YChartsMultiTimeSeries(data.seriesData,data.metaData)
+            YChartsMultiTimeSeries(seriesData = data.seriesData, chartMetadata = data.metaData)
 
         GraphedData.EMPTY -> {}
         else -> TODO() // crash because we havent implemented the visualization type yet

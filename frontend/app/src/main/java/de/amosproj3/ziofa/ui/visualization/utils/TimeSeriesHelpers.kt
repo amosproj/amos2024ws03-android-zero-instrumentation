@@ -6,6 +6,7 @@ package de.amosproj3.ziofa.ui.visualization.utils
 
 import androidx.compose.ui.text.intl.Locale
 import de.amosproj3.ziofa.client.Event
+import kotlin.math.max
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.scan
-import kotlin.math.max
 
 fun Flow<Int>.toTimestampedSeries(seriesSize: Int, secondsPerDatapoint: Float) =
     this.scan(listOf<Pair<Float, Float>>()) { prev, next ->
@@ -97,12 +97,23 @@ fun Flow<Event.JniReferences>.toReferenceCount() =
         }
         .map { it.first + it.second }
 
+fun Flow<Event.SysFdTracking>.countFileDescriptors() =
+    this.scan(0 to 0) { prev, next ->
+            when (next.fdAction) {
+                Event.SysFdTracking.SysFdAction.Created -> prev.first + 1 to prev.second
+                Event.SysFdTracking.SysFdAction.Destroyed -> prev.first - 1 to prev.second
+                null -> prev
+            }
+        }
+        .map { it.first + it.second }
+
 @OptIn(FlowPreview::class)
-fun Flow<Event.Gc>.toMultiMemoryGraphData(intervalMillis: Long)=
-    this.map { it.numBytesAllocated to max(it.targetFootprint, it.numBytesAllocated) }.sample(intervalMillis)
+fun Flow<Event.Gc>.toMultiMemoryGraphData(intervalMillis: Long) =
+    this.map { it.numBytesAllocated to max(it.targetFootprint, it.numBytesAllocated) }
+        .sample(intervalMillis)
 
 fun Flow<Pair<ULong, ULong>>.toTimestampedMultiSeries(seriesSize: Int, secondsPerDatapoint: Float) =
-    this.scan(listOf<Pair<Float,Pair<Float, Float>>>()) { prev, next ->
+    this.scan(listOf<Pair<Float, Pair<Float, Float>>>()) { prev, next ->
         val idx = (prev.lastOrNull()?.first ?: 0.0f) + secondsPerDatapoint
         prev.plus(idx to (next.first.toFloat() to next.second.toFloat())).takeLast(seriesSize)
     }

@@ -8,6 +8,7 @@ import de.amosproj3.ziofa.api.configuration.ConfigurationAction
 import de.amosproj3.ziofa.client.Configuration
 import de.amosproj3.ziofa.client.GcConfig
 import de.amosproj3.ziofa.client.JniReferencesConfig
+import de.amosproj3.ziofa.client.SysFdTrackingConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.SysSigquitConfig
 import de.amosproj3.ziofa.client.UprobeConfig
@@ -26,45 +27,45 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
         is BackendFeatureOptions.VfsWriteOption ->
             this.copy(
                 vfsWrite =
-                this.vfsWrite.updatePIDs(
-                    pidsToAdd =
-                    if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
-                    else setOf(),
-                    pidsToRemove =
-                    if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries
-                    else setOf(),
-                )
+                    this.vfsWrite.updatePIDs(
+                        pidsToAdd =
+                            if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
+                            else setOf(),
+                        pidsToRemove =
+                            if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries
+                            else setOf(),
+                    )
             )
 
         is BackendFeatureOptions.SendMessageOption ->
             this.copy(
                 sysSendmsg =
-                this.sysSendmsg.updatePIDs(
-                    pidsToAdd =
-                    if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
-                    else setOf(),
-                    pidsToRemove =
-                    if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries
-                    else setOf(),
-                )
+                    this.sysSendmsg.updatePIDs(
+                        pidsToAdd =
+                            if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
+                            else setOf(),
+                        pidsToRemove =
+                            if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries
+                            else setOf(),
+                    )
             )
 
         is BackendFeatureOptions.JniReferencesOption ->
             this.copy(
                 jniReferences =
-                this.jniReferences.updatePIDs(
-                    pidsToAdd = if (enable) pids else setOf(),
-                    pidsToRemove = if (!enable) pids else setOf(),
-                )
+                    this.jniReferences.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
+                    )
             )
 
         is BackendFeatureOptions.SigquitOption ->
             this.copy(
                 sysSigquit =
-                this.sysSigquit.updatePIDs(
-                    pidsToAdd = if (enable) pids else setOf(),
-                    pidsToRemove = if (!enable) pids else setOf(),
-                )
+                    this.sysSigquit.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
+                    )
             )
 
         is BackendFeatureOptions.UprobeOption -> {
@@ -79,20 +80,30 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
                 }
             this.copy(
                 uprobes =
-                this.uprobes.updateUProbes(
-                    pidsToAdd = if (enable) uprobeUpdate else listOf(),
-                    pidsToRemove = if (!enable) uprobeUpdate else listOf(),
-                )
+                    this.uprobes.updateUProbes(
+                        pidsToAdd = if (enable) uprobeUpdate else listOf(),
+                        pidsToRemove = if (!enable) uprobeUpdate else listOf(),
+                    )
             )
         }
 
         is BackendFeatureOptions.GcOption -> {
             this.copy(
                 gc =
-                this.gc.updatePIDs(
-                    pidsToAdd = if (enable) pids else setOf(),
-                    pidsToRemove = if (!enable) pids else setOf(),
-                )
+                    this.gc.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
+                    )
+            )
+        }
+
+        is BackendFeatureOptions.OpenFileDescriptors -> {
+            this.copy(
+                sysFdTracking =
+                    this.sysFdTracking.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
+                    )
             )
         }
     }
@@ -105,9 +116,9 @@ fun VfsWriteConfig?.updatePIDs(
     val config = this ?: VfsWriteConfig(mapOf())
     return config.copy(
         entries =
-        config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-            it.key to it.value
-        }
+            config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
+                it.key to it.value
+            }
     )
 }
 
@@ -118,9 +129,9 @@ fun SysSendmsgConfig?.updatePIDs(
     val config = this ?: SysSendmsgConfig(mapOf())
     return config.copy(
         entries =
-        config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-            it.key to it.value
-        }
+            config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
+                it.key to it.value
+            }
     )
 }
 
@@ -148,6 +159,13 @@ fun SysSigquitConfig?.updatePIDs(
     return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
 }
 
+fun SysFdTrackingConfig?.updatePIDs(
+    pidsToAdd: Set<UInt> = setOf(),
+    pidsToRemove: Set<UInt> = setOf(),
+): SysFdTrackingConfig {
+    val config = this ?: SysFdTrackingConfig(listOf())
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
+}
 
 fun GcConfig?.updatePIDs(
     pidsToAdd: Set<UInt> = setOf(),
@@ -156,4 +174,3 @@ fun GcConfig?.updatePIDs(
     val config = this ?: GcConfig(setOf())
     return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
 }
-

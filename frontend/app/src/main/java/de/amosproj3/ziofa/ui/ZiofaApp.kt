@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import de.amosproj3.ziofa.ui.about.AboutScreen
 import de.amosproj3.ziofa.ui.configuration.ConfigurationScreen
+import de.amosproj3.ziofa.ui.init.InitScreen
 import de.amosproj3.ziofa.ui.navigation.ConfigurationMenu
 import de.amosproj3.ziofa.ui.navigation.HomeScreen
 import de.amosproj3.ziofa.ui.navigation.composables.DynamicTopBar
@@ -57,8 +58,14 @@ fun ZIOFAApp() {
         NavHost(
             navController,
             modifier = Modifier.fillMaxSize(),
-            startDestination = Routes.Home.name,
+            startDestination = Routes.Init.name,
         ) {
+            screenWithDefaultAnimations(Routes.Init.name) {
+                InitScreen(
+                    onInitFinished = { navController.navigate(Routes.Home.name) },
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
             screenWithDefaultAnimations(Routes.Home.name) {
                 HomeScreen(
                     toVisualize = { navController.navigate(Routes.Visualize.name) },

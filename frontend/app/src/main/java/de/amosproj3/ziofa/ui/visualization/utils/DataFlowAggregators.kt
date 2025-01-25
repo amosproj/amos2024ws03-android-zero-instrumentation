@@ -42,5 +42,15 @@ fun Flow<Event.JniReferences>.toCombinedReferenceCount(
         GraphedData.TimeSeriesData(seriesData = it.toImmutableList(), metaData = chartMetadata)
     }
 
+fun Flow<Event.SysFdTracking>.toFileDescriptorCountData(
+    chartMetadata: ChartMetadata,
+    timeframe: DropdownOption.Timeframe,
+) =
+    this.countFileDescriptors()
+        .toTimestampedSeries(TIME_SERIES_SIZE, timeframe.amount.toFloat())
+        .map {
+            GraphedData.TimeSeriesData(seriesData = it.toImmutableList(), metaData = chartMetadata)
+        }
+
 fun Flow<EventListEntry>.toEventList() =
     this.accumulateEvents().map { GraphedData.EventListData(it.toImmutableList()) }

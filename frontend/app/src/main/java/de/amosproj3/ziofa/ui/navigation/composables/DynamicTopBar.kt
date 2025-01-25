@@ -39,6 +39,10 @@ fun DynamicTopBar(navController: NavController) {
                 )
             }
 
+            Routes.Init.name -> {
+                /* No top bar on init screen */
+            }
+
             else -> {
                 ZiofaTopBar(screenName = currentRoute, onBack = { navController.popBackStack() })
             }

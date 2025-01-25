@@ -37,10 +37,10 @@ fun OverlayRoot(viewModel: OverlayViewModel = koinViewModel(), modifier: Modifie
 
     Box(
         modifier =
-        modifier.size(
-            width = screenWidth * overlaySettings.pctOfScreen,
-            height = screenHeight * overlaySettings.pctOfScreen,
-        )
+            modifier.size(
+                width = screenWidth * overlaySettings.pctOfScreen,
+                height = screenHeight * overlaySettings.pctOfScreen,
+            )
     ) {
         when (data) {
             is GraphedData.TimeSeriesData -> TimeSeriesOverlay(data)

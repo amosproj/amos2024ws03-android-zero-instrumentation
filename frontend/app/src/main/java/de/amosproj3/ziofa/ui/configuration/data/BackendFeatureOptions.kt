@@ -6,8 +6,9 @@
 package de.amosproj3.ziofa.ui.configuration.data
 
 enum class FeatureType(val displayName: String) {
-    IO("IO Observability Features"),
+    IO("IO Observability"),
     SIGNALS("Linux Signals"),
+    MEMORY("Memory Usage"),
     UPROBES("Uprobes"),
 }
 
@@ -36,7 +37,7 @@ sealed class BackendFeatureOptions(
     data class JniReferencesOption(val enabled: Boolean, val pids: Set<UInt>) :
         BackendFeatureOptions(
             name = "Local & Global Indirect JNI References",
-            type = FeatureType.IO,
+            type = FeatureType.MEMORY,
             description =
                 "Detect JNI memory leaks by tracing the number of indirect JNI references.",
             active = enabled,
@@ -53,10 +54,17 @@ sealed class BackendFeatureOptions(
 
     data class GcOption(val enabled: Boolean, val pids: Set<UInt>) :
         BackendFeatureOptions(
-            name = "Garbage Collector Analysis",
+            name = "Garbage Collector Analysis & Heap Usage",
+            type = FeatureType.MEMORY,
+            description = "View live GC invocations, used Java heap and total Java heap size.",
+            active = enabled,
+        )
+
+    data class OpenFileDescriptors(val enabled: Boolean, val pids: Set<UInt>) :
+        BackendFeatureOptions(
+            name = "Open File Descriptors",
             type = FeatureType.IO,
-            description =
-            "TODO",
+            description = "View the number of opened file descriptors.",
             active = enabled,
         )
 

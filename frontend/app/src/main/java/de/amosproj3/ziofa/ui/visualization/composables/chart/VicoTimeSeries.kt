@@ -56,7 +56,7 @@ fun VicoTimeSeries(
         if (seriesData.isNotEmpty() && !seriesData.isDefaultSeries()) {
             modelProducer.SeriesUpdate(seriesData)
             modelProducer.TimeSeriesChart(chartMetadata, highContrastMode)
-        }
+        } else WaitingForDataHint()
     }
 }
 

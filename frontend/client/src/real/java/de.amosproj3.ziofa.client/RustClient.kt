@@ -19,7 +19,7 @@ import uniffi.shared.EventType
 import uniffi.shared.JniMethodName
 import uniffi.shared.SysFdAction
 
-//TODO: remove this hack
+// TODO: remove this hack
 var gcPids = setOf<UInt>()
 
 private fun uniffi.shared.Process.into() =
@@ -156,10 +156,11 @@ private fun Configuration.into() =
             },
         jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
         sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
-        gc = gc?.let {
-            de.amosproj3.ziofa.client.gcPids = it.pids
-            uniffi.shared.GcConfig()
-                     },
+        gc =
+            gc?.let {
+                de.amosproj3.ziofa.client.gcPids = it.pids
+                uniffi.shared.GcConfig()
+            },
         sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
     )
 
@@ -189,9 +190,9 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
 
-    //TODO remove the workarounds
+    // TODO remove the workarounds
     override suspend fun setConfiguration(configuration: Configuration) =
-        inner.setConfiguration(configuration.copy(jniReferences=null).into())
+        inner.setConfiguration(configuration.into())
 
     override suspend fun getOdexFiles(pid: UInt): Flow<String> =
         inner.getOdexFilesFlow(pid).mapNotNull { it.into().name }

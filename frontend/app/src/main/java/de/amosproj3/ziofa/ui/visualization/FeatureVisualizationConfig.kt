@@ -18,14 +18,15 @@ import de.amosproj3.ziofa.ui.visualization.utils.nanosToSeconds
 import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
 import de.amosproj3.ziofa.ui.visualization.utils.toCombinedReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toEventList
+import de.amosproj3.ziofa.ui.visualization.utils.toFileDescriptorCountData
 import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
 import de.amosproj3.ziofa.ui.visualization.utils.toMultiMemoryGraphData
 import de.amosproj3.ziofa.ui.visualization.utils.toTimestampedMultiSeries
+import kotlin.time.toDuration
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
-import kotlin.time.toDuration
 
 /*
  * When adding new features, the event visualizations have to be configured in this file.
@@ -96,6 +97,14 @@ fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
                 label4 = "Freed bytes",
             )
 
+        is BackendFeatureOptions.OpenFileDescriptors ->
+            EventListMetadata(
+                label1 = "PID",
+                label2 = "TID",
+                label3 = "Event time since Boot in s",
+                label4 = "Event type",
+            )
+
         else -> {
             Timber.e("needs metadata!")
             DEFAULT_EVENT_LIST_METADATA
@@ -118,8 +127,8 @@ fun DataStreamProvider.getEventListData(
             this.vfsWriteEvents(pids = pids)
                 .map {
                     EventListEntry(
-                        col1 = "${it.fp}",
-                        col2 = "${it.pid}",
+                        col1 = "${it.pid}",
+                        col2 = "${it.fp}",
                         col3 = it.beginTimeStamp.nanosToSeconds(),
                         col4 = "${it.bytesWritten}",
                     )
@@ -169,7 +178,19 @@ fun DataStreamProvider.getEventListData(
                         col1 = "${it.pid}",
                         col2 = "${it.targetFootprint}",
                         col3 = "${it.numBytesAllocated}",
-                        col4 = "${it.freedBytes}"
+                        col4 = "${it.freedBytes}",
+                    )
+                }
+                .toEventList()
+
+        is BackendFeatureOptions.OpenFileDescriptors ->
+            this.fileDescriptorTrackingEvents(pids = pids)
+                .map {
+                    EventListEntry(
+                        col1 = "${it.pid}",
+                        col2 = "${it.tid}",
+                        col3 = it.timeStamp.nanosToSeconds(),
+                        col4 = it.fdAction?.name.toString(),
                     )
                 }
                 .toEventList()
@@ -202,9 +223,9 @@ fun DataStreamProvider.getChartData(
                 .map {
                     it.copy(
                         seriesData =
-                        it.seriesData
-                            .map { pair -> pair.copy(second = pair.second / 1_000_000) }
-                            .toImmutableList()
+                            it.seriesData
+                                .map { pair -> pair.copy(second = pair.second / 1_000_000) }
+                                .toImmutableList()
                     )
                 }
 
@@ -212,15 +233,25 @@ fun DataStreamProvider.getChartData(
             this.jniReferenceEvents(pids = pids)
                 .toCombinedReferenceCount(chartMetadata, selectedTimeframe)
 
-
         is BackendFeatureOptions.GcOption ->
             this.gcEvents(pids = pids)
-                .toMultiMemoryGraphData(selectedTimeframe.amount.toDuration(selectedTimeframe.unit).inWholeMilliseconds)
-                .toTimestampedMultiSeries(
-                    10,
-                    selectedTimeframe.amount.toDuration(selectedTimeframe.unit).inWholeSeconds.toFloat()
+                .toMultiMemoryGraphData(
+                    selectedTimeframe.amount.toDuration(selectedTimeframe.unit).inWholeMilliseconds
                 )
-                .map { GraphedData.MultiTimeSeriesData(it.toImmutableList(), DEFAULT_CHART_METADATA) }
+                .toTimestampedMultiSeries(
+                    15,
+                    selectedTimeframe.amount
+                        .toDuration(selectedTimeframe.unit)
+                        .inWholeSeconds
+                        .toFloat(),
+                )
+                .map {
+                    GraphedData.MultiTimeSeriesData(it.toImmutableList(), DEFAULT_CHART_METADATA)
+                }
+
+        is BackendFeatureOptions.OpenFileDescriptors ->
+            this.fileDescriptorTrackingEvents(pids = pids)
+                .toFileDescriptorCountData(chartMetadata, selectedTimeframe)
 
         else -> null
     }

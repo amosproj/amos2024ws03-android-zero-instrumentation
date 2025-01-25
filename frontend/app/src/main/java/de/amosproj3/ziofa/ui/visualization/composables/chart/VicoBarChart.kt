@@ -61,7 +61,7 @@ fun VicoBar(
                 chartMetadata = chartMetadata,
                 xLabels = seriesData.map { it.first.toString() }.toImmutableList(),
             )
-        }
+        } else WaitingForDataHint()
     }
 }
 

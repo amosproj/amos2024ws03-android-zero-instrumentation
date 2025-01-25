@@ -14,9 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
-import timber.log.Timber
 
 class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope: CoroutineScope) :
     DataStreamProvider {
@@ -47,14 +45,19 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
 
     override fun gcEvents(pids: List<UInt>?): Flow<Event.Gc> =
         dataFlow
-            .onEach { Timber.i("pre filtering gc $it") }
             .mapNotNull { it as? Event.Gc }
             .filter {
-                it.pid.isGlobalRequestedOrPidConfigured(pids) || it.tid.isGlobalRequestedOrPidConfigured(
-                    pids
-                )
+                it.pid.isGlobalRequestedOrPidConfigured(pids) ||
+                    it.tid.isGlobalRequestedOrPidConfigured(pids)
             }
-            .onEach { Timber.i("$it") }
+
+    override fun fileDescriptorTrackingEvents(pids: List<UInt>?): Flow<Event.SysFdTracking> =
+        dataFlow
+            .mapNotNull { it as? Event.SysFdTracking }
+            .filter {
+                it.pid.isGlobalRequestedOrPidConfigured(pids) ||
+                    it.tid.isGlobalRequestedOrPidConfigured(pids)
+            }
 
     private fun UInt.isGlobalRequestedOrPidConfigured(pids: List<UInt>?) =
         pids?.contains(this) ?: true

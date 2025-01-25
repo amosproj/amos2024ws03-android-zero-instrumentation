@@ -19,4 +19,5 @@ interface DataStreamProvider {
 
     fun gcEvents(pids: List<UInt>?): Flow<Event.Gc>
 
+    fun fileDescriptorTrackingEvents(pids: List<UInt>?): Flow<Event.SysFdTracking>
 }
