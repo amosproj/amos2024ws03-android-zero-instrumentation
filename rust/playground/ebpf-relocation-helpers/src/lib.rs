@@ -123,6 +123,13 @@ macro_rules! gen_accessors {
             }
 
             impl [< $parent:camel >] {
+                /// # SAFETY
+                ///
+                /// Must point to a valid `task_struct` struct.
+                pub unsafe fn new(inner: *mut $parent) -> Self {
+                    Self { inner }
+                }
+
                 $(
                     gen_accessor!($variant: $parent => $name, $type);
                 )*
@@ -288,17 +295,6 @@ macro_rules! gen_accessor_no_read_container_test {
     };
 }
 
-impl TaskStruct {
-    /// # SAFETY
-    ///
-    /// Must point to a valid `task_struct` struct.
-    pub unsafe fn new(inner: *mut aya_ebpf::bindings::task_struct) -> Self {
-        Self {
-            inner: inner as *mut _,
-        }
-    }
-}
-
 gen_accessors!(task_struct => {
     wrapper mm: MmStruct,
     plain pid: u32,
@@ -306,6 +302,7 @@ gen_accessors!(task_struct => {
     plain start_time: u64,
     wrapper real_parent: TaskStruct,
     wrapper group_leader: TaskStruct,
+    wrapper files: FilesStruct,
     no_read comm: *mut [i8; 16],
 });
 
@@ -338,4 +335,12 @@ gen_accessors!(mount => {
     wrapper mnt_parent: Mount,
     wrapper mnt_mountpoint: Dentry,
     no_read_wrapped mnt: Vfsmount,
+});
+
+gen_accessors!(files_struct => {
+    wrapper fdt: Fdtable,
+});
+
+gen_accessors!(fdtable => {
+    no_read fd: *mut *mut *mut file,
 });

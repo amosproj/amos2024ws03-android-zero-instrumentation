@@ -70,12 +70,21 @@ struct mm_struct {
 	struct file *exe_file;
 };
 
+struct fdtable {
+	struct file **fd;
+};
+
+struct files_struct {
+	struct fdtable *fdt;
+};
+
 struct task_struct {
 	struct mm_struct *mm;
 	s32 pid;
 	s32 tgid;
 	u64 start_time;
 	char comm[16];
+	struct files_struct *files;
 	struct task_struct *real_parent;
 	struct task_struct *group_leader;
 };
@@ -102,6 +111,11 @@ inline u64 *task_struct_start_time(struct task_struct *task)
 
 inline char (*task_struct_comm(struct task_struct *task))[16] {
 	return &task->comm;
+}
+
+inline struct files_struct **task_struct_files(struct task_struct *task)
+{
+	return &task->files;
 }
 
 inline struct task_struct **task_struct_real_parent(struct task_struct *task)
@@ -187,6 +201,16 @@ inline struct dentry **mount_mnt_mountpoint(struct mount *mnt)
 inline struct vfsmount *mount_mnt(struct mount *mnt)
 {
 	return &mnt->mnt;
+}
+
+inline struct fdtable **files_struct_fdt(struct files_struct *files)
+{
+	return &files->fdt;
+}
+
+inline struct file ***fdtable_fd(struct fdtable *fdt)
+{
+	return &fdt->fd;
 }
 
 #if defined(__bpf__)
