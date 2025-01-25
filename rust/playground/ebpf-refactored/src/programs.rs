@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-
 use aya_ebpf::{
     bindings::task_struct,
     helpers::{bpf_get_current_task, bpf_ktime_get_ns},
@@ -13,10 +12,10 @@ use aya_ebpf::{
 };
 use aya_log_ebpf::info;
 use ebpf_types::{Event, EventContext, EventKind, TaskContext, VfsWrite};
+use relocation_helpers::TaskStruct;
 
 use crate::{
     path::{get_path_str, PATH_MAX},
-    relocation_helpers::TaskStruct,
     task_info::task_info_from_task,
 };
 

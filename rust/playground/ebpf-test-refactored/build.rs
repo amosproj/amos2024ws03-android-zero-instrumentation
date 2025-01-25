@@ -9,7 +9,7 @@ pub fn main() {
     let out_dir = PathBuf::from(out_dir);
 
     let ebpf_dir = "../ebpf-refactored";
-    println!("cargo:rerun-if-changed={ebpf_dir}");
+    println!("cargo::rerun-if-changed={ebpf_dir}");
 
     let mut cmd = Command::new("cargo");
     cmd.env("CARGO_ENCODED_RUSTFLAGS", "-Cdebuginfo=2");

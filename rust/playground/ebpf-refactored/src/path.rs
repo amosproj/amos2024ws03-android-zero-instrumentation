@@ -5,12 +5,9 @@
 use core::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
 
 use aya_ebpf::helpers::bpf_probe_read_kernel_buf;
+use relocation_helpers::{Dentry, Mount, Path, Vfsmount};
 
-use crate::{
-    bounds_check::EbpfBoundsCheck,
-    iterator_ext::IteratorExt,
-    relocation_helpers::{Dentry, Mount, Path, Vfsmount},
-};
+use crate::{bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt};
 
 pub struct PathWalker {
     vfs_mount: Vfsmount,

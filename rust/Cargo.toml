@@ -30,6 +30,7 @@ default-members = [
 exclude = [
   "playground/ebpf-refactored",
   "playground/ebpf-test-refactored",
+  "playground/ebpf-relocation-helpers",
   "playground/ebpf-types",
 ]
 

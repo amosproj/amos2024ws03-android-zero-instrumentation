@@ -1,17 +1,18 @@
 // SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
 //
 // SPDX-License-Identifier: MIT
+#![no_std]
 #![allow(clippy::len_without_is_empty)]
 
-#[cfg(test)]
+#[cfg(not(target_arch = "bpf"))]
 fn bpf_probe_read_kernel<T>(ptr: *const T) -> Result<T, i64> {
     unsafe { Ok(core::ptr::read(ptr)) }
 }
 
-#[cfg(not(test))]
+#[cfg(target_arch = "bpf")]
 use aya_ebpf::helpers::bpf_probe_read_kernel;
 
-mod ffi {
+pub mod ffi {
     #![allow(non_upper_case_globals)]
     #![allow(non_camel_case_types)]
     #![allow(non_snake_case)]

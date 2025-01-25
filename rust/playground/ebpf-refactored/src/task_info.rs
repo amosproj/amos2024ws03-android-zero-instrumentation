@@ -11,8 +11,9 @@ use aya_ebpf::{
     maps::{LruHashMap, PerCpuArray},
 };
 use ebpf_types::TaskContext;
+use relocation_helpers::TaskStruct;
 
-use crate::{bounds_check::EbpfBoundsCheck, relocation_helpers::TaskStruct};
+use crate::bounds_check::EbpfBoundsCheck;
 
 #[map]
 static TASK_INFO: LruHashMap<u32, TaskContext> = LruHashMap::with_max_entries(10240, 0);
