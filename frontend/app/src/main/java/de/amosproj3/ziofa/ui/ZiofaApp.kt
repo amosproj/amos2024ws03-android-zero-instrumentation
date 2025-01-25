@@ -69,8 +69,8 @@ fun ZIOFAApp() {
             screenWithDefaultAnimations(Routes.Home.name) {
                 HomeScreen(
                     toVisualize = { navController.navigate(Routes.Visualize.name) },
-                    toConfiguration = { navController.navigate(Routes.Configuration.name) },
-                    toAbout = { navController.navigate(Routes.About.name) },
+                    toConfiguration = { navController.navigate(Routes.Processes.name)  },
+                    toReset = { navController.navigate(Routes.Reset.name) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
