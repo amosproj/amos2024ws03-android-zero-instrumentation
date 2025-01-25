@@ -203,6 +203,10 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
     override suspend fun getSymbols(filePath: String): Flow<Symbol> =
         inner.getSymbolFlow(filePath).mapNotNull { it.into() }
 
+    override suspend fun indexSymbols() {
+        inner.indexSymbols()
+    }
+
     override suspend fun initStream(): Flow<Event> = inner.initStreamFlow().mapNotNull { it.into() }
 }
 

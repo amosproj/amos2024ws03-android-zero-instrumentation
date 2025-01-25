@@ -140,6 +140,8 @@ interface Client {
     suspend fun getSymbols(filePath: String): Flow<Symbol>
 
     suspend fun initStream(): Flow<Event>
+
+    suspend fun indexSymbols()
 }
 
 interface ClientFactory {

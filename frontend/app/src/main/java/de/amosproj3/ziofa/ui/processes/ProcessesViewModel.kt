@@ -28,13 +28,13 @@ class ProcessesViewModel(runningComponentsProvider: RunningComponentsAccess) : V
             searchQuery
         ) { runningComponents, query ->
             if (query == null) return@combine ProcessesListState.Valid(
-                runningComponents.sortApplicationsFirst().toImmutableList()
+                runningComponents.sortApplicationsFirst().sortZIOFAFirst().toImmutableList()
             )
             val filtered = runningComponents.filter {
                 it.getDisplayName().lowercase().contains(query.lowercase())
             }
             if (filtered.isEmpty()) ProcessesListState.NoResults else ProcessesListState.Valid(
-                filtered.toImmutableList()
+                filtered.sortApplicationsFirst().sortZIOFAFirst().toImmutableList()
             )
         }.stateIn(viewModelScope, started = SharingStarted.Lazily, ProcessesListState.Loading)
 
@@ -43,5 +43,14 @@ class ProcessesViewModel(runningComponentsProvider: RunningComponentsAccess) : V
     }
 
     private fun List<RunningComponent>.sortApplicationsFirst() =
-        this.sortedBy { if (it is RunningComponent.Application) -1 else 1 }
+        this.sortedBy {
+            if (it is RunningComponent.Application) -1 else 1
+        }
+
+    /** Most important app first. ;) */
+    private fun List<RunningComponent>.sortZIOFAFirst() =
+        this.sortedBy {
+            if (it is RunningComponent.Application && it.packageInfo.displayName == "ZIOFA")
+                -1 else 1
+        }
 }

@@ -16,7 +16,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.cache
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -35,6 +39,11 @@ class RunningComponentsProvider(
 
     override val runningComponentsList =
         processesList.groupByProcessName().splitIntoAppsAndStandaloneProcesses()
+            .stateIn(
+                scope = coroutineScope,
+                started = SharingStarted.Lazily,
+                initialValue = listOf()
+            )
 
     init {
         coroutineScope.launch {

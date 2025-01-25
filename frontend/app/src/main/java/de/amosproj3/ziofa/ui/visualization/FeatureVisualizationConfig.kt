@@ -13,12 +13,14 @@ import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_CHART_METADATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_EVENT_LIST_METADATA
+import de.amosproj3.ziofa.ui.visualization.utils.emitLastValueOfTimeframe
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
 import de.amosproj3.ziofa.ui.visualization.utils.nanosToSeconds
 import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
 import de.amosproj3.ziofa.ui.visualization.utils.toCombinedReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toEventList
 import de.amosproj3.ziofa.ui.visualization.utils.toFileDescriptorCountData
+import de.amosproj3.ziofa.ui.visualization.utils.toMillis
 import de.amosproj3.ziofa.ui.visualization.utils.toMovingAverage
 import de.amosproj3.ziofa.ui.visualization.utils.toMultiMemoryGraphData
 import de.amosproj3.ziofa.ui.visualization.utils.toTimestampedMultiSeries
@@ -235,9 +237,8 @@ fun DataStreamProvider.getChartData(
 
         is BackendFeatureOptions.GcOption ->
             this.gcEvents(pids = pids)
-                .toMultiMemoryGraphData(
-                    selectedTimeframe.amount.toDuration(selectedTimeframe.unit).inWholeMilliseconds
-                )
+                .toMultiMemoryGraphData(selectedTimeframe.toMillis())
+                .emitLastValueOfTimeframe(selectedTimeframe.toMillis())
                 .toTimestampedMultiSeries(
                     15,
                     selectedTimeframe.amount

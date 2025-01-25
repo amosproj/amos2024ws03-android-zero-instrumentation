@@ -29,18 +29,19 @@ fun Flow<Event.SysSendmsg>.toMovingAverage(
     timeframe: DropdownOption.Timeframe,
 ) =
     this.toAveragedDurationOverTimeframe(
-            TIME_SERIES_SIZE,
-            timeframe.amount.toDuration(timeframe.unit).inWholeMilliseconds,
-        )
+        TIME_SERIES_SIZE,
+        timeframe.amount.toDuration(timeframe.unit).inWholeMilliseconds,
+    )
         .map { GraphedData.TimeSeriesData(it.toImmutableList(), chartMetadata) }
 
 fun Flow<Event.JniReferences>.toCombinedReferenceCount(
     chartMetadata: ChartMetadata,
     timeframe: DropdownOption.Timeframe,
 ) =
-    this.toReferenceCount().toTimestampedSeries(TIME_SERIES_SIZE, timeframe.amount.toFloat()).map {
-        GraphedData.TimeSeriesData(seriesData = it.toImmutableList(), metaData = chartMetadata)
-    }
+    this.toReferenceCount().emitLastValueOfTimeframe(timeframe.toMillis())
+        .toTimestampedSeries(TIME_SERIES_SIZE, timeframe.amount.toFloat()).map {
+            GraphedData.TimeSeriesData(seriesData = it.toImmutableList(), metaData = chartMetadata)
+        }
 
 fun Flow<Event.SysFdTracking>.toFileDescriptorCountData(
     chartMetadata: ChartMetadata,

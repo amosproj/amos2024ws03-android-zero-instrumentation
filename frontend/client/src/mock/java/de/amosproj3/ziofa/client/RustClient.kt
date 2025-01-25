@@ -65,6 +65,11 @@ object RustClient : Client {
         // NOP
     }
 
+    override suspend fun indexSymbols() {
+        // NOP
+        delay(2000)
+    }
+
     private val processes =
         alphabet.indices
             .map {
