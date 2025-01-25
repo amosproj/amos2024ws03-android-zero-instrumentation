@@ -4,7 +4,7 @@
 
 use aya_ebpf::{helpers::gen::bpf_ktime_get_ns, macros::map, maps::RingBuf, programs::TracePointContext, EbpfContext};
 use aya_ebpf::maps::HashMap;
-use aya_log_ebpf::error;
+use aya_log_ebpf::{error};
 use backend_common::{SysFdAction, SysFdActionCall};
 
 #[map(name = "SYS_FDTRACKING_PIDS")]
@@ -43,22 +43,27 @@ pub fn sys_destroy_fd(ctx: Arg) -> u32 {
 fn handle_fd_action(ctx: TracePointContext, fd_action: SysFdAction) -> u32 {
     let pid = ctx.pid();
 
-    if pid < 2700 {
-        return 1;
-    }
-    //if unsafe { SYS_FDTRACKING_PIDS.get(&pid).is_none() } {
-        // ignore signals from this pid
-    //    return 0;
-    //}
-
     let tid = ctx.tgid();
 
-    let time_stamp: u64 = unsafe { bpf_ktime_get_ns() };
+    let return_value: i64;
+    let time_stamp: u64;
+
+    unsafe {
+        return_value = match ctx.read_at(16) {
+            Ok(arg) => arg,
+            Err(_) => return 1,
+        };
+        time_stamp = bpf_ktime_get_ns();
+    }
+
+    if return_value == -1 {
+        return 1; // the syscall was unsuccessful -> don't evaluate the call
+    }
 
     let mut entry = match SYS_FDTRACKING_EVENTS.reserve::<SysFdActionCall>(0) {
         Some(entry) => entry,
         None => {
-            error!(&ctx, "could not reserve space in map: SYS_FDTRACKING_CALLS");
+            error!(&ctx, "could not reserve space in map: SYS_FDTRACKING_EVENTS");
             return 1;
         }
     };
