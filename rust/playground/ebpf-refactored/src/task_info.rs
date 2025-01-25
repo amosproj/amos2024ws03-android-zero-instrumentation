@@ -6,14 +6,13 @@ use core::option::Option::Some;
 
 use aya_ebpf::{
     bindings::BPF_NOEXIST,
-    helpers::{bpf_probe_read_kernel_buf, bpf_probe_read_user_buf},
+    helpers::bpf_probe_read_kernel_buf,
     macros::map,
     maps::{LruHashMap, PerCpuArray},
 };
 use ebpf_types::TaskContext;
 use relocation_helpers::TaskStruct;
 
-use crate::bounds_check::EbpfBoundsCheck;
 
 #[map]
 static TASK_INFO: LruHashMap<u32, TaskContext> = LruHashMap::with_max_entries(10240, 0);
@@ -51,14 +50,6 @@ pub fn task_info_from_task(task: TaskStruct) -> Option<*mut TaskContext> {
     unsafe {
         bpf_probe_read_kernel_buf(comm_ptr as *const _ as *const u8, &mut task_ctx.comm).ok()?
     };
-
-    let mm = task.mm().ok()?;
-    let arg_start = mm.arg_start().ok()?;
-    let arg_end = mm.arg_end().ok()?;
-
-    let len = unsafe { ((arg_end - arg_start) as usize).bounded(256)? };
-    let dst = &mut task_ctx.cmdline[..len];
-    unsafe { bpf_probe_read_user_buf(arg_start as *mut u8, dst).ok() };
 
     Some(task_ctx)
 }

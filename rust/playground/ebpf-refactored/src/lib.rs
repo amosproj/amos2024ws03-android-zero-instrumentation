@@ -13,3 +13,6 @@ pub mod programs;
 
 #[cfg(target_arch = "bpf")]
 pub mod task_info;
+
+#[cfg(target_arch = "bpf")]
+pub mod process_info;

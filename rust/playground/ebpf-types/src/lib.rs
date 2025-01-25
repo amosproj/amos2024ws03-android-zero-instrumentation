@@ -17,8 +17,6 @@ pub struct TaskContext {
     pub ppid: u32,
     /// comm
     pub comm: [u8; 16],
-    /// cmdline
-    pub cmdline: [u8; 256],
 }
 
 impl Default for TaskContext {
@@ -28,13 +26,30 @@ impl Default for TaskContext {
             tid: 0,
             ppid: 0,
             comm: [0; 16],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, AnyBitPattern)]
+pub struct ProcessContext {
+    pub cmdline: [u8; 256],
+    pub exe_path: [u8; 4096],
+}
+
+impl Default for ProcessContext {
+    fn default() -> Self {
+        Self {
             cmdline: [0; 256],
+            exe_path: [0; 4096],
         }
     }
 }
 
 #[cfg(feature = "user")]
 unsafe impl aya::Pod for TaskContext {}
+
+#[cfg(feature = "user")]
+unsafe impl aya::Pod for ProcessContext {}
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]
