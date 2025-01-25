@@ -29,18 +29,9 @@ Format `./gradlew combinedFormat` <br/>
 Check: `./gradlew ktfmtCheck`
 
 ## Installing for overlay mode
-Overlay mode on AAOS requires elevated priviledges (priv-app + a runtime permission)
-* `./gradlew assemble`
+Overlay mode on AAOS requires elevated priviledges (a runtime permission not grantable as the settings
+menu for granting it does not exist in our emulator)
 * `adb root`
-* `adb remount`
-* `adb reboot`
-* `adb remount`
-* `adb shell mkdir /system/priv-app/ziofa`
-* `adb push app/build/outputs/apk/mock/debug/app-mock-debug.apk /system/priv-app/ziofa`
-* `adb shell sync`
-* `adb shell reboot`
-* `adb root`
-* `adb push`
 * `adb shell pm grant de.amosproj3.ziofa android.permission.SYSTEM_ALERT_WINDOW`
 * `adb shell pm grant --user 10 de.amosproj3.ziofa android.permission.SYSTEM_ALERT_WINDOW`
 

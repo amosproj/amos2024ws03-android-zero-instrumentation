@@ -6,6 +6,7 @@ package de.amosproj3.ziofa.ui.visualization
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.yml.charts.common.extensions.isNotNull
 import de.amosproj3.ziofa.api.configuration.ConfigurationAccess
 import de.amosproj3.ziofa.api.configuration.ConfigurationState
 import de.amosproj3.ziofa.api.events.DataStreamProvider
@@ -97,23 +98,28 @@ class VisualizationViewModel(
                 }
             val availableMetricsForComponent =
                 activeComponent?.let { config.getActiveMetricsForPids(pids = it.getPIDsOrNull()) }
+            val componentsDropdownOptions = configuredComponents
+                .toUIOptions()
+                .plus(
+                    activeComponent?.let { listOf(it) } ?: listOf()
+                ) // prevent the selected component from disappearing if process ends
+                .toSet() // convert to set to remove the duplicate if it is already in
+                // the list
+                .toImmutableList()
             SelectionData(
                 selectedComponent = activeComponent,
                 selectedMetric = activeMetric,
                 selectedTimeframe = activeTimeframe,
-                componentOptions =
-                configuredComponents
-                    .toUIOptions()
-                    .plus(
-                        activeComponent?.let { listOf(it) } ?: listOf()
-                    ) // prevent the selected component from disappearing if process ends
-                    .toSet() // convert to set to remove the duplicate if it is already in
-                    // the list
-                    .toImmutableList(),
+                componentOptions = componentsDropdownOptions,
                 metricOptions = availableMetricsForComponent,
                 timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
             )
-        }.onEach { Timber.i("updated selection data $it") }
+        }
+            .onEach {
+                // Select the first available option automatically
+                if (it.selectedComponent == null && it.componentOptions.isNotEmpty())
+                    selectedComponent.value = it.componentOptions.first()
+            }.onEach { Timber.i("updated selection data $it") }
             .stateIn(viewModelScope, SharingStarted.Lazily, DEFAULT_SELECTION_DATA)
 
     /**
