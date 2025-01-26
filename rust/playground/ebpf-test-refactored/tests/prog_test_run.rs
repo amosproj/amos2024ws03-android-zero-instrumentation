@@ -5,7 +5,7 @@
 use std::{
     env::current_exe,
     ffi::CStr,
-    fs::{self},
+    fs::{self, read_dir},
     io,
     mem::{self},
     os::{
@@ -24,7 +24,9 @@ use aya_ebpf::bindings::pt_regs;
 use aya_log::EbpfLogger;
 use aya_obj::generated::{bpf_attr, bpf_cmd::BPF_PROG_TEST_RUN};
 use bytemuck::checked;
-use ebpf_types::{Event, EventKind, ProcessContext, TaskContext};
+use ebpf_types::{
+    Event, FileDescriptorChange, FileDescriptorOp, ProcessContext, TaskContext, WriteSource,
+};
 use libc::{syscall, SYS_bpf, SYS_gettid};
 
 const PROG_BYTES: &[u8] = aya::include_bytes_aligned!(concat!(env!("OUT_DIR"), "/ebpf.o"));
@@ -120,13 +122,10 @@ async fn test_write() {
     let event = events.next().unwrap();
     let event = checked::from_bytes::<Event<ebpf_types::Write>>(&*event);
 
-    if !matches!(event.kind, EventKind::Write) {
-        panic!("Expected Write");
-    }
-
     let file_path = CStr::from_bytes_until_nul(&event.data.file_path[..]).unwrap();
     let file_path = file_path.to_str().unwrap();
 
+    assert!(matches!(event.data.source, WriteSource::Write));
     assert_eq!(event.data.bytes_written, 66);
     assert_eq!(file_path, "bpf-prog");
 }
@@ -183,4 +182,46 @@ async fn test_bin_path() {
 
     assert_eq!(entry.exe_path, exe_path);
     assert_eq!(entry.cmdline, cmdline);
+}
+
+#[test_log::test(tokio::test(flavor = "multi_thread"))]
+async fn test_new_fd() {
+    let mut ebpf = setup();
+
+    let prog: &mut RawTracePoint = ebpf
+        .program_mut("file_descriptor_test")
+        .unwrap()
+        .try_into()
+        .unwrap();
+
+    prog.load().unwrap();
+
+    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
+
+    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+    let mut regs = unsafe { mem::zeroed::<pt_regs>() };
+
+    regs.orig_rax = syscall_numbers::x86_64::SYS_open as u64;
+
+    let args = [&raw mut regs as u64, 0];
+
+    attr.test.prog_fd = fd as u32;
+    attr.test.ctx_in = args.as_ptr() as u64;
+    attr.test.ctx_size_in = 2 * 8;
+
+    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
+
+    if ret < 0 {
+        panic!("Failed to run test: {:?}", io::Error::last_os_error());
+    }
+
+    let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
+    let raw_event = events.next().unwrap();
+
+    let event = checked::from_bytes::<Event<FileDescriptorChange>>(&raw_event);
+
+    let open_fds = read_dir("/proc/self/fd").unwrap().count() as u64 - 1;
+
+    assert_eq!(event.data.open_fds, open_fds);
+    assert!(matches!(event.data.operation, FileDescriptorOp::Open));
 }
