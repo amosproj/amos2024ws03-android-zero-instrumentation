@@ -9,22 +9,22 @@ use tokio::sync::RwLock;
 
 use shared::config::Configuration;
 
-use super::Filesystem;
+use super::ConfigurationStorage;
 
-pub struct MemoryFilesystem {
+pub struct MemoryConfigurationStorage {
     storage: RwLock<HashMap<String, Configuration>>,
 }
 
-impl MemoryFilesystem {
+impl MemoryConfigurationStorage {
     pub fn new() -> Self {
-        MemoryFilesystem {
+        MemoryConfigurationStorage {
             storage: RwLock::new(HashMap::new()),
         }
     }
 }
 
-impl Filesystem for MemoryFilesystem {
-    fn load(&self, path: &str) -> io::Result<Configuration> {
+impl ConfigurationStorage for MemoryConfigurationStorage {
+    async fn load(&self, path: &str) -> io::Result<Configuration> {
         tokio::task::block_in_place(|| {
             let storage = self.storage.blocking_read();
             storage.get(path).cloned().ok_or_else(|| {
@@ -33,7 +33,7 @@ impl Filesystem for MemoryFilesystem {
         })
     }
 
-    fn save(&self, config: &Configuration, path: &str) -> io::Result<()> {
+    async fn save(&self, config: &Configuration, path: &str) -> io::Result<()> {
         tokio::task::block_in_place(|| {
             let mut storage = self.storage.blocking_write();
             storage.insert(path.to_string(), config.clone());
