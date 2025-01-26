@@ -25,7 +25,7 @@ use aya_log::EbpfLogger;
 use aya_obj::generated::{bpf_attr, bpf_cmd::BPF_PROG_TEST_RUN};
 use bytemuck::checked;
 use ebpf_types::{
-    Event, FileDescriptorChange, FileDescriptorOp, ProcessContext, TaskContext, WriteSource,
+    Event, FileDescriptorChange, FileDescriptorOp, ProcessContext, Signal, TaskContext, WriteSource,
 };
 use libc::{syscall, SYS_bpf, SYS_gettid};
 
@@ -224,4 +224,47 @@ async fn test_new_fd() {
 
     assert_eq!(event.data.open_fds, open_fds);
     assert!(matches!(event.data.operation, FileDescriptorOp::Open));
+}
+
+#[test_log::test(tokio::test)]
+async fn test_kill() {
+    let mut ebpf = setup();
+
+    let prog: &mut RawTracePoint = ebpf.program_mut("kill_test").unwrap().try_into().unwrap();
+
+    prog.load().unwrap();
+
+    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
+
+    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+    let mut regs = unsafe { mem::zeroed::<pt_regs>() };
+
+    let target_pid = 123;
+    let signal = 1;
+
+    regs.rdi = target_pid as u64;
+    regs.rsi = signal as u64;
+
+    let args = [
+        &raw mut regs as u64,
+        syscall_numbers::x86_64::SYS_kill as u64,
+    ];
+
+    attr.test.prog_fd = fd as u32;
+    attr.test.ctx_in = args.as_ptr() as u64;
+    attr.test.ctx_size_in = 2 * 8;
+
+    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
+
+    if ret < 0 {
+        panic!("Failed to run test: {:?}", io::Error::last_os_error());
+    }
+
+    let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
+    let raw_event = events.next().unwrap();
+
+    let event = checked::from_bytes::<Event<Signal>>(&raw_event);
+
+    assert_eq!(event.data.target_pid, target_pid);
+    assert_eq!(event.data.signal, signal);
 }

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-
 #[cfg(bpf_target_arch = "x86_64")]
 use aya_ebpf::bindings::pt_regs;
 #[cfg(bpf_target_arch = "aarch64")]
@@ -16,8 +15,8 @@ use aya_ebpf::{
 };
 use aya_log_ebpf::info;
 use ebpf_types::{
-    Event, EventContext, FileDescriptorChange, FileDescriptorOp, ProcessContext, TaskContext,
-    Write, WriteSource,
+    Event, EventContext, FileDescriptorChange, FileDescriptorOp, ProcessContext, Signal,
+    TaskContext, Write, WriteSource,
 };
 use relocation_helpers::TaskStruct;
 
@@ -58,6 +57,38 @@ fn file_descriptor_test(ctx: RawTracePointContext) -> Option<()> {
             entry.discard(0)
         }
     }
+    Some(())
+}
+
+#[raw_tracepoint]
+fn kill_test(ctx: RawTracePointContext) -> Option<()> {
+    let mut entry = EVENTS.reserve::<Event<Signal>>(0)?;
+    match unsafe { try_kill(&ctx, entry.as_mut_ptr()) } {
+        Some(_) => entry.submit(0),
+        None => {
+            info!(&ctx, "kill discard");
+            entry.discard(0)
+        }
+    }
+    Some(())
+}
+
+unsafe fn try_kill(ctx: &RawTracePointContext, entry: *mut Event<Signal>) -> Option<()> {
+    let id = unsafe { *(ctx.as_ptr().byte_add(8) as *const i32) } as i64;
+    if id != syscalls::SYS_kill {
+        return None;
+    }
+    let pt_regs = PtRegs::new(unsafe { *(ctx.as_ptr() as *const *mut pt_regs) });
+    let target_pid = pt_regs.arg::<*const u64>(0)? as i32;
+    let signal = pt_regs.arg::<*const u64>(1)? as u32;
+
+    let task_info_src = task_info_from_task(TaskStruct::new(bpf_get_current_task() as *mut _))?;
+
+    (*entry).context = EventContext {
+        task: *task_info_src,
+        timestamp: bpf_ktime_get_ns(),
+    };
+    (*entry).data = Signal { target_pid, signal };
     Some(())
 }
 

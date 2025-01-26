@@ -114,8 +114,9 @@ pub enum Jni {
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]
-pub struct SigQuit {
-    pub target_pid: u32,
+pub struct Signal {
+    pub target_pid: i32,
+    pub signal: u32,
 }
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
@@ -143,7 +144,7 @@ pub trait EventData: Any {}
 
 impl EventData for Write {}
 impl EventData for SendMsg {}
-impl EventData for SigQuit {}
+impl EventData for Signal {}
 impl EventData for GarbageCollect {}
 impl EventData for FileDescriptorChange {}
 impl EventData for Jni {}
