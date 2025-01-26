@@ -13,7 +13,6 @@ use aya_ebpf::{
 use ebpf_types::TaskContext;
 use relocation_helpers::TaskStruct;
 
-
 #[map]
 static TASK_INFO: LruHashMap<u32, TaskContext> = LruHashMap::with_max_entries(10240, 0);
 

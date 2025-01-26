@@ -2,10 +2,14 @@
 //
 // SPDX-License-Identifier: MIT
 
-use core::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
+use core::ptr::{copy_nonoverlapping, slice_from_raw_parts, slice_from_raw_parts_mut};
 
-use aya_ebpf::helpers::bpf_probe_read_kernel_buf;
-use relocation_helpers::{Dentry, Mount, Path, Vfsmount};
+use aya_ebpf::{
+    helpers::{bpf_probe_read_kernel, bpf_probe_read_kernel_buf},
+    macros::map,
+    maps::PerCpuArray,
+};
+use relocation_helpers::{Dentry, File, Mount, Path, TaskStruct, Vfsmount};
 
 use crate::{bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt};
 
@@ -69,6 +73,7 @@ impl PathWalker {
         Ok(self.mnt_p != self.mnt_parent_p)
     }
 
+    #[inline(always)]
     fn next_inner(&mut self) -> Result<Option<PathComponent>, i64> {
         if self.is_parent()? || self.is_mnt_root()? {
             if self.can_traverse_mount()? {
@@ -96,6 +101,7 @@ pub enum PathComponent {
 impl Iterator for PathWalker {
     type Item = PathComponent;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         self.next_inner().ok().flatten()
     }
@@ -103,19 +109,18 @@ impl Iterator for PathWalker {
 
 pub const PATH_MAX: usize = 4096;
 
-struct Offset<'a> {
-    max: usize,
+struct Offset<'a, const N: usize> {
     off: usize,
     buf: &'a mut [u8],
 }
 
-impl<'a> Offset<'a> {
-    pub fn new(buf: &'a mut [u8], max: usize) -> Self {
-        Self { max, off: max, buf }
+impl<'a, const N: usize> Offset<'a, N> {
+    pub fn new(buf: &'a mut [u8]) -> Self {
+        Self { off: N, buf }
     }
 
     unsafe fn next_slice(&mut self, len: usize) -> Option<&'a mut [u8]> {
-        self.off = (self.off - len).bounded(self.max)?;
+        self.off = (self.off - len).bounded::<N>()?;
 
         let ptr = self.buf.as_mut_ptr().add(self.off);
         let slice = &mut *slice_from_raw_parts_mut(ptr, len);
@@ -124,19 +129,18 @@ impl<'a> Offset<'a> {
     }
 }
 
+#[inline(always)]
 pub fn get_path_str(path: Path, buf: &mut [u8; PATH_MAX * 2]) -> Option<usize> {
-    let mut offset = Offset::new(buf.as_mut_slice(), PATH_MAX);
+    let mut offset = Offset::<PATH_MAX>::new(buf.as_mut_slice());
 
-    let components = PathWalker::new(path)
-        .ok()?
-        .const_take::<20>()
-        .filter_map(|item| match item {
-            PathComponent::Name(name) => Some(name),
-            PathComponent::Mount => None,
-        });
+    let mut components = PathWalker::new(path).ok()?;
 
-    for name in components {
-        let len = unsafe { name.len().bounded(PATH_MAX)? };
+    for name in (&mut components).const_take::<20>() {
+        let PathComponent::Name(name) = name else {
+            continue;
+        };
+
+        let len = unsafe { name.len().bounded::<PATH_MAX>()? };
 
         let slice = unsafe { offset.next_slice(len + 1)? };
 
@@ -144,5 +148,55 @@ pub fn get_path_str(path: Path, buf: &mut [u8; PATH_MAX * 2]) -> Option<usize> {
         unsafe { bpf_probe_read_kernel_buf(name as *const u8, &mut slice[1..]).ok()? };
     }
 
+    if offset.off == PATH_MAX {
+        let name = components.get_name().ok()?;
+        let len = unsafe { name.len().bounded::<PATH_MAX>()? };
+        let slice = unsafe { offset.next_slice(len)? };
+        unsafe { bpf_probe_read_kernel_buf(name as *const u8, slice).ok()? };
+    }
+
     Some(offset.off)
 }
+
+#[inline(always)]
+pub fn read_path_to_buf(
+    path: Path,
+    intermediate: &mut [u8; PATH_MAX * 2],
+    buf: &mut [u8; PATH_MAX],
+) -> Option<usize> {
+    let offset = get_path_str(path, intermediate)?;
+
+    unsafe {
+        copy_nonoverlapping(
+            intermediate
+                .get_unchecked_mut(offset..PATH_MAX)
+                .as_mut_ptr(),
+            buf.as_mut_ptr(),
+            PATH_MAX - offset,
+        )
+    }
+
+    Some(PATH_MAX - offset)
+}
+
+#[inline(always)]
+pub fn read_path_to_buf_with_default(path: Path, buf: &mut [u8; PATH_MAX]) -> Option<usize> {
+    let intermediate = unsafe { &mut *PATH_BUF.get_ptr_mut(0)? };
+    read_path_to_buf(path, intermediate, buf)
+}
+
+pub fn get_path_from_fd(fd: u64, task: TaskStruct) -> Option<Path> {
+    let files = task.files().ok()?;
+    let fdtable = files.fdt().ok()?;
+    let fds = fdtable.fd();
+
+    let file = unsafe { bpf_probe_read_kernel(fds).ok()? };
+    let file = unsafe { bpf_probe_read_kernel(file.add(fd as usize) as *const _).ok()? };
+    let file = unsafe { File::new(file) };
+    let path = file.f_path();
+
+    Some(path)
+}
+
+#[map]
+static PATH_BUF: PerCpuArray<[u8; PATH_MAX * 2]> = PerCpuArray::with_max_entries(1, 0);

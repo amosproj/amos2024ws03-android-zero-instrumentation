@@ -185,6 +185,7 @@ dependencies = [
  "cc",
  "ebpf-relocation-helpers",
  "ebpf-types",
+ "syscall-numbers",
 ]
 
 [[package]]
@@ -387,6 +388,12 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "syscall-numbers"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34e69d4af039030d26a8f7c1c20c8e1480e76e43660e96155a57af1fa79c9432"
 
 [[package]]
 name = "unicode-ident"

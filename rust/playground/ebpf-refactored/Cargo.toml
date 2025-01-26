@@ -23,6 +23,7 @@ aya-log-common = { version = "0.1.15", default-features = false }
 aya-log-ebpf = { version = "0.1.1", default-features = false }
 ebpf-types = { path = "../ebpf-types" }
 relocation-helpers = { path = "../ebpf-relocation-helpers", package = "ebpf-relocation-helpers" }
+syscall-numbers = "4.0.1"
 
 [build-dependencies]
 bindgen = { version = "0.71.1", default-features = false, features = ["runtime"] }

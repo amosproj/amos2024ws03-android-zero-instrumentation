@@ -4,9 +4,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-use bytemuck::{AnyBitPattern, CheckedBitPattern};
+use bytemuck::{AnyBitPattern, CheckedBitPattern, Zeroable};
 
-#[derive(Debug, Clone, Copy, AnyBitPattern)]
+#[derive(Debug, Clone, Copy, Default, AnyBitPattern)]
 #[repr(C)]
 pub struct TaskContext {
     /// PID in userspace
@@ -17,17 +17,6 @@ pub struct TaskContext {
     pub ppid: u32,
     /// comm
     pub comm: [u8; 16],
-}
-
-impl Default for TaskContext {
-    fn default() -> Self {
-        Self {
-            pid: 0,
-            tid: 0,
-            ppid: 0,
-            comm: [0; 16],
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
@@ -58,30 +47,66 @@ pub struct EventContext {
     pub timestamp: u64,
 }
 
-#[derive(Debug, Clone, Copy, CheckedBitPattern)]
-#[repr(C, align(8))]
-pub struct Event {
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct Event<T> {
     pub context: EventContext,
     pub kind: EventKind,
+    pub data: T
+}
+
+#[derive(Clone, Copy)]
+pub struct EventBits<T: CheckedBitPattern> {
+    context: <EventContext as CheckedBitPattern>::Bits,
+    kind: <EventKind as CheckedBitPattern>::Bits,
+    data: <T as CheckedBitPattern>::Bits,
+}
+unsafe impl<T: CheckedBitPattern + 'static> Zeroable for EventBits<T> {}
+unsafe impl<T: CheckedBitPattern + 'static> AnyBitPattern for EventBits<T> {}
+
+unsafe impl<T: CheckedBitPattern + 'static> CheckedBitPattern for Event<T> {
+    type Bits = EventBits<T>;
+
+    fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
+        EventContext::is_valid_bit_pattern(&bits.context) 
+            && EventKind::is_valid_bit_pattern(&bits.kind)
+            && T::is_valid_bit_pattern(&bits.data)
+    }
 }
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]
-#[repr(C)]
+#[repr(u8)]
 pub enum EventKind {
-    VfsWrite(VfsWrite),
-    SendMsg(SendMsg),
-    Jni(Jni),
-    SigQuit(SigQuit),
-    GarbaceCollect(GarbageCollect),
-    FileOp(FileDescriptorOp),    
+    Write,
+    SendMsg,
+    Jni,
+    SigQuit,
+    GarbaceCollect,
+    FileOp,
 }
 
 
-#[derive(Debug, Clone, Copy, AnyBitPattern)]
+#[derive(Debug, Clone, Copy, CheckedBitPattern)]
 #[repr(C)]
-pub struct VfsWrite {
+pub struct Write {
     pub bytes_written: u64,
+    pub file_path: [u8; 4096],
+    pub source: WriteSource
 }
+
+#[derive(Debug, Clone, Copy, CheckedBitPattern)]
+#[repr(u8)]
+pub enum WriteSource {
+    /// Corresponds to `write` syscall
+    Write,
+    /// Corresponds to `pwrite64` syscall
+    WriteV,
+    /// Corresponds to `pwritev` syscall
+    Write64,
+    /// Corresponds to `pwritev2` syscall
+    WriteV2,
+}
+
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]

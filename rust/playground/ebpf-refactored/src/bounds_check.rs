@@ -1,8 +1,9 @@
+
 pub trait EbpfBoundsCheck {
     /// # SAFETY
     ///
     /// Bound must be a power of two
-    unsafe fn bounded(self, bound: usize) -> Option<Self>
+    unsafe fn bounded<const N: usize>(self) -> Option<Self>
     where
         Self: Sized;
 }
@@ -10,12 +11,12 @@ pub trait EbpfBoundsCheck {
 #[cfg(feature = "bounds-check")]
 impl EbpfBoundsCheck for usize {
     #[inline(always)]
-    unsafe fn bounded(self, bound: usize) -> Option<Self> {
-        let this = self & ((bound << 1) - 1);
-        if this & bound != 0 {
+    unsafe fn bounded<const N: usize>(self) -> Option<Self> {
+        let this = self & ((N << 1) - 1);
+        if this & N != 0 {
             return None;
         } else {
-            return Some(this & (bound - 1));
+            return Some(this & (N - 1));
         }
     }
 }
@@ -23,7 +24,7 @@ impl EbpfBoundsCheck for usize {
 #[cfg(not(feature = "bounds-check"))]
 impl EbpfBoundsCheck for usize {
     #[inline(always)]
-    unsafe fn bounded(self, bound: usize) -> Option<Self> {
-        Some(self & (bound - 1))
+    unsafe fn bounded<const N: usize>(self) -> Option<Self> {
+        Some(self & (N - 1))
     }
 }

@@ -4,7 +4,9 @@
 
 use std::{
     env::current_exe,
-    fs, io,
+    ffi::CStr,
+    fs::{self},
+    io,
     mem::{self},
     os::{
         fd::{AsFd, AsRawFd},
@@ -18,6 +20,7 @@ use aya::{
     programs::RawTracePoint,
     Ebpf, EbpfLoader,
 };
+use aya_ebpf::bindings::pt_regs;
 use aya_log::EbpfLogger;
 use aya_obj::generated::{bpf_attr, bpf_cmd::BPF_PROG_TEST_RUN};
 use bytemuck::checked;
@@ -86,26 +89,26 @@ async fn prog_test_example() {
 }
 
 #[test_log::test(tokio::test)]
-async fn test_vfs_write() {
+async fn test_write() {
     let mut ebpf = setup();
 
-    let prog: &mut RawTracePoint = ebpf
-        .program_mut("vfs_write_test")
-        .unwrap()
-        .try_into()
-        .unwrap();
+    let prog: &mut RawTracePoint = ebpf.program_mut("write_test").unwrap().try_into().unwrap();
 
     prog.load().unwrap();
 
     let fd = prog.fd().unwrap().as_fd().as_raw_fd();
 
     let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+    let mut regs = unsafe { mem::zeroed::<pt_regs>() };
 
-    let args = [0u64, 0, 66, 0];
+    regs.rdi = fd as u64; // fd
+    regs.rdx = 66; // bytes written
+
+    let args = [&raw mut regs as u64, 1];
 
     attr.test.prog_fd = fd as u32;
     attr.test.ctx_in = args.as_ptr() as u64;
-    attr.test.ctx_size_in = 4 * 8;
+    attr.test.ctx_size_in = 2 * 8;
 
     let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
 
@@ -115,14 +118,17 @@ async fn test_vfs_write() {
 
     let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
     let event = events.next().unwrap();
-    let event = checked::from_bytes::<Event>(&*event);
+    let event = checked::from_bytes::<Event<ebpf_types::Write>>(&*event);
 
-    let kind = match event.kind {
-        EventKind::VfsWrite(kind) => kind,
-        _ => panic!("Expected VfsWrite"),
-    };
+    if !matches!(event.kind, EventKind::Write) {
+        panic!("Expected Write");
+    }
 
-    assert_eq!(kind.bytes_written, 66);
+    let file_path = CStr::from_bytes_until_nul(&event.data.file_path[..]).unwrap();
+    let file_path = file_path.to_str().unwrap();
+
+    assert_eq!(event.data.bytes_written, 66);
+    assert_eq!(file_path, "bpf-prog");
 }
 
 #[test_log::test(tokio::test)]
