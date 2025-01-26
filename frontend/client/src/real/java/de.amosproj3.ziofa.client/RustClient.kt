@@ -19,8 +19,10 @@ import uniffi.shared.EventType
 import uniffi.shared.JniMethodName
 import uniffi.shared.SysFdAction
 
-// TODO: remove this hack
+// TODO: remove these hacks :(
 var gcPids = setOf<UInt>()
+var jniPids = listOf<UInt>()
+var fdOpenPids = listOf<UInt>()
 
 private fun uniffi.shared.Process.into() =
     Process(
@@ -28,11 +30,11 @@ private fun uniffi.shared.Process.into() =
         ppid,
         state,
         cmd =
-            when (val c = cmd) {
-                is Cmd.Comm -> Command.Comm(c.v1)
-                is Cmd.Cmdline -> Command.Cmdline(c.v1.args)
-                null -> null
-            },
+        when (val c = cmd) {
+            is Cmd.Comm -> Command.Comm(c.v1)
+            is Cmd.Cmdline -> Command.Cmdline(c.v1.args)
+            null -> null
+        },
     )
 
 private fun uniffi.shared.Event.into() =
@@ -63,20 +65,21 @@ private fun uniffi.shared.Event.into() =
                         tid = d.v1.tid,
                         beginTimeStamp = d.v1.beginTimeStamp,
                         jniMethodName =
-                            when (jniMethodNameFromI32(d.v1.jniMethodName)) {
-                                JniMethodName.ADD_LOCAL_REF ->
-                                    Event.JniReferences.JniMethodName.AddLocalRef
-                                JniMethodName.DELETE_LOCAL_REF ->
-                                    Event.JniReferences.JniMethodName.DeleteLocalRef
+                        when (jniMethodNameFromI32(d.v1.jniMethodName)) {
+                            JniMethodName.ADD_LOCAL_REF ->
+                                Event.JniReferences.JniMethodName.AddLocalRef
 
-                                JniMethodName.ADD_GLOBAL_REF ->
-                                    Event.JniReferences.JniMethodName.AddGlobalRef
+                            JniMethodName.DELETE_LOCAL_REF ->
+                                Event.JniReferences.JniMethodName.DeleteLocalRef
 
-                                JniMethodName.DELETE_GLOBAL_REF ->
-                                    Event.JniReferences.JniMethodName.DeleteGlobalRef
+                            JniMethodName.ADD_GLOBAL_REF ->
+                                Event.JniReferences.JniMethodName.AddGlobalRef
 
-                                JniMethodName.UNDEFINED -> null
-                            },
+                            JniMethodName.DELETE_GLOBAL_REF ->
+                                Event.JniReferences.JniMethodName.DeleteGlobalRef
+
+                            JniMethodName.UNDEFINED -> null
+                        },
                     )
 
                 is EventData.SysSigquit ->
@@ -109,36 +112,38 @@ private fun uniffi.shared.Event.into() =
                         tid = d.v1.tid,
                         timeStamp = d.v1.timeStamp,
                         fdAction =
-                            when (sysFdActionFromI32(d.v1.fdAction)) {
-                                SysFdAction.CREATED -> Event.SysFdTracking.SysFdAction.Created
-                                SysFdAction.DESTROYED -> Event.SysFdTracking.SysFdAction.Destroyed
-                                SysFdAction.UNDEFINED -> null
-                            },
+                        when (sysFdActionFromI32(d.v1.fdAction)) {
+                            SysFdAction.CREATED -> Event.SysFdTracking.SysFdAction.Created
+                            SysFdAction.DESTROYED -> Event.SysFdTracking.SysFdAction.Destroyed
+                            SysFdAction.UNDEFINED -> null
+                        },
                     )
 
                 null -> null
             }
+
         is EventType.TimeSeries -> null
         null -> null
     }
 
+//TODO remove these awful hacks
 private fun uniffi.shared.Configuration.into() =
     Configuration(
         vfsWrite = vfsWrite?.let { VfsWriteConfig(entries = it.entries) },
         sysSendmsg = sysSendmsg?.let { SysSendmsgConfig(entries = it.entries) },
         uprobes =
-            uprobes.map {
-                UprobeConfig(
-                    fnName = it.fnName,
-                    offset = it.offset,
-                    target = it.target,
-                    pid = it.pid,
-                )
-            },
-        jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
+        uprobes.map {
+            UprobeConfig(
+                fnName = it.fnName,
+                offset = it.offset,
+                target = it.target,
+                pid = it.pid,
+            )
+        },
+        jniReferences = JniReferencesConfig(jniPids) ,
         sysSigquit = sysSigquit?.let { SysSigquitConfig(pids = it.pids) },
-        gc = gc?.let { GcConfig(de.amosproj3.ziofa.client.gcPids) },
-        sysFdTracking = sysFdTracking?.let { SysFdTrackingConfig(pids = it.pids) },
+        gc = gc?.let { GcConfig(gcPids) },
+        sysFdTracking = SysFdTrackingConfig(fdOpenPids) ,
     )
 
 private fun Configuration.into() =
@@ -146,22 +151,28 @@ private fun Configuration.into() =
         vfsWrite = vfsWrite?.let { uniffi.shared.VfsWriteConfig(it.entries) },
         sysSendmsg = sysSendmsg?.let { uniffi.shared.SysSendmsgConfig(it.entries) },
         uprobes =
-            uprobes.map {
-                uniffi.shared.UprobeConfig(
-                    fnName = it.fnName,
-                    offset = it.offset,
-                    target = it.target,
-                    pid = it.pid,
-                )
-            },
-        jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
+        uprobes.map {
+            uniffi.shared.UprobeConfig(
+                fnName = it.fnName,
+                offset = it.offset,
+                target = it.target,
+                pid = it.pid,
+            )
+        },
+        jniReferences = jniReferences?.let {
+            jniPids = it.pids
+            null
+        },
         sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
         gc =
-            gc?.let {
-                de.amosproj3.ziofa.client.gcPids = it.pids
-                uniffi.shared.GcConfig()
-            },
-        sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
+        gc?.let {
+            gcPids = it.pids
+            uniffi.shared.GcConfig()
+        },
+        sysFdTracking = sysFdTracking?.let {
+            fdOpenPids = it.pids
+            null
+        }
     )
 
 private fun uniffi.shared.StringResponse.into() = StringResponse(name)

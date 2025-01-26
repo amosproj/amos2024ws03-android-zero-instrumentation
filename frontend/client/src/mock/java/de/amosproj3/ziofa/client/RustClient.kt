@@ -6,36 +6,31 @@
 
 package de.amosproj3.ziofa.client
 
+import android.os.SystemClock
 import kotlin.random.Random
 import kotlin.random.nextUInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.merge
+import kotlin.random.nextULong
 
 var gcPids = setOf<UInt>()
-
-const val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 object RustClient : Client {
     private var configuration: Configuration =
         Configuration(
-            vfsWrite = VfsWriteConfig(mapOf(1u to 1u, 43124u to 20000u)),
-            sysSendmsg = SysSendmsgConfig(mapOf(1234u to 30000u, 43124u to 20000u)),
+            vfsWrite = null,
+            sysSendmsg = null,
             uprobes = listOf(),
-            jniReferences = JniReferencesConfig(pids = listOf(1u)),
-            sysSigquit = SysSigquitConfig(pids = listOf()),
-            gc = GcConfig(pids = gcPids),
-            sysFdTracking = SysFdTrackingConfig(pids = listOf()),
+            jniReferences = null,
+            sysSigquit = null,
+            gc = null,
+            sysFdTracking = null
         )
 
-    override suspend fun serverCount(): Flow<UInt> = flow {
-        var ctr = 0u
-        while (true) {
-            delay(Random.nextUInt(500u).toLong())
-            ctr++
-            emit(ctr)
-        }
-    }
+    override suspend fun serverCount(): Flow<UInt> = flowOf()
 
     override suspend fun load() {
         // NOP
@@ -71,16 +66,7 @@ object RustClient : Client {
     }
 
     private val processes =
-        alphabet.indices
-            .map {
-                Process(
-                    pid = Random.nextUInt(1000u),
-                    ppid = Random.nextUInt(1000u),
-                    state = "R",
-                    cmd = Command.Comm("/bin/sh/${alphabet.substring(it, it + 1)}"),
-                )
-            }
-            .plus(Process(pid = 1u, ppid = 1u, state = "R", cmd = Command.Comm("/bin/ziofatest")))
+        processesList
 
     override suspend fun listProcesses(): List<Process> {
         return processes
@@ -94,138 +80,111 @@ object RustClient : Client {
         this.configuration = configuration
     }
 
-    override suspend fun initStream(): Flow<Event> = flow {
-        while (true) {
-            delay(Random.nextUInt(2000u).toLong())
+    override suspend fun initStream(): Flow<Event> = merge(
+        vfsWriteMockEvents(500),
+        sendMsgMockEvents(500),
+        jniReferencesMockEvents(700),
+        sysSigQuitMockEvents(3000),
+        sysFdTrackingMockEvents(1000)
+    )
 
+    private fun vfsWriteMockEvents(emissionDelayBoundMillis: Int) = flow {
+        while (true) {
             configuration.vfsWrite?.entries?.keys?.forEach {
                 emit(
                     Event.VfsWrite(
                         pid = it,
-                        tid = 1234u,
-                        fp = 125123123u,
-                        bytesWritten = 123121u,
-                        beginTimeStamp = 12312412u,
+                        tid = it + 1u,
+                        fp = listOf(0uL, 1uL, 2uL, 3uL).random(),
+                        bytesWritten = listOf(8uL, 16uL, 32uL, 64uL).random(),
+                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong()
                     )
                 )
             }
+            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
+        }
+    }
+
+    private fun sendMsgMockEvents(emissionDelayBoundMillis: Int) = flow {
+
+        while (true) {
             configuration.sysSendmsg?.entries?.keys?.forEach {
                 emit(
                     Event.SysSendmsg(
                         pid = it,
-                        tid = 1234u,
-                        fd = 125123123u,
-                        durationNanoSecs =
-                            (System.currentTimeMillis() + Random.nextLong(1000)).toULong(),
-                        beginTimeStamp = System.currentTimeMillis().toULong(),
+                        tid = it + 1u,
+                        fd = listOf(0uL, 1uL, 2uL, 3uL).random(),
+                        durationNanoSecs = 1000000u + Random.nextULong(4000000u),
+                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
                     )
                 )
             }
+            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
+        }
+    }
+
+    private fun jniReferencesMockEvents(emissionDelayBoundMillis: Int) = flow {
+        while (true) {
             configuration.jniReferences?.pids?.forEach {
                 val rnd = Random.nextFloat()
-                if (rnd > 0.33f) {
-                    emit(
-                        Event.JniReferences(
-                            pid = it,
-                            tid = 1234u,
-                            beginTimeStamp = System.currentTimeMillis().toULong(),
-                            jniMethodName = Event.JniReferences.JniMethodName.AddGlobalRef,
-                        )
+                val jniMethodName =
+                    if (rnd > 0.33f) Event.JniReferences.JniMethodName.AddGlobalRef
+                    else Event.JniReferences.JniMethodName.DeleteGlobalRef
+                emit(
+                    Event.JniReferences(
+                        pid = it,
+                        tid = it + 1u,
+                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        jniMethodName = jniMethodName
                     )
-                } else {
-                    emit(
-                        Event.JniReferences(
-                            pid = it,
-                            tid = 1234u,
-                            beginTimeStamp = System.currentTimeMillis().toULong(),
-                            jniMethodName = Event.JniReferences.JniMethodName.DeleteLocalRef,
-                        )
-                    )
-                }
+                )
             }
+            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
+        }
+    }
+
+    private fun sysSigQuitMockEvents(emissionDelayBoundMillis: Int) = flow {
+        while (true) {
             configuration.sysSigquit?.pids?.forEach {
                 emit(
                     Event.SysSigquit(
                         pid = it,
-                        tid = 1234u,
-                        timeStamp = 12312412u,
-                        targetPid = 12874u,
+                        tid = it + 1u,
+                        timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        targetPid = it.toULong(),
                     )
                 )
             }
-            configuration.sysFdTracking?.pids?.forEach {
-                emit(
-                    Event.SysFdTracking(
-                        pid = it,
-                        tid = 1234u,
-                        timeStamp = 12312412u,
-                        fdAction = Event.SysFdTracking.SysFdAction.Created,
-                    )
-                )
-            }
+            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
     }
 
-    override suspend fun getOdexFiles(pid: UInt): Flow<String> = flow {
-        emit("/system/framework/oat/x86_64/android.test.base.odex")
-        emit("/system/framework/oat/x86_64/android.hidl.base-V1.0-java.odex")
-        emit("/system/framework/oat/x86_64/org.apache.http.legacy.odex")
-        emit("/system/framework/oat/x86_64/android.hidl.manager-V1.0-java.odex")
-        emit("/system_ext/framework/oat/x86_64/androidx.window.sidecar.odex")
-        emit(
-            "/data/app/~~0cD8TtY5ggbzXOrlKANgwQ==/de.amosproj3.ziofa-Sm8ZemAtgxCr5VAK1Cwi8Q==/oat/x86_64/base.odex"
-        )
-
-        emit("/system_ext/framework/oat/x86_64/androidx.window.extensions.odex")
+    private fun sysFdTrackingMockEvents(emissionDelayBoundMillis: Int) = flow {
+        while (true) {
+            configuration.sysFdTracking?.pids?.forEach {
+                val rnd = Random.nextFloat()
+                val syFdMethod =
+                    if (rnd > 0.33f) Event.SysFdTracking.SysFdAction.Created
+                    else Event.SysFdTracking.SysFdAction.Destroyed
+                emit(
+                    Event.SysFdTracking(
+                        pid = it,
+                        tid = it + 1u,
+                        timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        fdAction = syFdMethod,
+                    )
+                )
+            }
+            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
+        }
     }
 
-    override suspend fun getSoFiles(pid: UInt): Flow<String> = flow {
-        emit("/system/lib64/liblog.so")
-        emit("/vendor/lib64/libdrm.so")
-        emit("/vendor/lib64/android.hardware.graphics.mapper@3.0.so")
-        emit("/system/lib64/android.hardware.power-V5-ndk.so")
-        emit("/system/lib64/android.hardware.graphics.mapper@2.0.so")
-        emit("/system/lib64/android.hardware.media.c2@1.2.so")
 
-        emit("/system/lib64/android.hardware.renderscript@1.0.so")
-    }
+    override suspend fun getOdexFiles(pid: UInt): Flow<String> = mockOdexFileFlow
 
-    override suspend fun getSymbols(filePath: String): Flow<Symbol> = flow {
-        emit(
-            Symbol(
-                method =
-                    "void androidx.compose.material3.SearchBarDefaults\$InputField\$1\$1.<init>(kotlin.jvm.functions.Function1)",
-                offset = 6012800u,
-            )
-        )
-        emit(
-            Symbol(
-                method =
-                    "void kotlin.collections.ArraysKt___ArraysKt\$asSequence\$\$inlined\$Sequence\$2.<init>(byte[])",
-                offset = 5915712u,
-            )
-        )
-        emit(
-            Symbol(
-                method =
-                    "boolean androidx.compose.ui.platform.ViewLayer\$Companion.getHasRetrievedMethod()",
-                offset = 24010112u,
-            )
-        )
-        emit(
-            Symbol(
-                method =
-                    "androidx.core.app.NotificationCompat\$BubbleMetadata androidx.core.app.NotificationCompat\$BubbleMetadata\$Api29Impl.fromPlatform(android.app.Notification\$BubbleMetadata)",
-                offset = 25453376u,
-            )
-        )
-        emit(
-            Symbol(
-                method = "byte androidx.emoji2.text.flatbuffer.FlexBuffers\$Blob.get(int)",
-                offset = 26906336u,
-            )
-        )
-    }
+    override suspend fun getSoFiles(pid: UInt): Flow<String> = mockSoFileFlow
+
+    override suspend fun getSymbols(filePath: String): Flow<Symbol> = mockSymbolFlow
 }
 
 class RustClientFactory(val url: String) : ClientFactory {
