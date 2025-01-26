@@ -51,23 +51,25 @@ fun ProcessesScreen(
             )
             ProcessesHeader()
             when (val state = processesListState) {
-                is ProcessesListState.Loading -> Box(modifier.fillMaxSize()) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-
-                is ProcessesListState.NoResults -> Box(modifier.fillMaxSize()) {
-                    Text(text = "No processes found.", modifier = Modifier.align(Alignment.Center))
-                }
-
-                is ProcessesListState.Valid -> LazyColumn(
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .fillMaxSize()
-                ) {
-                    items(state.list) { option ->
-                        ProcessListRow(option = option, onClickEdit = onClickEdit)
+                is ProcessesListState.Loading ->
+                    Box(modifier.fillMaxSize()) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
-                }
+
+                is ProcessesListState.NoResults ->
+                    Box(modifier.fillMaxSize()) {
+                        Text(
+                            text = "No processes found.",
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+
+                is ProcessesListState.Valid ->
+                    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
+                        items(state.list) { option ->
+                            ProcessListRow(option = option, onClickEdit = onClickEdit)
+                        }
+                    }
             }
         }
     }
@@ -80,9 +82,7 @@ fun ProcessListRow(
     onClickEdit: (RunningComponent) -> Unit = {},
 ) {
     Row(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(vertical = 10.dp),
+        modifier = modifier.fillMaxSize().padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {

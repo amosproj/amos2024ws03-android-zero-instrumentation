@@ -17,9 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.cache
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -38,11 +36,13 @@ class RunningComponentsProvider(
     private var client: Client? = null
 
     override val runningComponentsList =
-        processesList.groupByProcessName().splitIntoAppsAndStandaloneProcesses()
+        processesList
+            .groupByProcessName()
+            .splitIntoAppsAndStandaloneProcesses()
             .stateIn(
                 scope = coroutineScope,
                 started = SharingStarted.Lazily,
-                initialValue = listOf()
+                initialValue = listOf(),
             )
 
     init {
@@ -63,8 +63,11 @@ class RunningComponentsProvider(
     private suspend fun startPollingProcessList() {
         while (true) {
             delay(PROCESS_LIST_REFRESH_INTERVAL_MS)
-            client?.let { client -> processesList.update { client.listProcesses() } }
-                ?: processesList.update { listOf() }.also { Timber.w("Client not ready!") }
+            client?.let { client ->
+                processesList.update {
+                    client.listProcesses()
+                }
+            } ?: processesList.update { listOf() }.also { Timber.w("Client not ready!") }
         }
     }
 

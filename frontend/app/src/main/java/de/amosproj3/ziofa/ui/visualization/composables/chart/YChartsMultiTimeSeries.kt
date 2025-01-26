@@ -1,11 +1,20 @@
 package de.amosproj3.ziofa.ui.visualization.composables.chart
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import co.yml.charts.axis.AxisData
@@ -18,7 +27,6 @@ import co.yml.charts.ui.linechart.model.LineChartData
 import co.yml.charts.ui.linechart.model.LinePlotData
 import co.yml.charts.ui.linechart.model.LineStyle
 import co.yml.charts.ui.linechart.model.SelectionHighlightPoint
-import co.yml.charts.ui.linechart.model.SelectionHighlightPopUp
 import co.yml.charts.ui.linechart.model.ShadowUnderLine
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.bytesToHumanReadableSize
@@ -43,17 +51,33 @@ fun YChartsMultiTimeSeries(
     modifier: Modifier = Modifier,
     overlayMode: Boolean = false,
 ) {
-    Column(
-        modifier.padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
+    Column(modifier.padding(20.dp), verticalArrangement = Arrangement.Center) {
         if (seriesData.isNotEmpty()) {
-            Chart(
-                seriesData = seriesData.clip(overlayMode),
-                chartMetadata = chartMetadata,
-                overlayMode = overlayMode,
-            )
+            Box(Modifier.fillMaxSize()) {
+                Chart(
+                    seriesData = seriesData.clip(overlayMode),
+                    chartMetadata = chartMetadata,
+                    overlayMode = overlayMode,
+                )
+                Row(
+                    Modifier.align(Alignment.TopEnd).padding(end = 50.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "◼",
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(horizontal = 5.dp),
+                    )
+                    Text("Used heap size")
+                    Spacer(Modifier.width(20.dp))
+                    Text(
+                        "◼",
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 5.dp),
+                    )
+                    Text("Total heap size")
+                }
+            }
         } else WaitingForDataHint()
     }
 }
@@ -108,6 +132,7 @@ private fun buildXAxis(xLabels: List<String>, overlayMode: Boolean) =
         .labelAndAxisLinePadding(20.dp)
         .build()
 
+@Composable
 private fun createLineChartData(
     line1Points: List<Point>,
     line2Points: List<Point>,
@@ -118,19 +143,23 @@ private fun createLineChartData(
             listOf(
                 Line(
                     dataPoints = line2Points,
-                    LineStyle(width = if (overlayMode) LINE_WIDTH_OVERLAY else LINE_WIDTH),
+                    LineStyle(
+                        width = if (overlayMode) LINE_WIDTH_OVERLAY else LINE_WIDTH,
+                        color = MaterialTheme.colorScheme.primary,
+                    ),
                     IntersectionPoint(),
                     SelectionHighlightPoint(),
-                    ShadowUnderLine(),
-                    SelectionHighlightPopUp(),
+                    ShadowUnderLine(color = MaterialTheme.colorScheme.primary),
                 ),
                 Line(
                     dataPoints = line1Points,
-                    LineStyle(width = if (overlayMode) LINE_WIDTH_OVERLAY else LINE_WIDTH),
+                    LineStyle(
+                        width = if (overlayMode) LINE_WIDTH_OVERLAY else LINE_WIDTH,
+                        color = MaterialTheme.colorScheme.secondary,
+                    ),
                     IntersectionPoint(radius = if (overlayMode) POINT_SIZE_OVERLAY else POINT_SIZE),
                     SelectionHighlightPoint(),
-                    ShadowUnderLine(),
-                    SelectionHighlightPopUp(),
+                    ShadowUnderLine(color = MaterialTheme.colorScheme.secondary),
                 ),
             )
     )

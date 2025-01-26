@@ -31,35 +31,35 @@ class UProbeManager(private val clientFactory: ClientFactory) : SymbolsAccess {
         searchQuery: String,
     ): Flow<GetSymbolsRequestState> =
         flow {
-            emit(GetSymbolsRequestState.Loading)
-            try {
-                val client = clientFactory.connect()
-                val symbols =
-                    pids
-                        .map { pid ->
-                            client
-                                .getOdexFiles(pid)
-                                .onEach { Timber.i("Requesting symbols for odex file $it") }
-                                .flatMapMerge { odexFile ->
-                                    client
-                                        .getSymbols(filePath = odexFile)
-                                        .filter {
-                                            it.method
-                                                .lowercase()
-                                                .contains(searchQuery.lowercase())
-                                        }
-                                        .map { symbol ->
-                                            SymbolsEntry(symbol.method, odexFile, symbol.offset)
-                                        }
-                                }
-                        }
-                        .merge()
-                        .toList()
-                emit(GetSymbolsRequestState.Response(symbols))
-            } catch (e: Exception) {
-                emit(GetSymbolsRequestState.Error(e.stackTraceToString()))
+                emit(GetSymbolsRequestState.Loading)
+                try {
+                    val client = clientFactory.connect()
+                    val symbols =
+                        pids
+                            .map { pid ->
+                                client
+                                    .getOdexFiles(pid)
+                                    .onEach { Timber.i("Requesting symbols for odex file $it") }
+                                    .flatMapMerge { odexFile ->
+                                        client
+                                            .getSymbols(filePath = odexFile)
+                                            .filter {
+                                                it.method
+                                                    .lowercase()
+                                                    .contains(searchQuery.lowercase())
+                                            }
+                                            .map { symbol ->
+                                                SymbolsEntry(symbol.method, odexFile, symbol.offset)
+                                            }
+                                    }
+                            }
+                            .merge()
+                            .toList()
+                    emit(GetSymbolsRequestState.Response(symbols))
+                } catch (e: Exception) {
+                    emit(GetSymbolsRequestState.Error(e.stackTraceToString()))
+                }
             }
-        }
             .onStart { Timber.i("searchSymbols pids=$pids searchQuery=$searchQuery") }
             .flowOn(Dispatchers.IO)
 }

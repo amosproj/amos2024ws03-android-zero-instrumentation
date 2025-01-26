@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -43,34 +42,32 @@ fun ProcessesSearchBar(
     ) {
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChanged,
-            modifier = Modifier
-                .weight(8f)
-                .background(Color.White),
-            keyboardOptions = KeyboardOptions.Default.copy(
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(onDone = {
-                keyboardController?.hide()
-                onStartSearch(value)
-            }),
+            onValueChange = {
+                if (it.lastOrNull() == '\n') {
+                    keyboardController?.hide()
+                    onStartSearch(value)
+                } else {
+                    onValueChanged(it)
+                }
+            },
+            modifier = Modifier.weight(8f).background(Color.White),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            keyboardActions =
+                KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        onStartSearch(value)
+                    }
+                ),
             placeholder = { Text("Search for processes and apps ... ") },
         )
         Icon(
             imageVector = Icons.Filled.Search,
             contentDescription = "",
             modifier =
-            Modifier
-                .weight(1f)
-                .padding(10.dp)
-                .size(20.dp)
-                .clickable { onStartSearch(value) },
+                Modifier.weight(1f).padding(10.dp).size(20.dp).clickable { onStartSearch(value) },
             tint = Color.White,
         )
     }
-    HorizontalDivider(
-        Modifier
-            .height(15.dp)
-            .background(MaterialTheme.colorScheme.primary)
-    )
+    HorizontalDivider(Modifier.height(15.dp).background(MaterialTheme.colorScheme.primary))
 }

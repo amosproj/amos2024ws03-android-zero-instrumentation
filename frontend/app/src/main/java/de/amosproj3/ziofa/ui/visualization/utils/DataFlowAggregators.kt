@@ -19,8 +19,17 @@ import kotlinx.coroutines.flow.map
 fun Flow<Event.VfsWrite>.toBucketedHistogram(
     chartMetadata: ChartMetadata,
     timeframe: DropdownOption.Timeframe,
+) = this.toBucketedData(timeframe.amount.toDuration(timeframe.unit).inWholeNanoseconds.toULong())
+
+// .sortAndClip(HISTOGRAM_BUCKETS)
+// .map { GraphedData.HistogramData(it.toImmutableList(), chartMetadata) }
+
+fun Flow<Event.VfsWrite>.toBucketedHistogram2(
+    chartMetadata: ChartMetadata,
+    timeframe: DropdownOption.Timeframe,
 ) =
-    this.toBucketedData(timeframe.amount.toDuration(timeframe.unit).inWholeMilliseconds.toULong())
+    this.emitTimeframeLists(timeframe.toMillis())
+        .averagesPerFd()
         .sortAndClip(HISTOGRAM_BUCKETS)
         .map { GraphedData.HistogramData(it.toImmutableList(), chartMetadata) }
 
@@ -29,17 +38,19 @@ fun Flow<Event.SysSendmsg>.toMovingAverage(
     timeframe: DropdownOption.Timeframe,
 ) =
     this.toAveragedDurationOverTimeframe(
-        TIME_SERIES_SIZE,
-        timeframe.amount.toDuration(timeframe.unit).inWholeMilliseconds,
-    )
+            TIME_SERIES_SIZE,
+            timeframe.amount.toDuration(timeframe.unit).inWholeMilliseconds,
+        )
         .map { GraphedData.TimeSeriesData(it.toImmutableList(), chartMetadata) }
 
 fun Flow<Event.JniReferences>.toCombinedReferenceCount(
     chartMetadata: ChartMetadata,
     timeframe: DropdownOption.Timeframe,
 ) =
-    this.toReferenceCount().emitLastValueOfTimeframe(timeframe.toMillis())
-        .toTimestampedSeries(TIME_SERIES_SIZE, timeframe.amount.toFloat()).map {
+    this.toReferenceCount()
+        .emitLastValueOfTimeframe(timeframe.toMillis())
+        .toTimestampedSeries(TIME_SERIES_SIZE, timeframe.amount.toFloat())
+        .map {
             GraphedData.TimeSeriesData(seriesData = it.toImmutableList(), metaData = chartMetadata)
         }
 
@@ -48,6 +59,7 @@ fun Flow<Event.SysFdTracking>.toFileDescriptorCountData(
     timeframe: DropdownOption.Timeframe,
 ) =
     this.countFileDescriptors()
+        .emitLastValueOfTimeframe(timeframe.toMillis())
         .toTimestampedSeries(TIME_SERIES_SIZE, timeframe.amount.toFloat())
         .map {
             GraphedData.TimeSeriesData(seriesData = it.toImmutableList(), metaData = chartMetadata)

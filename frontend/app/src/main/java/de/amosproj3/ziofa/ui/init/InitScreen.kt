@@ -33,8 +33,8 @@ import de.amosproj3.ziofa.ui.init.data.InitState
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * Screen displayed on startup.
- * The loading screen could be displayed while indexing symbols in the future.
+ * Screen displayed on startup. The loading screen could be displayed while indexing symbols in the
+ * future.
  */
 @Composable
 fun InitScreen(

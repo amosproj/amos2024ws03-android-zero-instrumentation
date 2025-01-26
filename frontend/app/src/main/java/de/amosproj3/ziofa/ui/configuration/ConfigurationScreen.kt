@@ -45,9 +45,7 @@ fun ConfigurationScreen(
 
     val viewModel: ConfigurationViewModel = koinViewModel(parameters = { parametersOf(pids) })
 
-    Box(modifier = modifier
-        .padding(horizontal = 20.dp, vertical = 20.dp)
-        .fillMaxSize()) {
+    Box(modifier = modifier.padding(horizontal = 20.dp, vertical = 20.dp).fillMaxSize()) {
         val screenState by remember { viewModel.configurationScreenState }.collectAsState()
         val configurationChangedByUser by remember { viewModel.changed }.collectAsState()
         when (val state = screenState) { // needed for immutability
@@ -87,9 +85,9 @@ fun ConfigurationScreen(
                     item {
                         EbpfUprobeFeatureOptions(
                             options =
-                            state.options
-                                .mapNotNull { it as? BackendFeatureOptions.UprobeOption }
-                                .toImmutableList(),
+                                state.options
+                                    .mapNotNull { it as? BackendFeatureOptions.UprobeOption }
+                                    .toImmutableList(),
                             onOptionDeleted = { option ->
                                 viewModel.optionChanged(option, active = false)
                             },
@@ -110,7 +108,7 @@ fun ConfigurationScreen(
             is ConfigurationScreenState.Invalid -> {
                 ErrorScreen(
                     error = state.errorMessage,
-                    title = "Error while reading/writing configuration"
+                    title = "Error while reading/writing configuration",
                 )
             }
 

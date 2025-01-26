@@ -13,10 +13,10 @@ import de.amosproj3.ziofa.ui.visualization.data.EventListMetadata
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_CHART_METADATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_EVENT_LIST_METADATA
-import de.amosproj3.ziofa.ui.visualization.utils.emitLastValueOfTimeframe
+import de.amosproj3.ziofa.ui.visualization.utils.bytesToHumanReadableSize
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
 import de.amosproj3.ziofa.ui.visualization.utils.nanosToSeconds
-import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram
+import de.amosproj3.ziofa.ui.visualization.utils.toBucketedHistogram2
 import de.amosproj3.ziofa.ui.visualization.utils.toCombinedReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toEventList
 import de.amosproj3.ziofa.ui.visualization.utils.toFileDescriptorCountData
@@ -38,7 +38,7 @@ import timber.log.Timber
 fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
     return when (this.backendFeature) {
         is BackendFeatureOptions.VfsWriteOption ->
-            ChartMetadata(yLabel = "Top file descriptors", xLabel = "File Descriptor Name")
+            ChartMetadata(yLabel = "Sum of bytes written", xLabel = "File Descriptor Name")
 
         is BackendFeatureOptions.SendMessageOption ->
             ChartMetadata(yLabel = "Average duration of messages", xLabel = "Seconds since start")
@@ -46,8 +46,11 @@ fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
         is BackendFeatureOptions.JniReferencesOption ->
             ChartMetadata(
                 yLabel = "Number of JNI Indirect References",
-                xLabel = "Events since start",
+                xLabel = "Seconds since start",
             )
+
+        is BackendFeatureOptions.OpenFileDescriptors ->
+            ChartMetadata(yLabel = "# Open File Descriptors", xLabel = "Seconds since start")
 
         else -> {
             Timber.e("needs metadata!")
@@ -178,9 +181,9 @@ fun DataStreamProvider.getEventListData(
                 .map {
                     EventListEntry(
                         col1 = "${it.pid}",
-                        col2 = "${it.targetFootprint}",
-                        col3 = "${it.numBytesAllocated}",
-                        col4 = "${it.freedBytes}",
+                        col2 = "${bytesToHumanReadableSize(it.targetFootprint.toDouble())}",
+                        col3 = "${bytesToHumanReadableSize(it.numBytesAllocated.toDouble())}",
+                        col4 = "${bytesToHumanReadableSize(it.freedBytes.toDouble())}",
                     )
                 }
                 .toEventList()
@@ -217,7 +220,7 @@ fun DataStreamProvider.getChartData(
 
     return when (metric) {
         is BackendFeatureOptions.VfsWriteOption ->
-            this.vfsWriteEvents(pids = pids).toBucketedHistogram(chartMetadata, selectedTimeframe)
+            this.vfsWriteEvents(pids = pids).toBucketedHistogram2(chartMetadata, selectedTimeframe)
 
         is BackendFeatureOptions.SendMessageOption ->
             this.sendMessageEvents(pids = pids)
@@ -238,7 +241,6 @@ fun DataStreamProvider.getChartData(
         is BackendFeatureOptions.GcOption ->
             this.gcEvents(pids = pids)
                 .toMultiMemoryGraphData(selectedTimeframe.toMillis())
-                .emitLastValueOfTimeframe(selectedTimeframe.toMillis())
                 .toTimestampedMultiSeries(
                     15,
                     selectedTimeframe.amount

@@ -8,13 +8,12 @@ package de.amosproj3.ziofa.client
 
 import android.os.SystemClock
 import kotlin.random.Random
-import kotlin.random.nextUInt
+import kotlin.random.nextULong
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.merge
-import kotlin.random.nextULong
 
 var gcPids = setOf<UInt>()
 
@@ -27,7 +26,7 @@ object RustClient : Client {
             jniReferences = null,
             sysSigquit = null,
             gc = null,
-            sysFdTracking = null
+            sysFdTracking = null,
         )
 
     override suspend fun serverCount(): Flow<UInt> = flowOf()
@@ -65,8 +64,7 @@ object RustClient : Client {
         delay(2000)
     }
 
-    private val processes =
-        processesList
+    private val processes = processesList
 
     override suspend fun listProcesses(): List<Process> {
         return processes
@@ -80,13 +78,15 @@ object RustClient : Client {
         this.configuration = configuration
     }
 
-    override suspend fun initStream(): Flow<Event> = merge(
-        vfsWriteMockEvents(500),
-        sendMsgMockEvents(500),
-        jniReferencesMockEvents(700),
-        sysSigQuitMockEvents(3000),
-        sysFdTrackingMockEvents(1000)
-    )
+    override suspend fun initStream(): Flow<Event> =
+        merge(
+            vfsWriteMockEvents(500),
+            sendMsgMockEvents(500),
+            jniReferencesMockEvents(700),
+            sysSigQuitMockEvents(5000),
+            sysFdTrackingMockEvents(2500),
+            gcMockEvents(4000),
+        )
 
     private fun vfsWriteMockEvents(emissionDelayBoundMillis: Int) = flow {
         while (true) {
@@ -95,9 +95,9 @@ object RustClient : Client {
                     Event.VfsWrite(
                         pid = it,
                         tid = it + 1u,
-                        fp = listOf(0uL, 1uL, 2uL, 3uL).random(),
+                        fp = listOf(0uL, 1uL, 2uL, 3uL, 0uL, 0uL, 0uL).random(),
                         bytesWritten = listOf(8uL, 16uL, 32uL, 64uL).random(),
-                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong()
+                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
                     )
                 )
             }
@@ -106,15 +106,14 @@ object RustClient : Client {
     }
 
     private fun sendMsgMockEvents(emissionDelayBoundMillis: Int) = flow {
-
         while (true) {
             configuration.sysSendmsg?.entries?.keys?.forEach {
                 emit(
                     Event.SysSendmsg(
                         pid = it,
                         tid = it + 1u,
-                        fd = listOf(0uL, 1uL, 2uL, 3uL).random(),
-                        durationNanoSecs = 1000000u + Random.nextULong(4000000u),
+                        fd = listOf(3uL, 4uL, 5uL, 6uL, 6uL, 6uL).random(),
+                        durationNanoSecs = 10_000_000u + Random.nextULong(40_000_000u),
                         beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
                     )
                 )
@@ -135,7 +134,7 @@ object RustClient : Client {
                         pid = it,
                         tid = it + 1u,
                         beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
-                        jniMethodName = jniMethodName
+                        jniMethodName = jniMethodName,
                     )
                 )
             }
@@ -179,6 +178,36 @@ object RustClient : Client {
         }
     }
 
+    private fun gcMockEvents(emissionDelayBoundMillis: Int) = flow {
+        val prev = 5_054_000UL
+        while (true) {
+            configuration.gc?.pids?.forEach {
+                val diff = -1_000_000L + Random.nextLong(2_000_000L)
+                val newNumBytesAllocated = (prev.toLong() + diff).coerceAtLeast(0).toULong()
+                val diff2 = -500_000L + Random.nextLong(300_000)
+                val newTargetFootprint =
+                    (newNumBytesAllocated.toLong() * 2 + diff2).coerceAtLeast(0).toULong()
+                val bytesFreed = Random.nextLong(2_000_000L)
+                emit(
+                    Event.Gc(
+                        pid = it,
+                        tid = it + 1u,
+                        numBytesAllocated = newNumBytesAllocated,
+                        targetFootprint = newTargetFootprint,
+                        gcsCompleted = 0u,
+                        gcCause = 0u,
+                        durationNs = 0u,
+                        freedObjects = 0u,
+                        freedBytes = bytesFreed,
+                        freedLosObjects = 0u,
+                        freedLosBytes = 0,
+                        pauseTimes = listOf(),
+                    )
+                )
+            }
+            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
+        }
+    }
 
     override suspend fun getOdexFiles(pid: UInt): Flow<String> = mockOdexFileFlow
 

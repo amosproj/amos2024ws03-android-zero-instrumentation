@@ -41,7 +41,9 @@ class OverlayViewModel(
             .mapNotNull { it as? OverlayState.Enabled }
             .mapNotNull { it.selectionData }
             .flatMapLatest {
-                if (isValidSelection(it.selectedComponent, it.selectedMetric, it.selectedTimeframe)) {
+                if (
+                    isValidSelection(it.selectedComponent, it.selectedMetric, it.selectedTimeframe)
+                ) {
                     dataStreamProvider.getChartData(
                         it.selectedComponent,
                         it.selectedMetric,

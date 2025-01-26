@@ -44,7 +44,7 @@ fun MetricDropdown(
     Box(modifier = modifier) {
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
             TextField(
-                value = selectedOption?: "Please select ...",
+                value = selectedOption ?: "Please select ...",
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(title) },
