@@ -5,8 +5,8 @@
 use std::{env, path::PathBuf};
 
 pub fn main() {
-    println!("cargo::rerun-if-changed=src/c/relocation_helper.c");
-    println!("cargo::rerun-if-changed=src/c/relocation_helper.h");
+    println!("cargo::rerun-if-changed=src/c/relocation_helpers.c");
+    println!("cargo::rerun-if-changed=src/c/relocation_helpers.h");
 
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH")
         .expect("`CARGO_CFG_TARGET_ARCH` should be set in a buildscript");

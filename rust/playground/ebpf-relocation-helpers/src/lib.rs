@@ -338,9 +338,12 @@ gen_accessors!(mount => {
 });
 
 gen_accessors!(files_struct => {
+    plain count: atomic_t,
     wrapper fdt: Fdtable,
 });
 
 gen_accessors!(fdtable => {
+    plain max_fds: u32,
     no_read fd: *mut *mut *mut file,
+    plain open_fds: *mut u64,
 });

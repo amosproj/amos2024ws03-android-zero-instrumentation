@@ -71,10 +71,17 @@ struct mm_struct {
 };
 
 struct fdtable {
+	unsigned int max_fds;
 	struct file **fd;
+	long unsigned int *open_fds;
 };
 
+typedef struct {
+	int counter;
+} atomic_t;
+
 struct files_struct {
+	atomic_t count;
 	struct fdtable *fdt;
 };
 
@@ -208,9 +215,24 @@ inline struct fdtable **files_struct_fdt(struct files_struct *files)
 	return &files->fdt;
 }
 
+inline atomic_t *files_struct_count(struct files_struct *files)
+{
+	return &files->count;
+}
+
+inline unsigned int *fdtable_max_fds(struct fdtable *fdt)
+{
+	return &fdt->max_fds;
+}
+
 inline struct file ***fdtable_fd(struct fdtable *fdt)
 {
 	return &fdt->fd;
+}
+
+inline long unsigned int **fdtable_open_fds(struct fdtable *fdt)
+{
+	return &fdt->open_fds;
 }
 
 #if defined(__bpf__)
