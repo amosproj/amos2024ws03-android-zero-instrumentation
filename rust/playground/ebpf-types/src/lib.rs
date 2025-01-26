@@ -4,6 +4,8 @@
 //
 // SPDX-License-Identifier: MIT
 
+use core::any::Any;
+
 use bytemuck::{AnyBitPattern, CheckedBitPattern, Zeroable};
 
 #[derive(Debug, Clone, Copy, Default, AnyBitPattern)]
@@ -49,16 +51,15 @@ pub struct EventContext {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
-pub struct Event<T> {
+pub struct Event<T: ?Sized> {
     pub context: EventContext,
-    pub kind: EventKind,
     pub data: T
 }
 
 #[derive(Clone, Copy)]
+#[repr(C)]
 pub struct EventBits<T: CheckedBitPattern> {
     context: <EventContext as CheckedBitPattern>::Bits,
-    kind: <EventKind as CheckedBitPattern>::Bits,
     data: <T as CheckedBitPattern>::Bits,
 }
 unsafe impl<T: CheckedBitPattern + 'static> Zeroable for EventBits<T> {}
@@ -69,20 +70,8 @@ unsafe impl<T: CheckedBitPattern + 'static> CheckedBitPattern for Event<T> {
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
         EventContext::is_valid_bit_pattern(&bits.context) 
-            && EventKind::is_valid_bit_pattern(&bits.kind)
             && T::is_valid_bit_pattern(&bits.data)
     }
-}
-
-#[derive(Debug, Clone, Copy, CheckedBitPattern)]
-#[repr(u8)]
-pub enum EventKind {
-    Write,
-    SendMsg,
-    Jni,
-    SigQuit,
-    GarbaceCollect,
-    FileOp,
 }
 
 
@@ -136,8 +125,25 @@ pub struct GarbageCollect {
 }
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]
+#[repr(C)]
+pub struct FileDescriptorChange {
+    pub open_fds: u64,
+    pub operation: FileDescriptorOp,
+}
+
+#[derive(Debug, Clone, Copy, CheckedBitPattern)]
 #[repr(u8)]
 pub enum FileDescriptorOp {
-    Create,
-    Destroy,
+    Open,
+    Close,
 }
+
+
+pub trait EventData: Any {}
+
+impl EventData for Write {}
+impl EventData for SendMsg {}
+impl EventData for SigQuit {}
+impl EventData for GarbageCollect {}
+impl EventData for FileDescriptorChange {}
+impl EventData for Jni {}
