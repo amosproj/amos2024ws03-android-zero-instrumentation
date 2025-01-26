@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 pub struct ConstTake<I: Iterator, const N: usize> {
     iter: I,
     index: usize,
