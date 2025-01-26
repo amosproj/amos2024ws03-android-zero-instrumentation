@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::io;
+use std::future::Future;
 
 use shared::config::Configuration;
 
@@ -15,8 +16,8 @@ pub use normal::NormalConfigurationStorage;
 pub use memory::MemoryConfigurationStorage;
 
 pub trait ConfigurationStorage: Send + Sync + 'static {
-    async fn load(&self, path: &str) -> io::Result<Configuration>;
+    fn load(&self, path: &str) -> impl Future<Output = io::Result<Configuration>> + Send ;
 
-    async fn save(&self, config: &Configuration, path: &str) -> io::Result<()>;
+    fn save(&self, config: &Configuration, path: &str) -> impl Future<Output = io::Result<()>> + Send ;
 }
 

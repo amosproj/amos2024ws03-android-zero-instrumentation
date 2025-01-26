@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 
 use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
-use crate::filesystem::{Filesystem, NormalFilesystem};
+use crate::filesystem::{ConfigurationStorage, NormalConfigurationStorage};
 use crate::registry;
 use crate::symbols::SymbolHandler;
 use crate::{
@@ -31,27 +31,27 @@ use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-pub struct ZiofaImpl<F>
-where F: Filesystem {
+pub struct ZiofaImpl<C>
+where C: ConfigurationStorage {
     features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
-    filesystem: F,
+    configuration_storage: C,
 }
 
-impl<F> ZiofaImpl<F> 
-where F: Filesystem {
+impl<C> ZiofaImpl<C> 
+where C: ConfigurationStorage {
     pub fn new(
         features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
         symbol_handler: Arc<Mutex<SymbolHandler>>,
-        filesystem: F,
-    ) -> ZiofaImpl<F> {
+        configuration_storage: C,
+    ) -> ZiofaImpl<C> {
         ZiofaImpl {
             features,
             channel,
             symbol_handler,
-            filesystem
+            configuration_storage
         }
     }
 }
@@ -69,8 +69,8 @@ impl Channel {
 }
 
 #[tonic::async_trait]
-impl<F> Ziofa for ZiofaImpl<F>
-where F: Filesystem {
+impl<C> Ziofa for ZiofaImpl<C>
+where C: ConfigurationStorage {
     async fn check_server(&self, _: Request<()>) -> Result<Response<CheckServerResponse>, Status> {
         // dummy data
         let response = CheckServerResponse {};
@@ -84,7 +84,8 @@ where F: Filesystem {
 
     async fn get_configuration(&self, _: Request<()>) -> Result<Response<Configuration>, Status> {
         //TODO: if ? fails needs valid return value for the function so that the server doesn't crash.
-        let config = self.filesystem.load(constants::DEV_DEFAULT_FILE_PATH)?;
+        let res = self.configuration_storage.load(constants::DEV_DEFAULT_FILE_PATH).await;
+        let config = res?;
         Ok(Response::new(config))
     }
 
@@ -94,7 +95,7 @@ where F: Filesystem {
     ) -> Result<Response<()>, Status> {
         let config = request.into_inner();
 
-        self.filesystem.save(&config, constants::DEV_DEFAULT_FILE_PATH)?;
+        self.configuration_storage.save(&config, constants::DEV_DEFAULT_FILE_PATH).await?;
 
         let mut features_guard = self.features.lock().await;
 
@@ -250,7 +251,7 @@ pub async fn serve_forever() {
 
     let features = Arc::new(Mutex::new(features));
 
-    let filesystem = NormalFilesystem;
+    let filesystem = NormalConfigurationStorage;
 
     let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem));
 
