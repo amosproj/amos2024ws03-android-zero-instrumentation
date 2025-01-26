@@ -8,9 +8,9 @@ pub fn main() {
         let bitcode_path = env::var("DEP_RELOCATION_HELPERS_BITCODE_PATH")
             .expect("`DEP_RELOCATION_HELPERS_BITCODE_PATH` should be set when importing `relocation-helpers`");
 
-        println!("cargo::rustc-link-arg={bitcode_path}");
-        println!("cargo::rustc-link-arg=--btf");
-        println!("cargo::rustc-link-arg=-O3");
+        println!("cargo:rerun-if-changed={bitcode_path}");
+        println!("cargo:rustc-link-arg={bitcode_path}");
+        println!("cargo:rustc-link-arg=--btf");
     }
 
     println!("cargo::rerun-if-changed=CARGO_CFG_BPF_TARGET_ARCH");

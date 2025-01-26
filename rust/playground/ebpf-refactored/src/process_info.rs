@@ -13,10 +13,7 @@ use aya_ebpf::{
 use ebpf_types::ProcessContext;
 use relocation_helpers::TaskStruct;
 
-use crate::{
-    bounds_check::EbpfBoundsCheck,
-    path::read_path_to_buf_with_default,
-};
+use crate::{bounds_check::EbpfBoundsCheck, path::read_path_to_buf_with_default};
 
 #[map]
 static PROCESS_INFO: LruHashMap<u32, ProcessContext> = LruHashMap::with_max_entries(10240, 0);

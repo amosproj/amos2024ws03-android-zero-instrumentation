@@ -181,8 +181,6 @@ dependencies = [
  "aya-ebpf",
  "aya-log-common",
  "aya-log-ebpf",
- "bindgen",
- "cc",
  "ebpf-relocation-helpers",
  "ebpf-types",
  "syscall-numbers",

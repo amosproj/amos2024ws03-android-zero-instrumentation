@@ -8,22 +8,21 @@ use aya_ebpf::bindings::pt_regs;
 #[cfg(bpf_target_arch = "aarch64")]
 use aya_ebpf::bindings::user_pt_regs as pt_regs;
 use aya_ebpf::{
-    helpers::{
-        bpf_get_current_task, bpf_ktime_get_ns,
-    },
+    helpers::{bpf_get_current_task, bpf_ktime_get_ns, bpf_probe_read, bpf_probe_read_kernel},
     macros::{map, raw_tracepoint},
-    maps::{ProgramArray, RingBuf},
+    maps::RingBuf,
     programs::RawTracePointContext,
     EbpfContext, PtRegs,
 };
 use aya_log_ebpf::info;
-use ebpf_types::{Event, EventContext, EventKind, ProcessContext, TaskContext, Write, WriteSource};
+use ebpf_types::{
+    Event, EventContext, FileDescriptorChange, FileDescriptorOp, ProcessContext, TaskContext,
+    Write, WriteSource,
+};
 use relocation_helpers::TaskStruct;
 
 use crate::{
-    path::{
-        get_path_from_fd, read_path_to_buf_with_default,
-    },
+    path::{get_path_from_fd, read_path_to_buf_with_default},
     process_info::process_info_from_task,
     task_info::task_info_from_task,
 };
@@ -49,6 +48,61 @@ fn write_test(ctx: RawTracePointContext) -> Option<()> {
     Some(())
 }
 
+#[raw_tracepoint]
+fn file_descriptor_test(ctx: RawTracePointContext) -> Option<()> {
+    let mut entry = EVENTS.reserve::<Event<FileDescriptorChange>>(0)?;
+    match unsafe { try_fd_change(&ctx, entry.as_mut_ptr()) } {
+        Some(_) => entry.submit(0),
+        None => {
+            info!(&ctx, "fd change discard");
+            entry.discard(0)
+        }
+    }
+    Some(())
+}
+
+unsafe fn try_fd_change(
+    ctx: &RawTracePointContext,
+    entry: *mut Event<FileDescriptorChange>,
+) -> Option<()> {
+    let task = TaskStruct::new(bpf_get_current_task() as *mut _);
+    let raw_pt_regs = unsafe { *(ctx.as_ptr() as *const *mut pt_regs) };
+    let syscall_id =
+        unsafe { bpf_probe_read(&raw const (*raw_pt_regs).orig_rax as *const i64) }.ok()?;
+    let filed_descriptor_op = get_file_op(syscall_id)?;
+    let open_fds = get_open_fds(task)?;
+
+    let task_context_src = task_info_from_task(task)?;
+
+    (*entry).context = EventContext {
+        task: *task_context_src,
+        timestamp: bpf_ktime_get_ns(),
+    };
+    (*entry).data = FileDescriptorChange {
+        operation: filed_descriptor_op,
+        open_fds,
+    };
+
+    Some(())
+}
+
+#[inline(always)]
+fn get_open_fds(task: TaskStruct) -> Option<u64> {
+    let files = task.files().ok()?;
+    let fdt = files.fdt().ok()?;
+    let max_fds = fdt.max_fds().ok()?;
+    let len = (max_fds / 64).min(1024) as usize;
+    let open_fds = fdt.open_fds().ok()?;
+
+    let mut count = 0;
+    for i in 0..len {
+        let bitmap = unsafe { bpf_probe_read_kernel(open_fds.add(i)).ok() }?;
+        count += bitmap.count_ones() as u64;
+    }
+
+    Some(count)
+}
+
 #[inline(always)]
 unsafe fn try_vfs_write(ctx: &RawTracePointContext, entry: *mut Event<Write>) -> Option<()> {
     let task = unsafe { TaskStruct::new(bpf_get_current_task() as *mut _) };
@@ -63,7 +117,6 @@ unsafe fn try_vfs_write(ctx: &RawTracePointContext, entry: *mut Event<Write>) ->
         task: *task_context_src,
         timestamp: bpf_ktime_get_ns(),
     };
-    entry.kind = EventKind::Write;
     entry.data.bytes_written = write_info.bytes_written;
     entry.data.source = write_info.source;
     read_path_to_buf_with_default(path, &mut entry.data.file_path)?;
@@ -75,9 +128,6 @@ unsafe fn try_vfs_write(ctx: &RawTracePointContext, entry: *mut Event<Write>) ->
 fn process_info_test(_ctx: RawTracePointContext) -> Option<*mut ProcessContext> {
     unsafe { process_info_from_task(TaskStruct::new(bpf_get_current_task() as *mut _)) }
 }
-
-#[map]
-static WRITE_TAILCALLS: ProgramArray = ProgramArray::with_max_entries(1024, 0);
 
 struct WriteSyscallInfo {
     source: WriteSource,
@@ -129,6 +179,54 @@ fn write_syscall_to_write_source(syscall: i64) -> Option<WriteSource> {
         _ => return None,
     };
     Some(source)
+}
+
+fn get_file_op(syscall_number: i64) -> Option<FileDescriptorOp> {
+    match syscall_number {
+        syscalls::SYS_pipe
+        | syscalls::SYS_pipe2
+        | syscalls::SYS_pidfd_getfd
+        | syscalls::SYS_pidfd_open
+        | syscalls::SYS_perf_event_open
+        | syscalls::SYS_signalfd
+        | syscalls::SYS_signalfd4
+        | syscalls::SYS_socket
+        | syscalls::SYS_socketpair
+        | syscalls::SYS_userfaultfd
+        | syscalls::SYS_timerfd_create
+        | syscalls::SYS_memfd_create
+        | syscalls::SYS_memfd_secret
+        | syscalls::SYS_landlock_create_ruleset
+        | syscalls::SYS_io_uring_setup
+        | syscalls::SYS_inotify_init
+        | syscalls::SYS_inotify_init1
+        | syscalls::SYS_epoll_create
+        | syscalls::SYS_epoll_create1
+        | syscalls::SYS_eventfd
+        | syscalls::SYS_eventfd2
+        | syscalls::SYS_execve
+        | syscalls::SYS_execveat
+        | syscalls::SYS_fanotify_init
+        | syscalls::SYS_fcntl
+        | syscalls::SYS_fork
+        | syscalls::SYS_dup
+        | syscalls::SYS_dup2
+        | syscalls::SYS_dup3
+        | syscalls::SYS_open
+        | syscalls::SYS_openat
+        | syscalls::SYS_creat
+        | syscalls::SYS_openat2
+        | syscalls::SYS_open_by_handle_at
+        | syscalls::SYS_name_to_handle_at
+        | syscalls::SYS_open_tree
+        | syscalls::SYS_clone
+        | syscalls::SYS_clone3
+        | syscalls::SYS_bpf
+        | syscalls::SYS_accept4
+        | syscalls::SYS_accept => Some(FileDescriptorOp::Open),
+        syscalls::SYS_close | syscalls::SYS_close_range => Some(FileDescriptorOp::Close),
+        _ => None,
+    }
 }
 
 mod syscalls {
