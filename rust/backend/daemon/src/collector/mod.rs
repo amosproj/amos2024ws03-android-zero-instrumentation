@@ -4,8 +4,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::process::exit;
-
 use aya::maps::ring_buf::RingBufItem;
 use bytemuck::checked;
 use ebpf_types::{
@@ -13,12 +11,9 @@ use ebpf_types::{
     GarbageCollect, Jni, Signal, Write,
 };
 use shared::ziofa::{
-    event::EventType,
-    jni_references_event::JniMethodName,
-    log_event::EventData,
-    sys_fd_tracking_event::{self, SysFdAction},
-    Event, GcEvent, JniReferencesEvent, LogEvent, SysFdTrackingEvent, SysSendmsgEvent,
-    SysSigquitEvent, VfsWriteEvent,
+    event::EventType, jni_references_event::JniMethodName, log_event::EventData,
+    sys_fd_tracking_event::SysFdAction, Event, GcEvent, JniReferencesEvent, LogEvent,
+    SysFdTrackingEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent,
 };
 
 mod aggregator;

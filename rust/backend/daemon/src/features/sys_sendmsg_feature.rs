@@ -6,9 +6,7 @@
 // SPDX-License-Identifier: MIT
 
 use aya::{
-    programs::{
-        raw_trace_point::RawTracePointLink, trace_point::TracePointLink, RawTracePoint, TracePoint,
-    },
+    programs::{raw_trace_point::RawTracePointLink, RawTracePoint},
     EbpfError,
 };
 use ractor::ActorRef;
@@ -16,7 +14,7 @@ use shared::config::SysSendmsgConfig;
 
 use crate::{
     features::Feature,
-    registry::{EbpfRegistry, OwnedHashMap, RegistryGuard},
+    registry::{EbpfRegistry, RegistryGuard},
     symbols::actors::SymbolActorMsg,
 };
 
@@ -64,13 +62,10 @@ impl Feature for SysSendmsgFeature {
     }
 
     async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
-        match config {
-            Some(config) => {
-                self.attach()?;
-            }
-            None => {
-                self.detach();
-            }
+        if config.is_some() {
+            self.attach()?;
+        } else {
+            self.detach();
         }
         Ok(())
     }

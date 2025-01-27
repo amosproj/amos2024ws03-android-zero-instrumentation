@@ -10,8 +10,6 @@ resolver = "2"
 members = [
   "xtask",
   "backend/daemon",
-  "backend/ebpf",
-  "backend/common",
   "shared",
   "client",
   "playground/sendmsg-demo",
@@ -20,14 +18,12 @@ members = [
   "playground/ebpf-relocation-helpers",
   "playground/ebpf-refactored",
   "uniffi-bindgen", 
-  "backend/ebpf-test",
   "runner",
   "garbage-collection",
 ]
 default-members = [
   "xtask",
   "backend/daemon",
-  "backend/common",
   "shared",
   "client",
 ]
@@ -65,9 +61,7 @@ uniffi = { version = "0.28.3" }
 thiserror = "2.0.6"
 shared = { path = "./shared" }
 xtask = { path = "./xtask" }
-backend-common = { path = "./backend/common" }
 backend-daemon = { path = "./backend/daemon" }
-backend-ebpf = { path = "./backend/ebpf" }
 runner = { path = "./runner" }
 garbage-collection = { path = "./garbage-collection" }
 tracing = { version = "0.1.41" }

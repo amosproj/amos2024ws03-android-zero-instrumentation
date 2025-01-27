@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{io, marker::PhantomData};
+use std::io;
 
-use backend_common::TryFromRaw;
 use ractor::{cast, Actor, ActorRef};
 use shared::ziofa::Event;
 use tokio::io::unix::AsyncFd;
 
 use super::IntoEvent;
-use crate::registry::{OwnedRingBuf, RegistryGuard, RegistryItem, TypedRingBuffer};
+use crate::registry::{OwnedRingBuf, RegistryGuard, RegistryItem};
 
 pub struct RingBufCollector;
 

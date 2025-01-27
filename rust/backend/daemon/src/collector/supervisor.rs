@@ -3,9 +3,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::collections::HashMap;
-
-use backend_common::TryFromRaw;
 use ractor::{Actor, ActorCell, ActorProcessingErr, ActorRef, SupervisionEvent};
 use shared::ziofa::Event;
 use tonic::Status;
@@ -15,9 +12,8 @@ use crate::{
     collector::{
         event_dispatcher::{EventDispatcher, EventDispatcherState},
         ring_buf::{RingBufCollector, RingBufCollectorArguments},
-        IntoEvent,
     },
-    registry::{EbpfEventRegistry, OwnedRingBuf, RegistryItem, TypedRingBuffer},
+    registry::{EbpfEventRegistry, OwnedRingBuf, RegistryItem},
 };
 
 pub struct CollectorSupervisor;

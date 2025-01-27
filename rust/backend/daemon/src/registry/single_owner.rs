@@ -11,8 +11,6 @@ use std::{
 use crossbeam::atomic::AtomicCell;
 use thiserror::Error;
 
-use super::{typed_ringbuf::TypedRingBuffer, OwnedRingBuf};
-
 struct SingleOwner<T>(AtomicCell<Option<Box<T>>>);
 
 pub struct RegistryItem<T>(Arc<SingleOwner<T>>);
@@ -38,11 +36,6 @@ impl<T> From<T> for RegistryItem<T> {
 pub struct RegistryGuard<T> {
     inner: Option<Box<T>>,
     _registry_entry: RegistryItem<T>,
-}
-impl<T> From<OwnedRingBuf> for RegistryItem<TypedRingBuffer<T>> {
-    fn from(value: OwnedRingBuf) -> Self {
-        TypedRingBuffer::from(value).into()
-    }
 }
 #[derive(Error, Debug)]
 pub enum TakeError {

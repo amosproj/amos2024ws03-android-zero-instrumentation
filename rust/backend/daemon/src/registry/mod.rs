@@ -9,24 +9,17 @@ use crate::constants::{GC_HEAP_META_JSON, ZIOFA_EBPF_PATH};
 
 mod pinning;
 mod single_owner;
-mod typed_ringbuf;
 
 use aya::{
-    maps::{Array, HashMap, Map, MapData, MapError, RingBuf},
-    programs::{KProbe, ProbeKind, ProgramError, RawTracePoint, TracePoint, UProbe},
+    maps::{Array, HashMap, MapData, MapError, RingBuf},
+    programs::{ProbeKind, ProgramError, RawTracePoint, UProbe},
     Btf, EbpfError, EbpfLoader,
 };
 use aya_log::EbpfLogger;
-use backend_common::{
-    JNICall, SysFdActionCall, SysGcCall, SysSendmsgCall, SysSigquitCall, VfsWriteCall,
-};
-use bytemuck::bytes_of;
 use ebpf_types::{Equality, FilterConfig};
 use garbage_collection::{btf::apply_to_btf, HeapMetadata};
 use pinning::{LoadAndPin, PinMap, TryMapFromPin};
 pub use single_owner::{RegistryGuard, RegistryItem};
-use tracing_subscriber::Registry;
-pub use typed_ringbuf::TypedRingBuffer;
 
 pub type OwnedRingBuf = RingBuf<MapData>;
 pub type OwnedHashMap<K, V> = HashMap<MapData, K, V>;
@@ -42,9 +35,9 @@ pub struct EbpfRegistry {
 #[derive(Clone)]
 pub struct EbpfConfigRegistry {
     pub pid_filter: RegistryItem<OwnedHashMap<u32, Equality>>,
-    pub comm_filter: RegistryItem<OwnedHashMap<[u8; 16], Equality>>,
-    pub exe_path_filter: RegistryItem<OwnedHashMap<[u8; 4096], Equality>>,
-    pub cmdline_filter: RegistryItem<OwnedHashMap<[u8; 256], Equality>>,
+    pub _comm_filter: RegistryItem<OwnedHashMap<[u8; 16], Equality>>,
+    pub _exe_path_filter: RegistryItem<OwnedHashMap<[u8; 4096], Equality>>,
+    pub _cmdline_filter: RegistryItem<OwnedHashMap<[u8; 256], Equality>>,
     pub global_blocking_threshold: RegistryItem<OwnedArray<u64>>,
     pub filter_config: RegistryItem<OwnedArray<FilterConfig>>,
     pub config: RegistryItem<OwnedArray<u32>>,
@@ -87,13 +80,13 @@ impl EbpfConfigRegistry {
     fn from_pin() -> Result<Self, MapError> {
         Ok(Self {
             pid_filter: HashMap::<_, u32, Equality>::try_from_pin(path("PID_FILTER"))?.into(),
-            comm_filter: HashMap::<_, [u8; 16], Equality>::try_from_pin(path("COMM_FILTER"))?
+            _comm_filter: HashMap::<_, [u8; 16], Equality>::try_from_pin(path("COMM_FILTER"))?
                 .into(),
-            exe_path_filter: HashMap::<_, [u8; 4096], Equality>::try_from_pin(path(
+            _exe_path_filter: HashMap::<_, [u8; 4096], Equality>::try_from_pin(path(
                 "EXE_PATH_FILTER",
             ))?
             .into(),
-            cmdline_filter: HashMap::<_, [u8; 256], Equality>::try_from_pin(path(
+            _cmdline_filter: HashMap::<_, [u8; 256], Equality>::try_from_pin(path(
                 "CMDLINE_FILTER",
             ))?
             .into(),

@@ -6,7 +6,7 @@
 // SPDX-License-Identifier: MIT
 
 use aya::{
-    programs::{raw_trace_point::RawTracePointLink, uprobe::UProbeLink, RawTracePoint, UProbe},
+    programs::{uprobe::UProbeLink, UProbe},
     EbpfError,
 };
 use ractor::ActorRef;

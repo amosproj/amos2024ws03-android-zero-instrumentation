@@ -560,15 +560,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "backend-common"
-version = "0.1.0"
-dependencies = [
- "aya",
- "bytemuck",
- "garbage-collection",
-]
-
-[[package]]
 name = "backend-daemon"
 version = "0.1.0"
 dependencies = [
@@ -576,7 +567,6 @@ dependencies = [
  "async-walkdir",
  "aya",
  "aya-log",
- "backend-common",
  "bytemuck",
  "cargo_metadata 0.19.1",
  "clap",
@@ -605,33 +595,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "xtask",
-]
-
-[[package]]
-name = "backend-ebpf"
-version = "0.1.0"
-dependencies = [
- "aya-ebpf",
- "aya-log-common",
- "aya-log-ebpf",
- "backend-common",
- "garbage-collection",
- "which 7.0.1",
- "xtask",
-]
-
-[[package]]
-name = "backend-ebpf-test"
-version = "0.1.0"
-dependencies = [
- "aya",
- "aya-ebpf",
- "aya-log-ebpf",
- "aya-obj",
- "backend-common",
- "cargo_metadata 0.19.1",
- "libc",
- "which 7.0.1",
 ]
 
 [[package]]
@@ -699,7 +662,7 @@ dependencies = [
  "rustc-hash 1.1.0",
  "shlex",
  "syn",
- "which 4.4.2",
+ "which",
 ]
 
 [[package]]
@@ -1399,12 +1362,6 @@ checksum = "186e05a59d4c50738528153b83b0b0194d3a29507dfec16eccd4b342903397d0"
 dependencies = [
  "log",
 ]
-
-[[package]]
-name = "env_home"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f84e12ccf0a7ddc17a6c41c93326024c42920d7ee630d04950e6926645c0fe"
 
 [[package]]
 name = "env_logger"
@@ -4582,18 +4539,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "which"
-version = "7.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb4a9e33648339dc1642b0e36e21b3385e6148e289226f657c809dee59df5028"
-dependencies = [
- "either",
- "env_home",
- "rustix",
- "winsafe",
-]
-
-[[package]]
 name = "widestring"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4839,12 +4784,6 @@ checksum = "c8d71a593cc5c42ad7876e2c1fda56f314f3754c084128833e64f1345ff8a03a"
 dependencies = [
  "memchr",
 ]
-
-[[package]]
-name = "winsafe"
-version = "0.0.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d135d17ab770252ad95e9a872d365cf3090e3be864a34ab46f48555993efc904"
 
 [[package]]
 name = "xtask"
