@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.visualization.composables.chart
 
 import androidx.compose.foundation.layout.Arrangement
@@ -7,14 +11,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import co.yml.charts.axis.AxisData
@@ -59,26 +61,28 @@ fun YChartsMultiTimeSeries(
                     chartMetadata = chartMetadata,
                     overlayMode = overlayMode,
                 )
-                Row(
-                    Modifier.align(Alignment.TopEnd).padding(end = 50.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "◼",
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(horizontal = 5.dp),
-                    )
-                    Text("Used heap size")
-                    Spacer(Modifier.width(20.dp))
-                    Text(
-                        "◼",
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 5.dp),
-                    )
-                    Text("Total heap size")
-                }
+                Legend(Modifier.align(Alignment.TopEnd))
             }
         } else WaitingForDataHint()
+    }
+}
+
+@Composable
+private fun Legend(modifier: Modifier = Modifier) {
+    Row(modifier.padding(end = 50.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "◼",
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.padding(horizontal = 5.dp),
+        )
+        Text("Used heap size")
+        Spacer(Modifier.width(20.dp))
+        Text(
+            "◼",
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 5.dp),
+        )
+        Text("Total heap size")
     }
 }
 
@@ -111,7 +115,7 @@ private fun Chart(
             backgroundColor = Color.White,
         )
 
-    LineChart(modifier = Modifier.padding(10.dp), lineChartData = lineChartData)
+    LineChart(modifier = Modifier, lineChartData = lineChartData)
 }
 
 private fun buildYAxis(yMin: Float, yMax: Float, ySteps: Int) =
@@ -120,15 +124,15 @@ private fun buildYAxis(yMin: Float, yMax: Float, ySteps: Int) =
         .labelAndAxisLinePadding(20.dp)
         .labelData { i ->
             val yScale = (yMax - yMin) / ySteps
-            bytesToHumanReadableSize(((i * yScale) + yMin).toDouble())
+            ((i * yScale) + yMin).toDouble().bytesToHumanReadableSize()
         }
         .build()
 
 private fun buildXAxis(xLabels: List<String>, overlayMode: Boolean) =
     AxisData.Builder()
         .axisStepSize(if (overlayMode) Y_STEP_SIZE_OVERLAY else Y_STEP_SIZE)
-        .steps(xLabels.size - 1)
-        .labelData { i -> xLabels.getOrNull(i).toString() }
+        .steps(xLabels.size-1)
+        .labelData { i -> xLabels.getOrNull(i) ?: "" }
         .labelAndAxisLinePadding(20.dp)
         .build()
 

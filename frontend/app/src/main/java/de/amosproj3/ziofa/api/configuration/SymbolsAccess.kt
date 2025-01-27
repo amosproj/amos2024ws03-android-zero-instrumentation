@@ -17,4 +17,6 @@ interface SymbolsAccess {
      * @return a flow that describes the state of the request
      */
     fun searchSymbols(pids: List<UInt>, searchQuery: String): Flow<GetSymbolsRequestState>
+
+    fun indexSymbols(): Flow<IndexingRequestState>
 }

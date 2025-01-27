@@ -11,7 +11,8 @@ import de.amosproj3.ziofa.api.overlay.OverlayController
 import de.amosproj3.ziofa.api.overlay.OverlayState
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.OverlaySettings
-import de.amosproj3.ziofa.ui.visualization.getChartData
+import de.amosproj3.ziofa.ui.visualization.mappings.getChartData
+import de.amosproj3.ziofa.ui.visualization.mappings.getChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_CHART_METADATA
 import de.amosproj3.ziofa.ui.visualization.utils.isValidSelection
 import kotlinx.coroutines.CoroutineScope
@@ -48,8 +49,8 @@ class OverlayViewModel(
                         it.selectedComponent,
                         it.selectedMetric,
                         it.selectedTimeframe,
-                        chartMetadata = DEFAULT_CHART_METADATA,
-                    ) ?: flowOf(GraphedData.EMPTY) // TODO add disclaimer
+                        chartMetadata = it.selectedMetric.getChartMetadata(),
+                    ) ?: flowOf(GraphedData.EMPTY)
                 } else flowOf(GraphedData.EMPTY)
             }
             .stateIn(viewModelScope, SharingStarted.Lazily, GraphedData.EMPTY)

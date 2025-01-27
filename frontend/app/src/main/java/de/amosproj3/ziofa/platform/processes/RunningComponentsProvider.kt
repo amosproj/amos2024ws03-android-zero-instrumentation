@@ -63,11 +63,8 @@ class RunningComponentsProvider(
     private suspend fun startPollingProcessList() {
         while (true) {
             delay(PROCESS_LIST_REFRESH_INTERVAL_MS)
-            client?.let { client ->
-                processesList.update {
-                    client.listProcesses()
-                }
-            } ?: processesList.update { listOf() }.also { Timber.w("Client not ready!") }
+            client?.let { client -> processesList.update { client.listProcesses() } }
+                ?: processesList.update { listOf() }.also { Timber.w("Client not ready!") }
         }
     }
 

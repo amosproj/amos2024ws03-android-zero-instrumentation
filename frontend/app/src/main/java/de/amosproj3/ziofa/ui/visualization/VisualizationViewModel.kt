@@ -14,6 +14,7 @@ import de.amosproj3.ziofa.api.overlay.OverlayController
 import de.amosproj3.ziofa.api.overlay.OverlayState
 import de.amosproj3.ziofa.api.processes.RunningComponentsAccess
 import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
+import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.OverlaySettings
@@ -21,6 +22,10 @@ import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationAction
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationDisplayMode
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
+import de.amosproj3.ziofa.ui.visualization.mappings.getChartData
+import de.amosproj3.ziofa.ui.visualization.mappings.getChartMetadata
+import de.amosproj3.ziofa.ui.visualization.mappings.getEventListData
+import de.amosproj3.ziofa.ui.visualization.mappings.getEventListMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_SELECTION_DATA
 import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_TIMEFRAME_OPTIONS
 import de.amosproj3.ziofa.ui.visualization.utils.getActiveMetricsForPids
@@ -79,44 +84,44 @@ class VisualizationViewModel(
      */
     private val selectionData =
         combine(
-                selectedComponent,
-                selectedMetric,
-                selectedTimeframe,
-                runningComponentsAccess.runningComponentsList,
-                configurationAccess.configurationState,
-            ) { activeComponent, activeMetric, activeTimeframe, runningComponents, configState ->
-                val config =
-                    when (configState) {
-                        is ConfigurationState.Synchronized -> configState.configuration
-                        is ConfigurationState.Different -> configState.backendConfiguration
-                        else -> return@combine DEFAULT_SELECTION_DATA
-                    }
-                val configuredComponents =
-                    runningComponents.filter { runningComponent ->
-                        config.toUIOptionsForPids(runningComponent.pids).any { it.active }
-                    }
-                val availableMetricsForComponent =
-                    activeComponent?.let {
-                        config.getActiveMetricsForPids(pids = it.getPIDsOrNull())
-                    }
-                val componentsDropdownOptions =
-                    configuredComponents
-                        .toUIOptions()
-                        .plus(
-                            activeComponent?.let { listOf(it) } ?: listOf()
-                        ) // prevent the selected component from disappearing if process ends
-                        .toSet() // convert to set to remove the duplicate if it is already in
-                        // the list
-                        .toImmutableList()
-                SelectionData(
-                    selectedComponent = activeComponent,
-                    selectedMetric = activeMetric,
-                    selectedTimeframe = activeTimeframe,
-                    componentOptions = componentsDropdownOptions,
-                    metricOptions = availableMetricsForComponent,
-                    timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
-                )
-            }
+            selectedComponent,
+            selectedMetric,
+            selectedTimeframe,
+            runningComponentsAccess.runningComponentsList,
+            configurationAccess.configurationState,
+        ) { activeComponent, activeMetric, activeTimeframe, runningComponents, configState ->
+            val config =
+                when (configState) {
+                    is ConfigurationState.Synchronized -> configState.configuration
+                    is ConfigurationState.Different -> configState.backendConfiguration
+                    else -> return@combine DEFAULT_SELECTION_DATA
+                }
+            val configuredComponents =
+                runningComponents.filter { runningComponent ->
+                    config.toUIOptionsForPids(runningComponent.pids).any { it.active }
+                }
+            val availableMetricsForComponent =
+                activeComponent?.let {
+                    config.getActiveMetricsForPids(pids = it.getPIDsOrNull())
+                }
+            val componentsDropdownOptions =
+                configuredComponents
+                    .toUIOptions()
+                    .plus(
+                        activeComponent?.let { listOf(it) } ?: listOf()
+                    ) // prevent the selected component from disappearing if process ends
+                    .toSet() // convert to set to remove the duplicate if it is already in
+                    // the list
+                    .toImmutableList()
+            SelectionData(
+                selectedComponent = activeComponent,
+                selectedMetric = activeMetric,
+                selectedTimeframe = activeTimeframe,
+                componentOptions = componentsDropdownOptions,
+                metricOptions = availableMetricsForComponent,
+                timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
+            )
+        }
             .onEach {
                 // Select the first available option automatically
                 if (it.selectedComponent == null && it.componentOptions.isNotEmpty())
@@ -133,8 +138,8 @@ class VisualizationViewModel(
     @OptIn(ExperimentalCoroutinesApi::class)
     val visualizationScreenState =
         combine(selectionData, displayMode, overlaySettings, overlayEnabled) { a, b, c, d ->
-                VisualizationSettings(a, b, c, d)
-            }
+            VisualizationSettings(a, b, c, d)
+        }
             .flatMapLatest {
                 val selection = it.selection
                 val selectedComponent = it.selection.selectedComponent
@@ -163,7 +168,7 @@ class VisualizationViewModel(
                                 )
                                 .toEventListViewOrNull(selection)
 
-                        VisualizationDisplayMode.OVERLAY -> it.overlayLauncher()
+                        VisualizationDisplayMode.OVERLAY -> it.overlayLauncher(selectedMetric.getChartMetadata())
                     } ?: it.noVisualizationExists()
                 } else {
                     it.waitingForMetricSelection()
@@ -224,12 +229,13 @@ class VisualizationViewModel(
     private fun VisualizationSettings.noVisualizationExists() =
         flowOf(VisualizationScreenState.Incomplete.NoVisualizationExists(this.selection, this.mode))
 
-    private fun VisualizationSettings.overlayLauncher() =
+    private fun VisualizationSettings.overlayLauncher(chartMetadata: ChartMetadata) =
         flowOf(
             VisualizationScreenState.Valid.OverlayView(
-                this.selection,
-                this.overlaySettings,
-                this.overlayEnabled,
+                selectionData = this.selection,
+                chartMetadata = chartMetadata,
+                overlaySettings = this.overlaySettings,
+                overlayEnabled = this.overlayEnabled,
             )
         )
 

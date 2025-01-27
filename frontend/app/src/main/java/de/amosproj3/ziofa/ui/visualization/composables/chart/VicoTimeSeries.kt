@@ -15,6 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
@@ -48,14 +50,14 @@ fun VicoTimeSeries(
     seriesData: ImmutableList<Pair<Float, Float>>,
     chartMetadata: ChartMetadata,
     modifier: Modifier = Modifier,
-    highContrastMode: Boolean = false, // for overlay
+    overlayMode: Boolean = false,
 ) {
     Timber.i("$seriesData")
     Column(modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         val modelProducer = remember { CartesianChartModelProducer() }
         if (seriesData.isNotEmpty() && !seriesData.isDefaultSeries()) {
             modelProducer.SeriesUpdate(seriesData)
-            modelProducer.TimeSeriesChart(chartMetadata, highContrastMode)
+            modelProducer.TimeSeriesChart(chartMetadata, overlayMode)
         } else WaitingForDataHint()
     }
 }
@@ -63,64 +65,66 @@ fun VicoTimeSeries(
 @Composable
 private fun CartesianChartModelProducer.TimeSeriesChart(
     chartMetadata: ChartMetadata,
-    highContrastMode: Boolean,
+    overlayMode: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val mainColor = remember { if (highContrastMode) Color.Red else Color.Black }
-    val typeface = remember { if (highContrastMode) Typeface.DEFAULT_BOLD else Typeface.DEFAULT }
+    val mainColor = remember { if (overlayMode) Color.Red else Color.Black }
+    val typeface = remember { if (overlayMode) Typeface.DEFAULT_BOLD else Typeface.DEFAULT }
     val xLabel = remember { chartMetadata.xLabel }
     val yLabel = remember { chartMetadata.yLabel }
 
     CartesianChartHost(
         chart =
-            rememberCartesianChart(
-                rememberLineCartesianLayer(
-                    LineCartesianLayer.LineProvider.series(
-                        LineCartesianLayer.rememberLine(
-                            remember {
-                                LineCartesianLayer.LineFill.single(
-                                    fill(if (highContrastMode) mainColor else VICO_LINE_COLOR)
-                                )
-                            }
-                        )
+        rememberCartesianChart(
+            rememberLineCartesianLayer(
+                LineCartesianLayer.LineProvider.series(
+                    LineCartesianLayer.rememberLine(
+                        remember {
+                            LineCartesianLayer.LineFill.single(
+                                fill(if (overlayMode) mainColor else VICO_LINE_COLOR)
+                            )
+                        }
                     )
-                ),
-                startAxis =
-                    VerticalAxis.rememberStart(
-                        label = rememberTextComponent(color = mainColor, typeface = typeface),
-                        titleComponent =
-                            rememberTextComponent(
-                                color = Color.White,
-                                margins = dimensions(end = 4.dp),
-                                padding = dimensions(8.dp, 2.dp),
-                                background =
-                                    rememberShapeComponent(
-                                        fill = fill(MaterialTheme.colorScheme.secondary),
-                                        shape = CorneredShape.Pill,
-                                    ),
-                            ),
-                        title = yLabel,
-                    ),
-                bottomAxis =
-                    HorizontalAxis.rememberBottom(
-                        label = rememberTextComponent(color = mainColor, typeface = typeface),
-                        titleComponent =
-                            rememberTextComponent(
-                                color = Color.White,
-                                margins = dimensions(top = 4.dp),
-                                padding = dimensions(8.dp, 2.dp),
-                                background =
-                                    shapeComponent(
-                                        fill = fill(MaterialTheme.colorScheme.primary),
-                                        shape = CorneredShape.Pill,
-                                    ),
-                            ),
-                        title = xLabel,
-                        guideline = null,
-                        itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented() },
-                    ),
-                layerPadding = cartesianLayerPadding(scalableStart = 16.dp, scalableEnd = 16.dp),
+                )
             ),
+            startAxis =
+            VerticalAxis.rememberStart(
+                label = rememberTextComponent(color = mainColor, typeface = typeface),
+                titleComponent =
+                if (overlayMode) null else rememberTextComponent(
+                    textSize = TextUnit(15f, TextUnitType.Sp),
+                    color = Color.White,
+                    margins = dimensions(end = 4.dp),
+                    padding = dimensions(8.dp, 2.dp),
+                    background =
+                    rememberShapeComponent(
+                        fill = fill(MaterialTheme.colorScheme.secondary),
+                        shape = CorneredShape.Pill,
+                    ),
+                ),
+                title = if (overlayMode) null else yLabel,
+            ),
+            bottomAxis =
+            HorizontalAxis.rememberBottom(
+                label = rememberTextComponent(color = mainColor, typeface = typeface),
+                titleComponent =
+                if (overlayMode) null else rememberTextComponent(
+                    textSize = TextUnit(15f, TextUnitType.Sp),
+                    color = Color.White,
+                    margins = dimensions(top = 4.dp),
+                    padding = dimensions(8.dp, 2.dp),
+                    background =
+                    shapeComponent(
+                        fill = fill(MaterialTheme.colorScheme.primary),
+                        shape = CorneredShape.Pill,
+                    ),
+                ),
+                title = if (overlayMode) null else xLabel,
+                guideline = null,
+                itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented() },
+            ),
+            layerPadding = cartesianLayerPadding(scalableStart = 16.dp, scalableEnd = 16.dp),
+        ),
         modelProducer = this@TimeSeriesChart,
         modifier = modifier,
         zoomState = rememberVicoZoomState(zoomEnabled = false),
