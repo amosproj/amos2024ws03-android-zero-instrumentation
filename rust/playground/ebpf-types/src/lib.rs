@@ -98,8 +98,9 @@ pub enum WriteSource {
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]
-pub struct SendMsg {
-    pub file_descriptor: u64,
+pub struct Blocking {
+    pub syscall_id: u64,
+    pub duration: u64,
 }
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]
@@ -142,7 +143,7 @@ pub enum FileDescriptorOp {
 #[repr(u8)]
 pub enum EventKind {
     Write,
-    SendMsg,
+    Blocking,
     Signal,
     GarbageCollect,
     FileDescriptorChange,

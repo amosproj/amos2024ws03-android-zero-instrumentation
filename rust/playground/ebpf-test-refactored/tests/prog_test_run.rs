@@ -263,8 +263,172 @@ async fn test_kill() {
     let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
     let raw_event = events.next().unwrap();
 
-    let event = checked::from_bytes::<Event<Signal>>(&raw_event);
+    let event = unpack_event!(raw_event);
+    let data = event.data.downcast_ref::<Signal>().unwrap();
 
-    assert_eq!(event.data.target_pid, target_pid);
-    assert_eq!(event.data.signal, signal);
+    assert_eq!(data.target_pid, target_pid);
+    assert_eq!(data.signal, signal);
 }
+use std::any::Any;
+
+use ebpf_types::*;
+
+#[macro_export]
+macro_rules! unpack_event {
+    ($rbe:ident) => {{
+        let event_kind = unsafe { &*($rbe.as_ptr() as *const EventKind) };
+        match *event_kind {
+            EventKind::Write => {
+                Box::new(*checked::from_bytes::<Event<Write>>(&$rbe)) as Box<Event<dyn Any>>
+            }
+            EventKind::Signal => Box::new(*checked::from_bytes::<Event<Signal>>(&$rbe)),
+            EventKind::GarbageCollect => {
+                Box::new(*checked::from_bytes::<Event<GarbageCollect>>(&$rbe))
+            }
+            EventKind::FileDescriptorChange => {
+                Box::new(*checked::from_bytes::<Event<FileDescriptorChange>>(&$rbe))
+            }
+            EventKind::Jni => Box::new(*checked::from_bytes::<Event<Jni>>(&$rbe)),
+            EventKind::Blocking => Box::new(*checked::from_bytes::<Event<Blocking>>(&$rbe)),
+            EventKind::MAX => unreachable!(),
+        }
+    }};
+}
+
+#[test_log::test(tokio::test)]
+async fn do_stuff() {
+    let mut ebpf = setup();
+
+    let prog: &mut RawTracePoint = ebpf
+        .program_mut("sys_enter_test")
+        .unwrap()
+        .try_into()
+        .unwrap();
+
+    prog.load().unwrap();
+    let enter_fd = prog.fd().unwrap().as_fd().as_raw_fd();
+
+    let prog: &mut RawTracePoint = ebpf
+        .program_mut("sys_exit_test")
+        .unwrap()
+        .try_into()
+        .unwrap();
+
+    prog.load().unwrap();
+    let exit_fd = prog.fd().unwrap().as_fd().as_raw_fd();
+
+    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+    //let mut regs = unsafe { mem::zeroed::<pt_regs>() };
+
+    //regs.orig_rax = 1;
+
+    //let args = [ &raw mut regs as u64, syscall_numbers::x86_64::SYS_kill as u64, ];
+
+    attr.test.prog_fd = enter_fd as u32;
+    //attr.test.ctx_in = args.as_ptr() as u64;
+    //attr.test.ctx_size_in = 2 * 8;
+
+    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
+
+    if ret < 0 {
+        panic!("Failed to run test: {:?}", io::Error::last_os_error());
+    }
+
+    let mut regs = unsafe { mem::zeroed::<pt_regs>() };
+    regs.orig_rax = 1;
+    let args = [&raw mut regs as u64, 0];
+    attr.test.prog_fd = exit_fd as u32;
+    attr.test.ctx_in = args.as_ptr() as u64;
+    attr.test.ctx_size_in = 2 * 8;
+
+    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
+
+    if ret < 0 {
+        panic!("Failed to run test: {:?}", io::Error::last_os_error());
+    }
+
+    let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
+    let raw_event = events.next().unwrap();
+
+    let event = unpack_event!(raw_event);
+    let data = event.data.downcast_ref::<Blocking>().unwrap();
+
+    assert_eq!(data.syscall_id, 1);
+    assert!(data.duration > 0);
+}
+
+/*
+
+struct Config<'a> {
+    policies: Vec<FilterConfig<'a>>,
+
+    vfs_write: u64,
+    sendmsg: u64,
+}
+
+struct FilterConfig<'a> {
+    pids: Setting<Vec<Match<u32>>>,
+    exe_paths: Setting<Vec<Match<Cow<'a, str>>>>,
+    cmdlines: Setting<Vec<Match<Cow<'a, str>>>>,
+    comms: Setting<Vec<Match<Cow<'a, str>>>>,
+}
+
+const XYZ: LazyCell<FilterConfig> = LazyCell::new(|| {
+    FilterConfig {
+        pids: Setting::Enabled(
+            vec![Match::Eq(1)],
+            MissingBehaviour::NotMatch
+        ),
+        exe_paths: Setting::Disabled,
+        comms: Setting::Enabled(
+            vec![Match::Eq(Cow::Borrowed("RenderThread"))],
+            MissingBehaviour::NotMatch
+        ),
+        cmdlines: Setting::Enabled(
+            vec![Match::Neq(Cow::Borrowed("de.amosproj3.ziofa"))],
+            MissingBehaviour::Match
+        )
+    }
+});
+
+const EQ_COMM: (&str, Equality) = ("RenderThread", Equality {
+    equals_in_policies: 0b1,
+    key_used_in_policies: 0b1,
+});
+
+const EQ_CMDLINE: (&str, Equality) = ("de.amosproj3.ziofa", Equality {
+    equals_in_policies: 0b0,
+    key_used_in_policies: 0b1,
+});
+
+const RAW: EventPolicy = EventPolicy {
+    pid_filter: 0b0,
+    pid_filter_match_if_missing: 0b0,
+
+    exe_path_filter: 0b0,
+    exe_path_filter_match_if_missing: 0b0,
+
+    comm_filter: 0b1,
+    comm_filter_match_if_missing: 0b0,
+
+    cmdline_filter: 0b1,
+    cmdline_filter_match_if_missing: 0b1,
+
+    enabled_filters: 0b1,
+};
+
+enum Setting<T> {
+    Enabled(T, MissingBehaviour),
+    Disabled,
+}
+
+enum MissingBehaviour {
+    Match,
+    NotMatch,
+}
+
+enum Match<T> {
+    Eq(T),
+    Neq(T),
+}
+*/

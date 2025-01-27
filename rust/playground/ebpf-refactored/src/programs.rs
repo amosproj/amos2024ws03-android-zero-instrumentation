@@ -2,16 +2,12 @@
 //
 // SPDX-License-Identifier: MIT
 
-
 #[cfg(bpf_target_arch = "x86_64")]
 use aya_ebpf::bindings::pt_regs;
 #[cfg(bpf_target_arch = "aarch64")]
 use aya_ebpf::bindings::user_pt_regs as pt_regs;
 use aya_ebpf::{
-    helpers::{
-        bpf_get_current_task, bpf_ktime_get_ns, bpf_probe_read,
-        bpf_probe_read_kernel,
-    },
+    helpers::{bpf_get_current_task, bpf_ktime_get_ns, bpf_probe_read, bpf_probe_read_kernel},
     macros::{map, raw_tracepoint},
     maps::{Array, HashMap, RingBuf},
     programs::RawTracePointContext,
@@ -19,7 +15,7 @@ use aya_ebpf::{
 };
 use aya_log_ebpf::info;
 use ebpf_types::{
-    Equality, Event, EventContext, EventKind, FileDescriptorChange, FileDescriptorOp,
+    Blocking, Equality, Event, EventContext, EventKind, FileDescriptorChange, FileDescriptorOp,
     FilterConfig, MissingBehavior, ProcessContext, Signal, TaskContext, Write, WriteSource,
 };
 use relocation_helpers::TaskStruct;
@@ -74,6 +70,50 @@ fn kill_test(ctx: RawTracePointContext) -> Option<()> {
             entry.discard(0)
         }
     }
+    Some(())
+}
+
+#[map]
+static START_TIME: HashMap<u32, u64> = HashMap::with_max_entries(10240, 0);
+
+#[raw_tracepoint]
+fn sys_enter_test(ctx: RawTracePointContext) -> Option<()> {
+    let start = unsafe { bpf_ktime_get_ns() };
+    let tid = ctx.pid();
+    START_TIME.insert(&tid, &start, 0).ok()?;
+
+    Some(())
+}
+
+#[raw_tracepoint]
+fn sys_exit_test(ctx: RawTracePointContext) -> Option<()> {
+    let end = unsafe { bpf_ktime_get_ns() };
+    let tid = ctx.pid();
+    let raw_pt_regs = unsafe { *(ctx.as_ptr() as *const *mut pt_regs) };
+    let syscall_id = unsafe { bpf_probe_read(&raw const (*raw_pt_regs).orig_rax) }.ok()?;
+
+    let start = unsafe { *START_TIME.get(&tid)? };
+    START_TIME.remove(&tid).ok()?;
+
+    let delta = end - start;
+
+    let task = unsafe { TaskStruct::new(bpf_get_current_task() as *mut _) };
+    let task_info = task_info_from_task(task)?;
+
+    let mut entry = EVENTS.reserve::<Event<Blocking>>(0)?;
+    let entry_mut = unsafe { &mut *entry.as_mut_ptr() };
+
+    entry_mut.context = EventContext {
+        task: unsafe { *task_info },
+        timestamp: unsafe { bpf_ktime_get_ns() },
+    };
+    entry_mut.kind = EventKind::Blocking;
+    entry_mut.data = Blocking {
+        syscall_id,
+        duration: delta,
+    };
+    entry.submit(0);
+
     Some(())
 }
 
