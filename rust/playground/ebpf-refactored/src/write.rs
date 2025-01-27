@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use aya_ebpf::PtRegs;
 use ebpf_types::{Write, WriteSource};
 use relocation_helpers::TaskStruct;
