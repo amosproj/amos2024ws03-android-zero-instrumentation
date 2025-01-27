@@ -96,6 +96,20 @@ struct task_struct {
 	struct task_struct *group_leader;
 };
 
+struct art_heap {
+	u64 target_footprint;
+	u64 num_bytes_allocated;
+	u32 gc_cause;
+	u64 duration_ns;
+	u64 freed_objects;
+	u64 freed_bytes;
+	u64 freed_los_objects;
+	u64 freed_los_bytes;
+	u32 gcs_completed;
+	u64 pause_times_begin;
+	u64 pause_times_end;
+};
+
 inline struct mm_struct **task_struct_mm(struct task_struct *task)
 {
 	return &task->mm;
@@ -233,6 +247,61 @@ inline struct file ***fdtable_fd(struct fdtable *fdt)
 inline long unsigned int **fdtable_open_fds(struct fdtable *fdt)
 {
 	return &fdt->open_fds;
+}
+
+inline u64 *art_heap_target_footprint(struct art_heap *heap)
+{
+	return &heap->target_footprint;
+}
+
+inline u64 *art_heap_num_bytes_allocated(struct art_heap *heap)
+{
+	return &heap->num_bytes_allocated;
+}
+
+inline u32 *art_heap_gc_cause(struct art_heap *heap)
+{
+	return &heap->gc_cause;
+}
+
+inline u64 *art_heap_duration_ns(struct art_heap *heap)
+{
+	return &heap->duration_ns;
+}
+
+inline u64 *art_heap_freed_objects(struct art_heap *heap)
+{
+	return &heap->freed_objects;
+}
+
+inline u64 *art_heap_freed_bytes(struct art_heap *heap)
+{
+	return &heap->freed_bytes;
+}
+
+inline u64 *art_heap_freed_los_objects(struct art_heap *heap)
+{
+	return &heap->freed_los_objects;
+}
+
+inline u64 *art_heap_freed_los_bytes(struct art_heap *heap)
+{
+	return &heap->freed_los_bytes;
+}
+
+inline u32 *art_heap_gcs_completed(struct art_heap *heap)
+{
+	return &heap->gcs_completed;
+}
+
+inline u64 *art_heap_pause_times_begin(struct art_heap *heap)
+{
+	return &heap->pause_times_begin;
+}
+
+inline u64 *art_heap_pause_times_end(struct art_heap *heap)
+{
+	return &heap->pause_times_end;
 }
 
 #if defined(__bpf__)

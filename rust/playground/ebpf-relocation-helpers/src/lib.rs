@@ -5,12 +5,12 @@
 #![allow(clippy::len_without_is_empty)]
 
 #[cfg(not(target_arch = "bpf"))]
-fn bpf_probe_read_kernel<T>(ptr: *const T) -> Result<T, i64> {
+fn bpf_probe_read<T>(ptr: *const T) -> Result<T, i64> {
     unsafe { Ok(core::ptr::read(ptr)) }
 }
 
 #[cfg(target_arch = "bpf")]
-use aya_ebpf::helpers::bpf_probe_read_kernel;
+use aya_ebpf::helpers::bpf_probe_read;
 
 pub mod ffi {
     #![allow(non_upper_case_globals)]
@@ -154,7 +154,7 @@ macro_rules! gen_accessor_plain {
             #[doc = "Reads the value of the field `" $parent "." $name "` with CO:RE relocations."]
             #[inline(always)]
             pub fn $name(&self) -> Result<$type, i64> {
-                unsafe { bpf_probe_read_kernel([< $parent _ $name >](self.inner) as *const _) }
+                unsafe { bpf_probe_read([< $parent _ $name >](self.inner) as *const _) }
             }
         }
     };
@@ -184,7 +184,7 @@ macro_rules! gen_accessor_wrapper {
             #[doc = "Reads the value of the field `" $parent "." $name "` with CO:RE relocations."]
             #[inline(always)]
             pub fn $name(&self) -> Result<$type, i64> {
-                Ok($type { inner: unsafe { bpf_probe_read_kernel([< $parent _ $name >](self.inner) as *const _) }? })
+                Ok($type { inner: unsafe { bpf_probe_read([< $parent _ $name >](self.inner) as *const _) }? })
             }
         }
     };
@@ -346,4 +346,18 @@ gen_accessors!(fdtable => {
     plain max_fds: u32,
     no_read fd: *mut *mut *mut file,
     plain open_fds: *mut u64,
+});
+
+gen_accessors!(art_heap => {
+    plain target_footprint: u64,
+    plain num_bytes_allocated: u64,
+    plain gc_cause: u32,
+    plain duration_ns: u64,
+    plain freed_objects: u64,
+    plain freed_bytes: u64,
+    plain freed_los_objects: u64,
+    plain freed_los_bytes: u64,
+    plain gcs_completed: u32,
+    plain pause_times_begin: u64,
+    plain pause_times_end: u64,
 });
