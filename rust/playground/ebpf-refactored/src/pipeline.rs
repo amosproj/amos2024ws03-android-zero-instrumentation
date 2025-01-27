@@ -7,16 +7,16 @@ use core::mem;
 use aya_ebpf::{
     bindings::pt_regs,
     helpers::{bpf_get_current_task, bpf_ktime_get_ns},
-    macros::{map, raw_tracepoint, uprobe},
+    macros::{map, raw_tracepoint, uprobe, uretprobe},
     maps::{Array, HashMap, PerCpuArray, RingBuf},
-    programs::{ProbeContext, RawTracePointContext},
+    programs::{ProbeContext, RawTracePointContext, RetProbeContext},
     EbpfContext, PtRegs,
 };
 use ebpf_types::{
-    Blocking, Event, EventContext, EventData, FileDescriptorChange, FilterConfig, Jni,
-    ProcessContext, Signal, TaskContext, Write,
+    Blocking, Event, EventContext, EventData, FileDescriptorChange, FilterConfig, GarbageCollect,
+    Jni, ProcessContext, Signal, TaskContext, Write,
 };
-use relocation_helpers::TaskStruct;
+use relocation_helpers::{ffi::art_heap, ArtHeap, TaskStruct};
 
 use crate::{
     blocking::{initialize_blocking_enter, initialize_blocking_exit},
@@ -429,4 +429,59 @@ fn trace_jni_add_global(_: ProbeContext) -> Option<()> {
 #[uprobe]
 fn trace_jni_del_global(_: ProbeContext) -> Option<()> {
     unsafe { trace_jni_enter(Jni::DeleteGlobalRef) }
+}
+
+#[uprobe]
+fn trace_gc_enter(ctx: ProbeContext) -> Option<()> {
+    unsafe {
+        let task = current_task();
+        let program_info = program_info::<GarbageCollect>(task)?;
+
+        if filter::<Jni>(
+            program_info.filter_config,
+            program_info.task_context,
+            program_info.process_context,
+        ) {
+            return None;
+        }
+
+        let heap = ArtHeap::new(ctx.arg::<*mut art_heap>(0)?);
+        (program_info.event_info.raw_event_data as *mut ArtHeap).write(heap);
+
+        program_info.submit_intermediate()?;
+    }
+    Some(())
+}
+
+#[uretprobe]
+fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
+    unsafe {
+        let task = current_task();
+        let program_info = program_info_intermediate::<GarbageCollect>(task)?;
+
+        if filter::<Jni>(
+            program_info.filter_config,
+            program_info.task_context,
+            program_info.process_context,
+        ) {
+            return None;
+        }
+
+        let heap = (program_info.event_info.raw_event_data as *mut ArtHeap).read();
+
+        *program_info.event_info.event_data = GarbageCollect {
+            target_footprint: heap.target_footprint().ok()?,
+            num_bytes_allocated: heap.num_bytes_allocated().ok()?,
+            gc_cause: heap.gc_cause().ok()?,
+            duration_ns: heap.duration_ns().ok()?,
+            freed_objects: heap.freed_objects().ok()?,
+            freed_bytes: heap.freed_bytes().ok()?,
+            freed_los_objects: heap.freed_los_objects().ok()?,
+            freed_los_bytes: heap.freed_los_bytes().ok()?,
+            gcs_completed: heap.gcs_completed().ok()?,
+        };
+
+        program_info.submit()?;
+    }
+    Some(())
 }

@@ -129,7 +129,15 @@ pub struct Signal {
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]
 pub struct GarbageCollect {
-    pub _unused: [u8; 0],
+    pub target_footprint: u64,
+    pub num_bytes_allocated: u64,
+    pub gc_cause: u32,
+    pub duration_ns: u64,
+    pub freed_objects: u64,
+    pub freed_bytes: u64,
+    pub freed_los_objects: u64,
+    pub freed_los_bytes: u64,
+    pub gcs_completed: u32,
 }
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]

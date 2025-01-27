@@ -17,9 +17,9 @@ impl EbpfBoundsCheck for usize {
     unsafe fn bounded<const N: usize>(self) -> Option<Self> {
         let this = self & ((N << 1) - 1);
         if this & N != 0 {
-            return None;
+            None
         } else {
-            return Some(this & (N - 1));
+            Some(this & (N - 1))
         }
     }
 }
