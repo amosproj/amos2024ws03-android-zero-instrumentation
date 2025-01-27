@@ -40,6 +40,12 @@ unsafe impl aya::Pod for TaskContext {}
 #[cfg(feature = "user")]
 unsafe impl aya::Pod for ProcessContext {}
 
+#[cfg(feature = "user")]
+unsafe impl aya::Pod for FilterConfig {}
+
+#[cfg(feature = "user")]
+unsafe impl aya::Pod for Equality {}
+
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]
 pub struct EventContext {
@@ -79,6 +85,7 @@ unsafe impl<T: CheckedBitPattern + 'static> CheckedBitPattern for Event<T> {
 #[repr(C)]
 pub struct Write {
     pub bytes_written: u64,
+    pub file_descriptor: u64,
     pub file_path: [u8; 4096],
     pub source: WriteSource,
 }
@@ -140,7 +147,7 @@ pub enum FileDescriptorOp {
 }
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]
-#[repr(u8)]
+#[repr(u64)]
 pub enum EventKind {
     Write,
     Blocking,
@@ -149,6 +156,29 @@ pub enum EventKind {
     FileDescriptorChange,
     Jni,
     MAX,
+}
+
+pub trait EventData {
+    const EVENT_KIND: EventKind;
+}
+
+macro_rules! impl_event_data {
+    ($($event:ident),*) => {
+        $(
+            impl EventData for $event {
+                const EVENT_KIND: EventKind = EventKind::$event;
+            }
+        )*
+    }
+}
+
+impl_event_data! {
+    Write,
+    Blocking,
+    Signal,
+    GarbageCollect,
+    FileDescriptorChange,
+    Jni
 }
 
 #[derive(Debug, Clone, Copy, Default, AnyBitPattern)]
@@ -182,6 +212,8 @@ pub enum MissingBehavior {
 }
 
 /// Each bit corresponds to an EventKind, e.g. 1 << EventKind::Write
+#[derive(Debug, Clone, Copy, AnyBitPattern)]
+#[repr(C)]
 pub struct Equality {
     /// 1 corresponds to Eq, 0 corresponds to NotEq
     pub eq_for_event_kind: u64,

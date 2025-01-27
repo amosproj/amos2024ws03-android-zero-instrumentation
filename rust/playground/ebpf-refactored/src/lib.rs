@@ -16,3 +16,21 @@ pub mod task_info;
 
 #[cfg(target_arch = "bpf")]
 pub mod process_info;
+
+#[cfg(target_arch = "bpf")]
+pub mod pipeline;
+
+#[cfg(target_arch = "bpf")]
+pub mod write;
+
+#[cfg(target_arch = "bpf")]
+pub mod blocking;
+
+#[cfg(target_arch = "bpf")]
+pub mod signal;
+
+#[cfg(target_arch = "bpf")]
+pub mod syscalls;
+
+#[cfg(target_arch = "bpf")]
+pub mod fdtracking;

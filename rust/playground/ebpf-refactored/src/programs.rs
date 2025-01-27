@@ -15,14 +15,16 @@ use aya_ebpf::{
 };
 use aya_log_ebpf::info;
 use ebpf_types::{
-    Blocking, Equality, Event, EventContext, EventKind, FileDescriptorChange, FileDescriptorOp,
-    FilterConfig, MissingBehavior, ProcessContext, Signal, TaskContext, Write, WriteSource,
+    Blocking, Equality, Event, EventContext, EventData, EventKind, FileDescriptorChange,
+    FileDescriptorOp, FilterConfig, MissingBehavior, ProcessContext, Signal, TaskContext, Write,
+    WriteSource,
 };
 use relocation_helpers::TaskStruct;
 
 use crate::{
     path::{get_path_from_fd, read_path_to_buf_with_default},
     process_info::process_info_from_task,
+    syscalls,
     task_info::task_info_from_task,
 };
 
@@ -307,20 +309,6 @@ fn get_file_op(syscall_number: i64) -> Option<FileDescriptorOp> {
     }
 }
 
-mod syscalls {
-    #[cfg(bpf_target_arch = "aarch64")]
-    pub use syscall_numbers::aarch64::*;
-    #[cfg(bpf_target_arch = "x86_64")]
-    pub use syscall_numbers::x86_64::*;
-}
-
-pub struct ProgramContext<'a> {
-    task_context: &'a TaskContext,
-    process_context: &'a ProcessContext,
-    policy: &'a FilterConfig,
-    event_kind: EventKind,
-}
-
 #[map]
 static PID_FILTER: HashMap<u32, Equality> = HashMap::with_max_entries(256, 0);
 
@@ -334,7 +322,7 @@ static EXE_PATH_FILTER: HashMap<[u8; 4096], Equality> = HashMap::with_max_entrie
 static CMDLINE_FILTER: HashMap<[u8; 256], Equality> = HashMap::with_max_entries(256, 0);
 
 #[map]
-static FILTER_CONFIG: Array<FilterConfig> = Array::with_max_entries(EventKind::MAX as u32, 0);
+pub static FILTER_CONFIG: Array<FilterConfig> = Array::with_max_entries(EventKind::MAX as u32, 0);
 
 fn should_match(eq: Option<&Equality>, mask: u64, missing_behavior: MissingBehavior) -> bool {
     let eq = eq.map(|eq| {
@@ -358,36 +346,43 @@ fn should_match(eq: Option<&Equality>, mask: u64, missing_behavior: MissingBehav
 /// # Safety
 ///
 /// Ebpf Map operations are unsafe
-pub unsafe fn filter(ctx: &ProgramContext) -> bool {
-    let event_mask = 1u64 << ctx.event_kind as u8;
+pub unsafe fn filter<T: EventData>(
+    filter_config: &FilterConfig,
+    task_context: &TaskContext,
+    process_context: &ProcessContext,
+) -> bool {
+    let event_mask = 1u64 << T::EVENT_KIND as u8;
 
-    if let Some(pid_filter) = ctx.policy.pid_filter {
-        let eq = PID_FILTER.get(&ctx.task_context.pid);
-        if !should_match(eq, event_mask, pid_filter.missing_behavior) {
+    if let Some(pid_filter) = filter_config.pid_filter {
+        let eq = PID_FILTER.get(&task_context.pid);
+        if should_match(eq, event_mask, pid_filter.missing_behavior) {
             return false;
         }
     }
 
-    if let Some(comm_filter) = ctx.policy.comm_filter {
-        let eq = COMM_FILTER.get(&ctx.task_context.comm);
-        if !should_match(eq, event_mask, comm_filter.missing_behavior) {
+    if let Some(comm_filter) = filter_config.comm_filter {
+        let eq = COMM_FILTER.get(&task_context.comm);
+        if should_match(eq, event_mask, comm_filter.missing_behavior) {
             return false;
         }
     }
 
-    if let Some(exe_path_filter) = ctx.policy.exe_path_filter {
-        let eq = EXE_PATH_FILTER.get(&ctx.process_context.exe_path);
-        if !should_match(eq, event_mask, exe_path_filter.missing_behavior) {
+    if let Some(exe_path_filter) = filter_config.exe_path_filter {
+        let eq = EXE_PATH_FILTER.get(&process_context.exe_path);
+        if should_match(eq, event_mask, exe_path_filter.missing_behavior) {
             return false;
         }
     }
 
-    if let Some(cmdline_filter) = ctx.policy.cmdline_filter {
-        let eq = CMDLINE_FILTER.get(&ctx.process_context.cmdline);
-        if !should_match(eq, event_mask, cmdline_filter.missing_behavior) {
+    if let Some(cmdline_filter) = filter_config.cmdline_filter {
+        let eq = CMDLINE_FILTER.get(&process_context.cmdline);
+        if should_match(eq, event_mask, cmdline_filter.missing_behavior) {
             return false;
         }
     }
 
-    true
+    filter_config.pid_filter.is_some()
+        || filter_config.comm_filter.is_some()
+        || filter_config.exe_path_filter.is_some()
+        || filter_config.cmdline_filter.is_some()
 }
