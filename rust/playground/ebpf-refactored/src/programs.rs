@@ -19,7 +19,7 @@ use ebpf_types::{
     FileDescriptorOp, FilterConfig, MissingBehavior, ProcessContext, Signal, TaskContext, Write,
     WriteSource,
 };
-use relocation_helpers::TaskStruct;
+use ebpf_relocation_helpers::TaskStruct;
 
 use crate::{
     path::{get_path_from_fd, read_path_to_buf_with_default},

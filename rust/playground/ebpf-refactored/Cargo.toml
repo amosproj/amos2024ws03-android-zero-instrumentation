@@ -13,12 +13,12 @@ edition = "2021"
 bounds-check = []
 
 [dependencies]
-aya-ebpf = { version = "0.1.1", default-features = false }
-aya-log-common = { version = "0.1.15", default-features = false }
-aya-log-ebpf = { version = "0.1.1", default-features = false }
-ebpf-types = { path = "../ebpf-types" }
-relocation-helpers = { path = "../ebpf-relocation-helpers", package = "ebpf-relocation-helpers" }
-syscall-numbers = "4.0.1"
+aya-ebpf = { workspace = true }
+aya-log-common = { workspace = true }
+aya-log-ebpf = { workspace = true }
+ebpf-types = { workspace = true }
+ebpf-relocation-helpers = { workspace = true }
+syscall-numbers = { workspace = true }
 
 [profile.dev]
 panic = "abort"

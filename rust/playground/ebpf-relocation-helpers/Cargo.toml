@@ -5,7 +5,7 @@
 [package]
 name = "ebpf-relocation-helpers"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 
 include = [
     "src/c/relocation_helpers.c",
@@ -14,10 +14,10 @@ include = [
 links = "relocation_helpers"
 
 [dependencies]
-aya-ebpf = "0.1.1"
-paste = "1.0.15"
+aya-ebpf = { workspace = true }
+paste = { workspace = true }
 
 [build-dependencies]
-bindgen = { version = "0.71.1", default-features = false, features = ["runtime"] }
-cc = { version = "1.2.10", default-features = false }
+bindgen = { workspace = true, features = ["runtime"] }
+cc = { workspace = true }
 

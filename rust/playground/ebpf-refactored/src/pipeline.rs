@@ -16,7 +16,7 @@ use ebpf_types::{
     Blocking, Event, EventContext, EventData, FileDescriptorChange, FilterConfig, GarbageCollect,
     Jni, ProcessContext, Signal, TaskContext, Write,
 };
-use relocation_helpers::{ffi::art_heap, ArtHeap, TaskStruct};
+use ebpf_relocation_helpers::{ffi::art_heap, ArtHeap, TaskStruct};
 
 use crate::{
     blocking::{initialize_blocking_enter, initialize_blocking_exit},

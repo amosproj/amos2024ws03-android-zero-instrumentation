@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+
+SPDX-License-Identifier: MIT
+-->
+
 # Important note
 
 Before running you have to export the following:

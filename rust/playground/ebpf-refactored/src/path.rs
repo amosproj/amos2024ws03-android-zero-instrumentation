@@ -9,7 +9,7 @@ use aya_ebpf::{
     macros::map,
     maps::PerCpuArray,
 };
-use relocation_helpers::{Dentry, File, Mount, Path, TaskStruct, Vfsmount};
+use ebpf_relocation_helpers::{Dentry, File, Mount, Path, TaskStruct, Vfsmount};
 
 use crate::{bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt};
 

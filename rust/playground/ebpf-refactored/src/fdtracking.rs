@@ -4,7 +4,7 @@
 
 use aya_ebpf::helpers::bpf_probe_read_kernel;
 use ebpf_types::{FileDescriptorChange, FileDescriptorOp};
-use relocation_helpers::TaskStruct;
+use ebpf_relocation_helpers::TaskStruct;
 
 use crate::syscalls;
 

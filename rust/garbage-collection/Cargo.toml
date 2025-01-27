@@ -19,7 +19,6 @@ serde_json = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
 
 [features]
-default = ["btf"]
 parse = ["dep:clang", "dep:clang-sys", "dep:thiserror"]
 cli = ["parse", "serialize", "dep:serde_json"]
 read = []

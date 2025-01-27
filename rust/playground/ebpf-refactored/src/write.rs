@@ -4,7 +4,7 @@
 
 use aya_ebpf::PtRegs;
 use ebpf_types::{Write, WriteSource};
-use relocation_helpers::TaskStruct;
+use ebpf_relocation_helpers::TaskStruct;
 
 use crate::{
     path::{get_path_from_fd, read_path_to_buf_with_default},
