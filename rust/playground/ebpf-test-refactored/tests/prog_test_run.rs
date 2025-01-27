@@ -3,13 +3,14 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
+    any::Any,
     env::current_exe,
     ffi::CStr,
     fs::{self, read_dir},
     io,
     mem::{self},
     os::{
-        fd::{AsFd, AsRawFd},
+        fd::{AsFd, AsRawFd, RawFd},
         unix::{ffi::OsStrExt, process::parent_id},
     },
     process::id,
@@ -23,11 +24,12 @@ use aya::{
 use aya_ebpf::bindings::pt_regs;
 use aya_log::EbpfLogger;
 use aya_obj::generated::{bpf_attr, bpf_cmd::BPF_PROG_TEST_RUN};
-use bytemuck::checked;
+use bytemuck::{checked, CheckedBitPattern};
 use ebpf_types::{
-    Event, FileDescriptorChange, FileDescriptorOp, ProcessContext, Signal, TaskContext, WriteSource,
+    unpack_event, Blocking, Event, EventKind, FileDescriptorChange, FileDescriptorOp,
+    GarbageCollect, Jni, ProcessContext, Signal, TaskContext, Write, WriteSource,
 };
-use libc::{syscall, SYS_bpf, SYS_gettid};
+use libc::{syscall, SYS_bpf, SYS_futex, SYS_gettid, SYS_kill, SYS_open, SYS_write};
 
 const PROG_BYTES: &[u8] = aya::include_bytes_aligned!(concat!(env!("OUT_DIR"), "/ebpf.o"));
 
@@ -39,31 +41,44 @@ fn setup() -> Ebpf {
     ebpf
 }
 
-#[test_log::test(tokio::test)]
-async fn prog_test_example() {
-    let mut ebpf = setup();
-
-    let prog: &mut RawTracePoint = ebpf
-        .program_mut("task_info_test")
-        .unwrap()
-        .try_into()
-        .unwrap();
+fn load_tracepoint(ebpf: &mut Ebpf, name: &str) -> RawFd {
+    let prog: &mut RawTracePoint = ebpf.program_mut(name).unwrap().try_into().unwrap();
 
     prog.load().unwrap();
 
-    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
+    prog.fd().unwrap().as_fd().as_raw_fd()
+}
 
+fn prog_run(fd: RawFd, args: &[u64]) -> Result<i64, io::Error> {
     let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
 
     attr.test.prog_fd = fd as u32;
-    attr.test.ctx_in = 0;
-    attr.test.ctx_size_in = 0;
+    attr.test.ctx_in = args.as_ptr() as u64;
+    attr.test.ctx_size_in = args.len() as u32 * 8;
 
     let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
 
     if ret < 0 {
-        panic!("Failed to run test: {:?}", io::Error::last_os_error());
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(ret)
     }
+}
+
+fn get_event<T: CheckedBitPattern + 'static>(ebpf: &mut Ebpf) -> Box<Event<T>> {
+    let mut map: RingBuf<_> = ebpf.map_mut("EVENT_RB").unwrap().try_into().unwrap();
+    let event = map.next().unwrap();
+    let event = checked::from_bytes::<Event<T>>(&event);
+    Box::from(*event)
+}
+
+#[test_log::test(tokio::test)]
+async fn prog_test_example() {
+    let mut ebpf = setup();
+
+    let fd = load_tracepoint(&mut ebpf, "task_info_test");
+
+    let _ = prog_run(fd, &[0, 0]).unwrap();
 
     let map: HashMap<_, u32, TaskContext> = ebpf.map("TASK_INFO").unwrap().try_into().unwrap();
 
@@ -91,36 +106,20 @@ async fn prog_test_example() {
 }
 
 #[test_log::test(tokio::test)]
-async fn test_write() {
+async fn test_syswrite() {
     let mut ebpf = setup();
 
-    let prog: &mut RawTracePoint = ebpf.program_mut("write_test").unwrap().try_into().unwrap();
+    let fd = load_tracepoint(&mut ebpf, "write_test");
 
-    prog.load().unwrap();
-
-    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
-
-    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
     let mut regs = unsafe { mem::zeroed::<pt_regs>() };
-
     regs.rdi = fd as u64; // fd
     regs.rdx = 66; // bytes written
 
-    let args = [&raw mut regs as u64, 1];
-
-    attr.test.prog_fd = fd as u32;
-    attr.test.ctx_in = args.as_ptr() as u64;
-    attr.test.ctx_size_in = 2 * 8;
-
-    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
-
-    if ret < 0 {
-        panic!("Failed to run test: {:?}", io::Error::last_os_error());
-    }
+    let _ = prog_run(fd, &[&raw mut regs as u64, 1]).unwrap();
 
     let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
     let event = events.next().unwrap();
-    let event = checked::from_bytes::<Event<ebpf_types::Write>>(&*event);
+    let event = checked::from_bytes::<Event<ebpf_types::Write>>(&event);
 
     let file_path = CStr::from_bytes_until_nul(&event.data.file_path[..]).unwrap();
     let file_path = file_path.to_str().unwrap();
@@ -133,28 +132,8 @@ async fn test_write() {
 #[test_log::test(tokio::test)]
 async fn test_bin_path() {
     let mut ebpf = setup();
-
-    let prog: &mut RawTracePoint = ebpf
-        .program_mut("process_info_test")
-        .unwrap()
-        .try_into()
-        .unwrap();
-
-    prog.load().unwrap();
-
-    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
-
-    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
-
-    attr.test.prog_fd = fd as u32;
-    attr.test.ctx_in = 0;
-    attr.test.ctx_size_in = 0;
-
-    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
-
-    if ret < 0 {
-        panic!("Failed to run test: {:?}", io::Error::last_os_error());
-    }
+    let fd = load_tracepoint(&mut ebpf, "process_info_test");
+    let _ = prog_run(fd, &[0, 0]).unwrap();
 
     let exe_path = {
         let mut tmp = [0u8; 4096];
@@ -188,32 +167,11 @@ async fn test_bin_path() {
 async fn test_new_fd() {
     let mut ebpf = setup();
 
-    let prog: &mut RawTracePoint = ebpf
-        .program_mut("file_descriptor_test")
-        .unwrap()
-        .try_into()
-        .unwrap();
-
-    prog.load().unwrap();
-
-    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
-
-    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+    let fd = load_tracepoint(&mut ebpf, "file_descriptor_test");
     let mut regs = unsafe { mem::zeroed::<pt_regs>() };
+    regs.orig_rax = SYS_open as u64;
 
-    regs.orig_rax = syscall_numbers::x86_64::SYS_open as u64;
-
-    let args = [&raw mut regs as u64, 0];
-
-    attr.test.prog_fd = fd as u32;
-    attr.test.ctx_in = args.as_ptr() as u64;
-    attr.test.ctx_size_in = 2 * 8;
-
-    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
-
-    if ret < 0 {
-        panic!("Failed to run test: {:?}", io::Error::last_os_error());
-    }
+    let _ = prog_run(fd, &[&raw mut regs as u64, 0]).unwrap();
 
     let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
     let raw_event = events.next().unwrap();
@@ -230,13 +188,7 @@ async fn test_new_fd() {
 async fn test_kill() {
     let mut ebpf = setup();
 
-    let prog: &mut RawTracePoint = ebpf.program_mut("kill_test").unwrap().try_into().unwrap();
-
-    prog.load().unwrap();
-
-    let fd = prog.fd().unwrap().as_fd().as_raw_fd();
-
-    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+    let fd = load_tracepoint(&mut ebpf, "kill_test");
     let mut regs = unsafe { mem::zeroed::<pt_regs>() };
 
     let target_pid = 123;
@@ -245,20 +197,7 @@ async fn test_kill() {
     regs.rdi = target_pid as u64;
     regs.rsi = signal as u64;
 
-    let args = [
-        &raw mut regs as u64,
-        syscall_numbers::x86_64::SYS_kill as u64,
-    ];
-
-    attr.test.prog_fd = fd as u32;
-    attr.test.ctx_in = args.as_ptr() as u64;
-    attr.test.ctx_size_in = 2 * 8;
-
-    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
-
-    if ret < 0 {
-        panic!("Failed to run test: {:?}", io::Error::last_os_error());
-    }
+    let _ = prog_run(fd, &[&raw mut regs as u64, SYS_kill as u64]).unwrap();
 
     let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
     let raw_event = events.next().unwrap();
@@ -269,76 +208,20 @@ async fn test_kill() {
     assert_eq!(data.target_pid, target_pid);
     assert_eq!(data.signal, signal);
 }
-use std::any::Any;
-
-use ebpf_types::*;
-
-#[macro_export]
-macro_rules! unpack_event {
-    ($rbe:ident) => {{
-        let event_kind = unsafe { &*($rbe.as_ptr() as *const EventKind) };
-        match *event_kind {
-            EventKind::Write => {
-                Box::new(*checked::from_bytes::<Event<Write>>(&$rbe)) as Box<Event<dyn Any>>
-            }
-            EventKind::Signal => Box::new(*checked::from_bytes::<Event<Signal>>(&$rbe)),
-            EventKind::GarbageCollect => {
-                Box::new(*checked::from_bytes::<Event<GarbageCollect>>(&$rbe))
-            }
-            EventKind::FileDescriptorChange => {
-                Box::new(*checked::from_bytes::<Event<FileDescriptorChange>>(&$rbe))
-            }
-            EventKind::Jni => Box::new(*checked::from_bytes::<Event<Jni>>(&$rbe)),
-            EventKind::Blocking => Box::new(*checked::from_bytes::<Event<Blocking>>(&$rbe)),
-            EventKind::MAX => unreachable!(),
-        }
-    }};
-}
 
 #[test_log::test(tokio::test)]
 async fn blocking_test() {
     let mut ebpf = setup();
 
-    let prog: &mut RawTracePoint = ebpf
-        .program_mut("sys_enter_test")
-        .unwrap()
-        .try_into()
-        .unwrap();
-
-    prog.load().unwrap();
-    let enter_fd = prog.fd().unwrap().as_fd().as_raw_fd();
-
-    let prog: &mut RawTracePoint = ebpf
-        .program_mut("sys_exit_test")
-        .unwrap()
-        .try_into()
-        .unwrap();
-
-    prog.load().unwrap();
-    let exit_fd = prog.fd().unwrap().as_fd().as_raw_fd();
-
-    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
-
-    attr.test.prog_fd = enter_fd as u32;
-
-    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
-
-    if ret < 0 {
-        panic!("Failed to run test: {:?}", io::Error::last_os_error());
-    }
+    let enter_fd = load_tracepoint(&mut ebpf, "sys_enter_test");
+    let exit_fd = load_tracepoint(&mut ebpf, "sys_exit_test");
 
     let mut regs = unsafe { mem::zeroed::<pt_regs>() };
+
+    let _ = prog_run(enter_fd, &[&raw mut regs as u64, 1]).unwrap();
+
     regs.orig_rax = 1;
-    let args = [&raw mut regs as u64, 0];
-    attr.test.prog_fd = exit_fd as u32;
-    attr.test.ctx_in = args.as_ptr() as u64;
-    attr.test.ctx_size_in = 2 * 8;
-
-    let ret = unsafe { syscall(SYS_bpf, BPF_PROG_TEST_RUN, &mut attr, size_of::<bpf_attr>()) };
-
-    if ret < 0 {
-        panic!("Failed to run test: {:?}", io::Error::last_os_error());
-    }
+    let _ = prog_run(exit_fd, &[&raw mut regs as u64, 0]).unwrap();
 
     let mut events: RingBuf<_> = ebpf.take_map("EVENTS").unwrap().try_into().unwrap();
     let raw_event = events.next().unwrap();
@@ -348,4 +231,162 @@ async fn blocking_test() {
 
     assert_eq!(data.syscall_id, 1);
     assert!(data.duration > 0);
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct PtRegs {
+    arg1: u64,
+    arg2: u64,
+    arg3: u64,
+    arg4: u64,
+    arg5: u64,
+    arg6: u64,
+    ret: u64,
+    syscall: u64,
+}
+
+impl PtRegs {
+    fn build(self) -> pt_regs {
+        let mut regs = unsafe { mem::zeroed::<pt_regs>() };
+        regs.orig_rax = self.syscall;
+        regs.rdi = self.arg1;
+        regs.rsi = self.arg2;
+        regs.rdx = self.arg3;
+        regs.r10 = self.arg4;
+        regs.r8 = self.arg5;
+        regs.r9 = self.arg6;
+        regs.rax = self.ret;
+        regs
+    }
+}
+
+#[test_log::test(tokio::test)]
+async fn test_write() {
+    let mut ebpf = setup();
+    let enter_fd = load_tracepoint(&mut ebpf, "sys_enter_write");
+    let exit_fd = load_tracepoint(&mut ebpf, "sys_exit_write");
+
+    let syscall_id = SYS_write as u64;
+    let bytes_written = 66;
+    let file_descriptor = enter_fd as u64;
+    let ret_value = 0;
+
+    let pt_regs_enter = PtRegs {
+        arg1: file_descriptor,
+        arg3: bytes_written,
+        ..Default::default()
+    }
+    .build();
+    let pt_regs_exit = PtRegs {
+        ret: ret_value,
+        syscall: syscall_id,
+        ..Default::default()
+    }
+    .build();
+
+    let _ = prog_run(enter_fd, &[&raw const pt_regs_enter as u64, syscall_id]).unwrap();
+    let _ = prog_run(exit_fd, &[&raw const pt_regs_exit as u64, ret_value]).unwrap();
+
+    let event = get_event::<Write>(&mut ebpf);
+    assert!(matches!(event.kind, EventKind::Write));
+    assert!(matches!(event.data.source, WriteSource::Write));
+    assert_eq!(event.data.bytes_written, bytes_written);
+    assert_eq!(event.data.file_descriptor, file_descriptor);
+    let file_path = CStr::from_bytes_until_nul(&event.data.file_path[..])
+        .unwrap()
+        .to_str()
+        .unwrap();
+    assert_eq!(file_path, "bpf-prog");
+}
+
+#[test_log::test(tokio::test)]
+async fn test_blocking() {
+    let mut ebpf = setup();
+    let enter_fd = load_tracepoint(&mut ebpf, "sys_enter_blocking");
+    let exit_fd = load_tracepoint(&mut ebpf, "sys_exit_blocking");
+
+    let syscall = SYS_futex as u64;
+    let ret = 0;
+
+    let pt_regs_enter = PtRegs {
+        ..Default::default()
+    }
+    .build();
+    let pt_regs_exit = PtRegs {
+        ret,
+        syscall,
+        ..Default::default()
+    }
+    .build();
+
+    let _ = prog_run(enter_fd, &[&raw const pt_regs_enter as u64, syscall]).unwrap();
+    let _ = prog_run(exit_fd, &[&raw const pt_regs_exit as u64, ret]).unwrap();
+
+    let event = get_event::<Blocking>(&mut ebpf);
+    assert!(matches!(event.kind, EventKind::Blocking));
+    assert_eq!(event.data.syscall_id, syscall);
+    assert!(event.data.duration > 0);
+}
+
+#[test_log::test(tokio::test)]
+async fn test_signal() {
+    let mut ebpf = setup();
+    let enter_fd = load_tracepoint(&mut ebpf, "sys_enter_signal");
+    let exit_fd = load_tracepoint(&mut ebpf, "sys_exit_signal");
+
+    let syscall = SYS_kill as u64;
+    let ret = 0;
+    let target_pid = 123;
+    let signal = 1;
+
+    let pt_regs_enter = PtRegs {
+        arg1: target_pid as u64,
+        arg2: signal as u64,
+        ..Default::default()
+    }
+    .build();
+    let pt_regs_exit = PtRegs {
+        ret,
+        syscall,
+        ..Default::default()
+    };
+
+    let _ = prog_run(enter_fd, &[&raw const pt_regs_enter as u64, syscall]).unwrap();
+    let _ = prog_run(exit_fd, &[&raw const pt_regs_exit as u64, ret]).unwrap();
+
+    let event = get_event::<Signal>(&mut ebpf);
+    assert!(matches!(event.kind, EventKind::Signal));
+    assert_eq!(event.data.target_pid, target_pid);
+    assert_eq!(event.data.signal, signal);
+}
+
+#[test_log::test(tokio::test)]
+async fn test_fdtracking() {
+    let mut ebpf = setup();
+    let enter_fd = load_tracepoint(&mut ebpf, "sys_enter_fdtracking");
+    let exit_fd = load_tracepoint(&mut ebpf, "sys_exit_fdtracking");
+
+    let syscall = SYS_open as u64;
+    let ret = 0;
+
+    let pt_regs_enter = PtRegs {
+        ..Default::default()
+    }
+    .build();
+    let pt_regs_exit = PtRegs {
+        ret,
+        syscall,
+        ..Default::default()
+    }
+    .build();
+
+    let _ = prog_run(enter_fd, &[&raw const pt_regs_enter as u64, syscall]).unwrap();
+    let _ = prog_run(exit_fd, &[&raw const pt_regs_exit as u64, ret]).unwrap();
+
+    let event = get_event::<FileDescriptorChange>(&mut ebpf);
+    assert!(matches!(event.kind, EventKind::FileDescriptorChange));
+    assert!(matches!(event.data.operation, FileDescriptorOp::Open));
+
+    let open_fds = read_dir("/proc/self/fd").unwrap().count() as u64 - 1;
+    assert_eq!(event.data.open_fds, open_fds);
 }

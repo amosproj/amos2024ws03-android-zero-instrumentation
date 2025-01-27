@@ -220,3 +220,25 @@ pub struct Equality {
     /// 1 corresponds to the key being used for the event kind, 0 corresponds to not being used
     pub used_for_event_kind: u64,
 }
+
+#[macro_export]
+macro_rules! unpack_event {
+    ($rbe:ident) => {{
+        let event_kind = unsafe { &*($rbe.as_ptr() as *const EventKind) };
+        match *event_kind {
+            EventKind::Write => {
+                Box::new(*checked::from_bytes::<Event<Write>>(&$rbe)) as Box<Event<dyn Any>>
+            }
+            EventKind::Signal => Box::new(*checked::from_bytes::<Event<Signal>>(&$rbe)),
+            EventKind::GarbageCollect => {
+                Box::new(*checked::from_bytes::<Event<GarbageCollect>>(&$rbe))
+            }
+            EventKind::FileDescriptorChange => {
+                Box::new(*checked::from_bytes::<Event<FileDescriptorChange>>(&$rbe))
+            }
+            EventKind::Jni => Box::new(*checked::from_bytes::<Event<Jni>>(&$rbe)),
+            EventKind::Blocking => Box::new(*checked::from_bytes::<Event<Blocking>>(&$rbe)),
+            EventKind::MAX => unreachable!(),
+        }
+    }};
+}
