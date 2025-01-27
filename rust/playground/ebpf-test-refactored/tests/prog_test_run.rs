@@ -363,6 +363,7 @@ async fn test_signal() {
 #[test_log::test(tokio::test)]
 async fn test_fdtracking() {
     let mut ebpf = setup();
+
     let enter_fd = load_tracepoint(&mut ebpf, "sys_enter_fdtracking");
     let exit_fd = load_tracepoint(&mut ebpf, "sys_exit_fdtracking");
 

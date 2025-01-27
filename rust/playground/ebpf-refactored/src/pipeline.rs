@@ -7,14 +7,14 @@ use core::mem;
 use aya_ebpf::{
     bindings::pt_regs,
     helpers::{bpf_get_current_task, bpf_ktime_get_ns},
-    macros::{map, raw_tracepoint},
+    macros::{map, raw_tracepoint, uprobe},
     maps::{Array, HashMap, PerCpuArray, RingBuf},
-    programs::RawTracePointContext,
+    programs::{ProbeContext, RawTracePointContext},
     EbpfContext, PtRegs,
 };
 use ebpf_types::{
-    Blocking, Event, EventContext, EventData, FileDescriptorChange, FilterConfig, ProcessContext,
-    Signal, TaskContext, Write,
+    Blocking, Event, EventContext, EventData, FileDescriptorChange, FilterConfig, Jni,
+    ProcessContext, Signal, TaskContext, Write,
 };
 use relocation_helpers::TaskStruct;
 
@@ -394,4 +394,39 @@ pub fn sys_exit_fdtracking(ctx: RawTracePointContext) -> Option<()> {
         program_info.submit()?;
     }
     Some(())
+}
+
+unsafe fn trace_jni_enter(data: Jni) -> Option<()> {
+    let task = current_task();
+    let program_info = program_info::<Jni>(task)?;
+
+    if filter::<Jni>(
+        program_info.filter_config,
+        program_info.task_context,
+        program_info.process_context,
+    ) {
+        return None;
+    }
+
+    *program_info.event_info.event_data = data;
+
+    program_info.submit()?;
+    Some(())
+}
+
+#[uprobe]
+fn trace_jni_add_local(_: ProbeContext) -> Option<()> {
+    unsafe { trace_jni_enter(Jni::AddLocalRef) }
+}
+#[uprobe]
+fn trace_jni_del_local(_: ProbeContext) -> Option<()> {
+    unsafe { trace_jni_enter(Jni::DeleteLocalRef) }
+}
+#[uprobe]
+fn trace_jni_add_global(_: ProbeContext) -> Option<()> {
+    unsafe { trace_jni_enter(Jni::AddGlobalRef) }
+}
+#[uprobe]
+fn trace_jni_del_global(_: ProbeContext) -> Option<()> {
+    unsafe { trace_jni_enter(Jni::DeleteGlobalRef) }
 }
