@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 pub fn main() {
-    let data = parse(None).unwrap();
-    
+    let data = garbage_collection::parse::parse(None).unwrap();
+
     println!("{}", serde_json::to_string(&data).unwrap());
 }

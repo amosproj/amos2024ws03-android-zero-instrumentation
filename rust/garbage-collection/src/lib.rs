@@ -135,5 +135,5 @@ pub struct Heap {
     pub freed_bytes: i64,
     pub freed_los_objects: u64,
     pub freed_los_bytes: i64,
-    pub pause_times: [u64; 8]
+    pub pause_times: [u64; 8],
 }
