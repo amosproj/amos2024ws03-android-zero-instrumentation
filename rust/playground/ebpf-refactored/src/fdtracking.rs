@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 
 use aya_ebpf::helpers::bpf_probe_read_kernel;
-use ebpf_types::{FileDescriptorChange, FileDescriptorOp};
 use ebpf_relocation_helpers::TaskStruct;
+use ebpf_types::{FileDescriptorChange, FileDescriptorOp};
 
 use crate::syscalls;
 

@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-use core::mem;
+use core::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 
 use aya_ebpf::{
     bindings::pt_regs,
@@ -12,11 +15,12 @@ use aya_ebpf::{
     programs::{ProbeContext, RawTracePointContext, RetProbeContext},
     EbpfContext, PtRegs,
 };
+use aya_log_ebpf::info;
+use ebpf_relocation_helpers::{ffi::art_heap, ArtHeap, TaskStruct};
 use ebpf_types::{
     Blocking, Event, EventContext, EventData, FileDescriptorChange, FilterConfig, GarbageCollect,
     Jni, ProcessContext, Signal, TaskContext, Write,
 };
-use ebpf_relocation_helpers::{ffi::art_heap, ArtHeap, TaskStruct};
 
 use crate::{
     blocking::{initialize_blocking_enter, initialize_blocking_exit},
@@ -32,7 +36,7 @@ struct ProgramInfo<'a, T> {
     task_context: &'a TaskContext,
     process_context: &'a ProcessContext,
     filter_config: &'a FilterConfig,
-    event_info: EventInfo<'a, T>,
+    event_info: EventInfo<T>,
 }
 
 impl<T: EventData + Clone + Copy + 'static> ProgramInfo<'_, T> {
@@ -44,20 +48,14 @@ impl<T: EventData + Clone + Copy + 'static> ProgramInfo<'_, T> {
             timestamp: unsafe { bpf_ktime_get_ns() },
             task: *self.task_context,
         };
-        entry_mut.data = *self.event_info.event_data;
+        entry_mut.data = *self.event_info;
         entry.submit(0);
 
         Some(())
     }
 
     fn submit_intermediate(&self) -> Option<()> {
-        EVENT_BRIDGE
-            .insert(
-                &self.task_context.tid,
-                unsafe { &*self.event_info.raw_event_data },
-                0,
-            )
-            .ok()?;
+        self.event_info.set_initialized(true);
 
         Some(())
     }
@@ -92,12 +90,38 @@ const fn max_raw_event_data_size() -> usize {
     max_size + 1
 }
 
-struct EventInfo<'a, T> {
-    event_data: &'a mut T,
+#[repr(C)]
+struct EventInfo<T> {
     raw_event_data: *mut RawEventData,
+    _t: PhantomData<T>,
 }
 
+impl<T> Deref for EventInfo<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*((*self.raw_event_data).data.as_ptr() as *const T) }
+    }
+}
+
+impl<T> DerefMut for EventInfo<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { &mut *((*self.raw_event_data).data.as_mut_ptr() as *mut T) }
+    }
+}
+
+impl<T> EventInfo<T> {
+    pub fn set_initialized(&self, initialized: bool) {
+        unsafe { (*self.raw_event_data).initialized = initialized }
+    }
+    pub fn get_initialized(&self) -> bool {
+        unsafe { (*self.raw_event_data).initialized }
+    }
+}
+
+#[repr(C)]
 struct RawEventData {
+    initialized: bool,
     data: [u8; max_raw_event_data_size()],
 }
 
@@ -105,7 +129,7 @@ struct RawEventData {
 static EVENT_BUFFER: PerCpuArray<RawEventData> = PerCpuArray::with_max_entries(1, 0);
 
 #[map]
-static EVENT_BRIDGE: HashMap<u32, RawEventData> = HashMap::with_max_entries(10240, 0);
+static EVENT_BRIDGE: HashMap<u64, RawEventData> = HashMap::with_max_entries(10240, 0);
 
 #[map]
 static EVENT_RB: RingBuf = RingBuf::with_byte_size(8192 * 1024, 0);
@@ -113,14 +137,20 @@ static EVENT_RB: RingBuf = RingBuf::with_byte_size(8192 * 1024, 0);
 #[map]
 static GLOBAL_BLOCKING_THRESHOLD: Array<u64> = Array::with_max_entries(1, 0);
 
+fn event_bridge_key<T: EventData>(task: TaskStruct) -> Option<u64> {
+    let tid = task.pid().ok()? as u64;
+    let event_id = T::EVENT_KIND as u64;
+
+    Some((tid << 32) | event_id)
+}
+
 unsafe fn program_info_base<T: EventData>(
     task: TaskStruct,
     raw_event_data: *mut RawEventData,
 ) -> Option<ProgramInfo<'static, T>> {
-    let event_data = &mut *((*raw_event_data).data[..mem::size_of::<T>()].as_mut_ptr() as *mut T);
     let event_info = EventInfo {
-        event_data,
         raw_event_data,
+        _t: PhantomData,
     };
     Some(ProgramInfo {
         task_context: &*task_info_from_task(task)?,
@@ -131,18 +161,29 @@ unsafe fn program_info_base<T: EventData>(
 }
 
 unsafe fn program_info<T: EventData>(task: TaskStruct) -> Option<ProgramInfo<'static, T>> {
-    let raw_event_data = EVENT_BUFFER.get_ptr_mut(0)?;
+    let key = event_bridge_key::<T>(task)?;
+    let raw_event_data = match EVENT_BRIDGE.get_ptr_mut(&key) {
+        Some(bridge) => bridge,
+        None => {
+            let raw_event_data = EVENT_BUFFER.get_ptr_mut(0)?;
+            EVENT_BRIDGE.insert(&key, &*raw_event_data, 0).ok()?;
+            EVENT_BRIDGE.get_ptr_mut(&key)?
+        }
+    };
     let program_info = program_info_base::<T>(task, raw_event_data)?;
-    let _ = EVENT_BRIDGE.remove(&program_info.task_context.tid);
+    program_info.event_info.set_initialized(false);
     Some(program_info)
 }
 
 unsafe fn program_info_intermediate<T: EventData>(
     task: TaskStruct,
 ) -> Option<ProgramInfo<'static, T>> {
-    let raw_event_data = EVENT_BRIDGE.get_ptr_mut(&task.pid().ok()?)?;
+    let key = event_bridge_key::<T>(task)?;
+    let raw_event_data = EVENT_BRIDGE.get_ptr_mut(&key)?;
     let program_info = program_info_base::<T>(task, raw_event_data)?;
-    let _ = EVENT_BRIDGE.remove(&program_info.task_context.tid);
+    if !program_info.event_info.get_initialized() {
+        return None;
+    };
     Some(program_info)
 }
 
@@ -208,7 +249,7 @@ impl SysExitInfo {
 pub fn sys_enter_write(ctx: RawTracePointContext) -> Option<()> {
     unsafe {
         let enter_info = SysEnterInfo::new(&ctx);
-        let program_info = enter_info.program_info::<Write>()?;
+        let mut program_info = enter_info.program_info::<Write>()?;
 
         if filter::<Write>(
             program_info.filter_config,
@@ -221,8 +262,10 @@ pub fn sys_enter_write(ctx: RawTracePointContext) -> Option<()> {
         initialize_write_enter(
             enter_info.syscall_id,
             enter_info.pt_regs,
-            program_info.event_info.event_data,
+            &mut program_info.event_info,
         )?;
+
+        info!(&ctx, "{}", program_info.event_info.bytes_written);
 
         program_info.submit_intermediate()?;
     }
@@ -234,11 +277,8 @@ pub fn sys_enter_write(ctx: RawTracePointContext) -> Option<()> {
 pub fn sys_exit_write(ctx: RawTracePointContext) -> Option<()> {
     unsafe {
         let exit_info = SysExitInfo::new(&ctx);
-        if exit_info.return_value != 0 {
-            return None;
-        }
 
-        let program_info = exit_info.program_info::<Write>()?;
+        let mut program_info = exit_info.program_info::<Write>()?;
 
         if filter::<Write>(
             program_info.filter_config,
@@ -248,7 +288,8 @@ pub fn sys_exit_write(ctx: RawTracePointContext) -> Option<()> {
             return None;
         }
 
-        initialize_write_exit(exit_info.task, program_info.event_info.event_data)?;
+        info!(&ctx, "{}", program_info.event_info.bytes_written);
+        initialize_write_exit(exit_info.task, &mut program_info.event_info)?;
 
         program_info.submit()?;
     }
@@ -259,7 +300,7 @@ pub fn sys_exit_write(ctx: RawTracePointContext) -> Option<()> {
 pub fn sys_enter_blocking(ctx: RawTracePointContext) -> Option<()> {
     unsafe {
         let enter_info = SysEnterInfo::new(&ctx);
-        let program_info = enter_info.program_info::<Blocking>()?;
+        let mut program_info = enter_info.program_info::<Blocking>()?;
 
         if filter::<Blocking>(
             program_info.filter_config,
@@ -269,7 +310,7 @@ pub fn sys_enter_blocking(ctx: RawTracePointContext) -> Option<()> {
             return None;
         }
 
-        initialize_blocking_enter(enter_info.syscall_id, program_info.event_info.event_data)?;
+        initialize_blocking_enter(enter_info.syscall_id, &mut program_info.event_info)?;
 
         program_info.submit_intermediate()?;
     }
@@ -281,7 +322,7 @@ pub fn sys_enter_blocking(ctx: RawTracePointContext) -> Option<()> {
 pub fn sys_exit_blocking(ctx: RawTracePointContext) -> Option<()> {
     unsafe {
         let exit_info = SysExitInfo::new(&ctx);
-        let program_info = exit_info.program_info::<Blocking>()?;
+        let mut program_info = exit_info.program_info::<Blocking>()?;
 
         if filter::<Blocking>(
             program_info.filter_config,
@@ -291,10 +332,10 @@ pub fn sys_exit_blocking(ctx: RawTracePointContext) -> Option<()> {
             return None;
         }
 
-        initialize_blocking_exit(program_info.event_info.event_data)?;
+        initialize_blocking_exit(&mut program_info.event_info)?;
 
         if let Some(threshold) = GLOBAL_BLOCKING_THRESHOLD.get(0) {
-            if program_info.event_info.event_data.duration <= *threshold {
+            if program_info.event_info.duration <= *threshold {
                 return None;
             }
         }
@@ -308,7 +349,7 @@ pub fn sys_exit_blocking(ctx: RawTracePointContext) -> Option<()> {
 pub fn sys_enter_signal(ctx: RawTracePointContext) -> Option<()> {
     unsafe {
         let enter_info = SysEnterInfo::new(&ctx);
-        let program_info = enter_info.program_info::<Signal>()?;
+        let mut program_info = enter_info.program_info::<Signal>()?;
 
         if filter::<Signal>(
             program_info.filter_config,
@@ -321,7 +362,7 @@ pub fn sys_enter_signal(ctx: RawTracePointContext) -> Option<()> {
         initialize_signal_enter(
             enter_info.syscall_id,
             enter_info.pt_regs,
-            program_info.event_info.event_data,
+            &mut program_info.event_info,
         )?;
 
         program_info.submit_intermediate()?;
@@ -357,7 +398,7 @@ pub fn sys_exit_signal(ctx: RawTracePointContext) -> Option<()> {
 pub fn sys_enter_fdtracking(ctx: RawTracePointContext) -> Option<()> {
     unsafe {
         let enter_info = SysEnterInfo::new(&ctx);
-        let program_info = enter_info.program_info::<FileDescriptorChange>()?;
+        let mut program_info = enter_info.program_info::<FileDescriptorChange>()?;
 
         if filter::<FileDescriptorChange>(
             program_info.filter_config,
@@ -367,7 +408,7 @@ pub fn sys_enter_fdtracking(ctx: RawTracePointContext) -> Option<()> {
             return None;
         }
 
-        initialize_fdtracking_enter(enter_info.syscall_id, program_info.event_info.event_data)?;
+        initialize_fdtracking_enter(enter_info.syscall_id, &mut program_info.event_info)?;
 
         program_info.submit_intermediate()?;
     }
@@ -379,7 +420,7 @@ pub fn sys_enter_fdtracking(ctx: RawTracePointContext) -> Option<()> {
 pub fn sys_exit_fdtracking(ctx: RawTracePointContext) -> Option<()> {
     unsafe {
         let exit_info = SysExitInfo::new(&ctx);
-        let program_info = exit_info.program_info::<FileDescriptorChange>()?;
+        let mut program_info = exit_info.program_info::<FileDescriptorChange>()?;
 
         if filter::<FileDescriptorChange>(
             program_info.filter_config,
@@ -389,7 +430,7 @@ pub fn sys_exit_fdtracking(ctx: RawTracePointContext) -> Option<()> {
             return None;
         }
 
-        initialize_fdtracking_exit(exit_info.task, program_info.event_info.event_data)?;
+        initialize_fdtracking_exit(exit_info.task, &mut program_info.event_info)?;
 
         program_info.submit()?;
     }
@@ -398,7 +439,7 @@ pub fn sys_exit_fdtracking(ctx: RawTracePointContext) -> Option<()> {
 
 unsafe fn trace_jni_enter(data: Jni) -> Option<()> {
     let task = current_task();
-    let program_info = program_info::<Jni>(task)?;
+    let mut program_info = program_info::<Jni>(task)?;
 
     if filter::<Jni>(
         program_info.filter_config,
@@ -408,7 +449,7 @@ unsafe fn trace_jni_enter(data: Jni) -> Option<()> {
         return None;
     }
 
-    *program_info.event_info.event_data = data;
+    *program_info.event_info = data;
 
     program_info.submit()?;
     Some(())
@@ -457,7 +498,7 @@ fn trace_gc_enter(ctx: ProbeContext) -> Option<()> {
 fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
     unsafe {
         let task = current_task();
-        let program_info = program_info_intermediate::<GarbageCollect>(task)?;
+        let mut program_info = program_info_intermediate::<GarbageCollect>(task)?;
 
         if filter::<Jni>(
             program_info.filter_config,
@@ -469,7 +510,7 @@ fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
 
         let heap = (program_info.event_info.raw_event_data as *mut ArtHeap).read();
 
-        *program_info.event_info.event_data = GarbageCollect {
+        *program_info.event_info = GarbageCollect {
             target_footprint: heap.target_footprint().ok()?,
             num_bytes_allocated: heap.num_bytes_allocated().ok()?,
             gc_cause: heap.gc_cause().ok()?,

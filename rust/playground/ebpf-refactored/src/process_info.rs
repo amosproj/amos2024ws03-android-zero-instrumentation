@@ -10,8 +10,8 @@ use aya_ebpf::{
     macros::map,
     maps::{LruHashMap, PerCpuArray},
 };
-use ebpf_types::ProcessContext;
 use ebpf_relocation_helpers::TaskStruct;
+use ebpf_types::ProcessContext;
 
 use crate::{bounds_check::EbpfBoundsCheck, path::read_path_to_buf_with_default};
 

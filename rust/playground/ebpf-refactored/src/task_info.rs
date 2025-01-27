@@ -10,8 +10,8 @@ use aya_ebpf::{
     macros::map,
     maps::{LruHashMap, PerCpuArray},
 };
-use ebpf_types::TaskContext;
 use ebpf_relocation_helpers::TaskStruct;
+use ebpf_types::TaskContext;
 
 #[map]
 static TASK_INFO: LruHashMap<u32, TaskContext> = LruHashMap::with_max_entries(10240, 0);

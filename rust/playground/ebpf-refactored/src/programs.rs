@@ -14,12 +14,12 @@ use aya_ebpf::{
     EbpfContext, PtRegs,
 };
 use aya_log_ebpf::info;
+use ebpf_relocation_helpers::TaskStruct;
 use ebpf_types::{
     Blocking, Equality, Event, EventContext, EventData, EventKind, FileDescriptorChange,
     FileDescriptorOp, FilterConfig, MissingBehavior, ProcessContext, Signal, TaskContext, Write,
     WriteSource,
 };
-use ebpf_relocation_helpers::TaskStruct;
 
 use crate::{
     path::{get_path_from_fd, read_path_to_buf_with_default},
@@ -324,6 +324,9 @@ static CMDLINE_FILTER: HashMap<[u8; 256], Equality> = HashMap::with_max_entries(
 #[map]
 pub static FILTER_CONFIG: Array<FilterConfig> = Array::with_max_entries(EventKind::MAX as u32, 0);
 
+#[map]
+static CONFIG: Array<u32> = Array::with_max_entries(1, 0);
+
 fn should_match(eq: Option<&Equality>, mask: u64, missing_behavior: MissingBehavior) -> bool {
     let eq = eq.map(|eq| {
         (
@@ -351,6 +354,11 @@ pub unsafe fn filter<T: EventData>(
     task_context: &TaskContext,
     process_context: &ProcessContext,
 ) -> bool {
+    // do not track ourselves
+    if CONFIG.get(0) == Some(&task_context.pid) {
+        return true;
+    }
+
     let event_mask = 1u64 << T::EVENT_KIND as u8;
 
     if let Some(pid_filter) = filter_config.pid_filter {
