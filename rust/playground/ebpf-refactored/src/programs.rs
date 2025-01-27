@@ -366,6 +366,11 @@ pub unsafe fn filter<T: EventData>(
         if should_match(eq, event_mask, pid_filter.missing_behavior) {
             return false;
         }
+        // We take both into account
+        let eq = PID_FILTER.get(&task_context.tid);
+        if should_match(eq, event_mask, pid_filter.missing_behavior) {
+            return false;
+        }
     }
 
     if let Some(comm_filter) = filter_config.comm_filter {
