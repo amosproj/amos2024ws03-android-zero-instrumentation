@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-use garbage_collection::parse::parse;
-
 pub fn main() {
     let data = parse(None).unwrap();
     

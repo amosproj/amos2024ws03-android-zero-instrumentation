@@ -10,6 +10,7 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
+aya-obj = { workspace = true, optional = true }
 bytemuck = { workspace = true, features = ["derive"] }
 clang = { workspace = true, features = ["runtime", "clang_3_7"], optional = true}
 clang-sys = { workspace = true, features = ["runtime"], optional = true }
@@ -18,13 +19,15 @@ serde_json = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
 
 [features]
+default = ["btf"]
 parse = ["dep:clang", "dep:clang-sys", "dep:thiserror"]
 cli = ["parse", "serialize", "dep:serde_json"]
 read = []
 serialize = ["dep:serde"]
+btf = ["dep:aya-obj"]
 
 [[bin]]
 name = "parser"
 path = "src/parser.rs"
-required-features = ["parse"]
+required-features = ["cli"]
 
