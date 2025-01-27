@@ -4,9 +4,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use core::any::Any;
-
-use bytemuck::{AnyBitPattern, CheckedBitPattern, Zeroable};
+use bytemuck::{AnyBitPattern, CheckedBitPattern, PodInOption, Zeroable, ZeroableInOption};
 
 #[derive(Debug, Clone, Copy, Default, AnyBitPattern)]
 #[repr(C)]
@@ -52,13 +50,15 @@ pub struct EventContext {
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct Event<T: ?Sized> {
+    pub kind: EventKind,
     pub context: EventContext,
-    pub data: T
+    pub data: T,
 }
 
 #[derive(Clone, Copy)]
 #[repr(C)]
 pub struct EventBits<T: CheckedBitPattern> {
+    kind: <EventKind as CheckedBitPattern>::Bits,
     context: <EventContext as CheckedBitPattern>::Bits,
     data: <T as CheckedBitPattern>::Bits,
 }
@@ -69,18 +69,18 @@ unsafe impl<T: CheckedBitPattern + 'static> CheckedBitPattern for Event<T> {
     type Bits = EventBits<T>;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        EventContext::is_valid_bit_pattern(&bits.context) 
+        EventKind::is_valid_bit_pattern(&bits.kind)
+            && EventContext::is_valid_bit_pattern(&bits.context)
             && T::is_valid_bit_pattern(&bits.data)
     }
 }
-
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]
 #[repr(C)]
 pub struct Write {
     pub bytes_written: u64,
     pub file_path: [u8; 4096],
-    pub source: WriteSource
+    pub source: WriteSource,
 }
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]
@@ -95,7 +95,6 @@ pub enum WriteSource {
     /// Corresponds to `pwritev2` syscall
     WriteV2,
 }
-
 
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]
@@ -122,7 +121,7 @@ pub struct Signal {
 #[derive(Debug, Clone, Copy, AnyBitPattern)]
 #[repr(C)]
 pub struct GarbageCollect {
-    pub _unused: [u8; 0]
+    pub _unused: [u8; 0],
 }
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]
@@ -139,12 +138,52 @@ pub enum FileDescriptorOp {
     Close,
 }
 
+#[derive(Debug, Clone, Copy, CheckedBitPattern)]
+#[repr(u8)]
+pub enum EventKind {
+    Write,
+    SendMsg,
+    Signal,
+    GarbageCollect,
+    FileDescriptorChange,
+    Jni,
+    MAX,
+}
 
-pub trait EventData: Any {}
+#[derive(Debug, Clone, Copy, Default, AnyBitPattern)]
+#[repr(C)]
+pub struct FilterConfig {
+    pub pid_filter: Option<Filter>,
+    pub comm_filter: Option<Filter>,
+    pub exe_path_filter: Option<Filter>,
+    pub cmdline_filter: Option<Filter>,
+}
 
-impl EventData for Write {}
-impl EventData for SendMsg {}
-impl EventData for Signal {}
-impl EventData for GarbageCollect {}
-impl EventData for FileDescriptorChange {}
-impl EventData for Jni {}
+#[derive(Debug, Clone, Copy, Default, CheckedBitPattern)]
+#[repr(C)]
+pub struct Filter {
+    pub missing_behavior: MissingBehavior,
+}
+
+/// # Safety
+///
+/// MissingBehavior starts at 1 so it is invalid to have a value of 0
+/// E.g. None = 0, Some(Match) = 1, Some(NotMatch) = 2
+unsafe impl PodInOption for Filter {}
+unsafe impl ZeroableInOption for Filter {}
+
+#[derive(Debug, Clone, Copy, CheckedBitPattern, Default)]
+#[repr(u8)]
+pub enum MissingBehavior {
+    #[default]
+    Match = 1,
+    NotMatch,
+}
+
+/// Each bit corresponds to an EventKind, e.g. 1 << EventKind::Write
+pub struct Equality {
+    /// 1 corresponds to Eq, 0 corresponds to NotEq
+    pub eq_for_event_kind: u64,
+    /// 1 corresponds to the key being used for the event kind, 0 corresponds to not being used
+    pub used_for_event_kind: u64,
+}

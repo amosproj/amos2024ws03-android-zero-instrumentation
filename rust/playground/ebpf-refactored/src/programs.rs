@@ -2,21 +2,25 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 #[cfg(bpf_target_arch = "x86_64")]
 use aya_ebpf::bindings::pt_regs;
 #[cfg(bpf_target_arch = "aarch64")]
 use aya_ebpf::bindings::user_pt_regs as pt_regs;
 use aya_ebpf::{
-    helpers::{bpf_get_current_task, bpf_ktime_get_ns, bpf_probe_read, bpf_probe_read_kernel},
+    helpers::{
+        bpf_get_current_task, bpf_ktime_get_ns, bpf_probe_read,
+        bpf_probe_read_kernel,
+    },
     macros::{map, raw_tracepoint},
-    maps::RingBuf,
+    maps::{Array, HashMap, RingBuf},
     programs::RawTracePointContext,
     EbpfContext, PtRegs,
 };
 use aya_log_ebpf::info;
 use ebpf_types::{
-    Event, EventContext, FileDescriptorChange, FileDescriptorOp, ProcessContext, Signal,
-    TaskContext, Write, WriteSource,
+    Equality, Event, EventContext, EventKind, FileDescriptorChange, FileDescriptorOp,
+    FilterConfig, MissingBehavior, ProcessContext, Signal, TaskContext, Write, WriteSource,
 };
 use relocation_helpers::TaskStruct;
 
@@ -32,7 +36,7 @@ fn task_info_test(_ctx: RawTracePointContext) -> Option<*mut TaskContext> {
 }
 
 #[map]
-static EVENTS: RingBuf = RingBuf::with_byte_size(8192, 0);
+static EVENTS: RingBuf = RingBuf::with_byte_size(8192 * 1024, 0);
 
 #[raw_tracepoint]
 fn write_test(ctx: RawTracePointContext) -> Option<()> {
@@ -88,6 +92,7 @@ unsafe fn try_kill(ctx: &RawTracePointContext, entry: *mut Event<Signal>) -> Opt
         task: *task_info_src,
         timestamp: bpf_ktime_get_ns(),
     };
+    (*entry).kind = EventKind::Signal;
     (*entry).data = Signal { target_pid, signal };
     Some(())
 }
@@ -109,6 +114,7 @@ unsafe fn try_fd_change(
         task: *task_context_src,
         timestamp: bpf_ktime_get_ns(),
     };
+    (*entry).kind = EventKind::FileDescriptorChange;
     (*entry).data = FileDescriptorChange {
         operation: filed_descriptor_op,
         open_fds,
@@ -148,6 +154,7 @@ unsafe fn try_vfs_write(ctx: &RawTracePointContext, entry: *mut Event<Write>) ->
         task: *task_context_src,
         timestamp: bpf_ktime_get_ns(),
     };
+    entry.kind = EventKind::Write;
     entry.data.bytes_written = write_info.bytes_written;
     entry.data.source = write_info.source;
     read_path_to_buf_with_default(path, &mut entry.data.file_path)?;
@@ -265,4 +272,82 @@ mod syscalls {
     pub use syscall_numbers::aarch64::*;
     #[cfg(bpf_target_arch = "x86_64")]
     pub use syscall_numbers::x86_64::*;
+}
+
+pub struct ProgramContext<'a> {
+    task_context: &'a TaskContext,
+    process_context: &'a ProcessContext,
+    policy: &'a FilterConfig,
+    event_kind: EventKind,
+}
+
+#[map]
+static PID_FILTER: HashMap<u32, Equality> = HashMap::with_max_entries(256, 0);
+
+#[map]
+static COMM_FILTER: HashMap<[u8; 16], Equality> = HashMap::with_max_entries(256, 0);
+
+#[map]
+static EXE_PATH_FILTER: HashMap<[u8; 4096], Equality> = HashMap::with_max_entries(256, 0);
+
+#[map]
+static CMDLINE_FILTER: HashMap<[u8; 256], Equality> = HashMap::with_max_entries(256, 0);
+
+#[map]
+static FILTER_CONFIG: Array<FilterConfig> = Array::with_max_entries(EventKind::MAX as u32, 0);
+
+fn should_match(eq: Option<&Equality>, mask: u64, missing_behavior: MissingBehavior) -> bool {
+    let eq = eq.map(|eq| {
+        (
+            (eq.eq_for_event_kind & mask) != 0,
+            (eq.used_for_event_kind & mask) != 0,
+        )
+    });
+    match (eq, missing_behavior) {
+        // The value is not present in the map
+        // or not configured for this filter and the missing behavior is to not match
+        // or it is configured for this filter but it should not match
+        // so we return false
+        (None, MissingBehavior::NotMatch)
+        | (Some((_, false)), MissingBehavior::NotMatch)
+        | (Some((false, _)), _) => false,
+        _ => true,
+    }
+}
+
+/// # Safety
+///
+/// Ebpf Map operations are unsafe
+pub unsafe fn filter(ctx: &ProgramContext) -> bool {
+    let event_mask = 1u64 << ctx.event_kind as u8;
+
+    if let Some(pid_filter) = ctx.policy.pid_filter {
+        let eq = PID_FILTER.get(&ctx.task_context.pid);
+        if !should_match(eq, event_mask, pid_filter.missing_behavior) {
+            return false;
+        }
+    }
+
+    if let Some(comm_filter) = ctx.policy.comm_filter {
+        let eq = COMM_FILTER.get(&ctx.task_context.comm);
+        if !should_match(eq, event_mask, comm_filter.missing_behavior) {
+            return false;
+        }
+    }
+
+    if let Some(exe_path_filter) = ctx.policy.exe_path_filter {
+        let eq = EXE_PATH_FILTER.get(&ctx.process_context.exe_path);
+        if !should_match(eq, event_mask, exe_path_filter.missing_behavior) {
+            return false;
+        }
+    }
+
+    if let Some(cmdline_filter) = ctx.policy.cmdline_filter {
+        let eq = CMDLINE_FILTER.get(&ctx.process_context.cmdline);
+        if !should_match(eq, event_mask, cmdline_filter.missing_behavior) {
+            return false;
+        }
+    }
+
+    true
 }

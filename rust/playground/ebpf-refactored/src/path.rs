@@ -155,7 +155,7 @@ pub fn get_path_str(path: Path, buf: &mut [u8; PATH_MAX * 2]) -> Option<usize> {
         unsafe { bpf_probe_read_kernel_buf(name as *const u8, slice).ok()? };
     }
 
-    Some(offset.off)
+    unsafe { offset.off.bounded::<PATH_MAX>() }
 }
 
 #[inline(always)]
@@ -166,17 +166,22 @@ pub fn read_path_to_buf(
 ) -> Option<usize> {
     let offset = get_path_str(path, intermediate)?;
 
+    let count = PATH_MAX - offset;
     unsafe {
         copy_nonoverlapping(
             intermediate
                 .get_unchecked_mut(offset..PATH_MAX)
                 .as_mut_ptr(),
             buf.as_mut_ptr(),
-            PATH_MAX - offset,
+            count,
         )
     }
 
-    Some(PATH_MAX - offset)
+    if count < PATH_MAX {
+        buf[count] = 0;
+    }
+
+    Some(count)
 }
 
 #[inline(always)]
@@ -188,7 +193,7 @@ pub fn read_path_to_buf_with_default(path: Path, buf: &mut [u8; PATH_MAX]) -> Op
 pub fn get_path_from_fd(fd: u64, task: TaskStruct) -> Option<Path> {
     let files = task.files().ok()?;
     let fdtable = files.fdt().ok()?;
-    let fds = fdtable.fd();
+    let fds: *mut *mut *mut _ = fdtable.fd();
 
     let file = unsafe { bpf_probe_read_kernel(fds).ok()? };
     let file = unsafe { bpf_probe_read_kernel(file.add(fd as usize) as *const _).ok()? };
