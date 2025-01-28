@@ -30,7 +30,6 @@ import co.yml.charts.ui.linechart.model.LinePlotData
 import co.yml.charts.ui.linechart.model.LineStyle
 import co.yml.charts.ui.linechart.model.SelectionHighlightPoint
 import co.yml.charts.ui.linechart.model.ShadowUnderLine
-import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 import de.amosproj3.ziofa.ui.visualization.utils.bytesToHumanReadableSize
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
@@ -49,18 +48,13 @@ private const val SERIES_SIZE_OVERLAY = 6
 @Composable
 fun YChartsMultiTimeSeries(
     seriesData: ImmutableList<Pair<Float, Pair<Float, Float>>>,
-    chartMetadata: ChartMetadata,
     modifier: Modifier = Modifier,
     overlayMode: Boolean = false,
 ) {
     Column(modifier.padding(20.dp), verticalArrangement = Arrangement.Center) {
         if (seriesData.isNotEmpty()) {
             Box(Modifier.fillMaxSize()) {
-                Chart(
-                    seriesData = seriesData.clip(overlayMode),
-                    chartMetadata = chartMetadata,
-                    overlayMode = overlayMode,
-                )
+                Chart(seriesData = seriesData.clip(overlayMode), overlayMode = overlayMode)
                 Legend(Modifier.align(Alignment.TopEnd))
             }
         } else WaitingForDataHint()
@@ -89,7 +83,6 @@ private fun Legend(modifier: Modifier = Modifier) {
 @Composable
 private fun Chart(
     seriesData: ImmutableList<Pair<Float, Pair<Float, Float>>>,
-    chartMetadata: ChartMetadata,
     overlayMode: Boolean,
 ) {
     val pointsData1: List<Point> = seriesData.map { Point(it.first, it.second.first) }
@@ -108,7 +101,12 @@ private fun Chart(
 
     val lineChartData =
         LineChartData(
-            linePlotData = createLineChartData(pointsData1, pointsData2, overlayMode),
+            linePlotData =
+                createLineChartData(
+                    line1Points = pointsData1.toImmutableList(),
+                    line2Points = pointsData2.toImmutableList(),
+                    overlayMode = overlayMode,
+                ),
             xAxisData = xAxisData,
             yAxisData = yAxisData,
             gridLines = GridLines(),
@@ -138,8 +136,8 @@ private fun buildXAxis(xLabels: List<String>, overlayMode: Boolean) =
 
 @Composable
 private fun createLineChartData(
-    line1Points: List<Point>,
-    line2Points: List<Point>,
+    line1Points: ImmutableList<Point>,
+    line2Points: ImmutableList<Point>,
     overlayMode: Boolean,
 ) =
     LinePlotData(

@@ -96,7 +96,7 @@ fun OverlayLauncher(
             )
 
             Spacer(Modifier.height(10.dp))
-            OverlayAxisLegend(chartMetadata)
+            OverlayAxisLegend(chartMetadata = chartMetadata)
             Spacer(Modifier.height(10.dp))
 
             HorizontalDivider(

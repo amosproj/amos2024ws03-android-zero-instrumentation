@@ -36,6 +36,9 @@ import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
 import de.amosproj3.ziofa.ui.init.data.InitState
 import org.koin.androidx.compose.koinViewModel
 
+private const val WELCOME_TO_FONT_SIZE = 30f
+private const val APP_TITLE_FONT_SIZE = 50f
+
 /**
  * Screen displayed on startup. The loading screen could be displayed while indexing symbols in the
  * future.
@@ -43,7 +46,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun InitScreen(
     onInitFinished: () -> Unit,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     viewModel: InitViewModel = koinViewModel(),
 ) {
     val initState: InitState by remember { viewModel.initState }.collectAsState()
@@ -73,7 +76,7 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
         Text(
             text = "Welcome to",
             fontWeight = FontWeight.Bold,
-            fontSize = TextUnit(30f, TextUnitType.Sp),
+            fontSize = TextUnit(WELCOME_TO_FONT_SIZE, TextUnitType.Sp),
         )
 
         Row(
@@ -95,7 +98,7 @@ private fun LoadingScreen(modifier: Modifier = Modifier) {
             Text(
                 text = "Zero Instrumentation Observability for Android",
                 fontWeight = FontWeight.Bold,
-                fontSize = TextUnit(50f, TextUnitType.Sp),
+                fontSize = TextUnit(APP_TITLE_FONT_SIZE, TextUnitType.Sp),
             )
             Image(
                 painter = bitmapPainter,

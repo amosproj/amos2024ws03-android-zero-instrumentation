@@ -70,7 +70,7 @@ fun MultiTimeSeriesOverlay(data: GraphedData.MultiTimeSeriesData, modifier: Modi
     if (data.seriesData.isNotEmpty()) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
             Text("ZIOFA OVERLAY", color = Color.Red)
-            YChartsMultiTimeSeries(seriesData = data.seriesData, data.metaData, overlayMode = true)
+            YChartsMultiTimeSeries(seriesData = data.seriesData, overlayMode = true)
         }
     }
 }

@@ -57,7 +57,7 @@ fun ProcessesScreen(
                     }
 
                 is ProcessesListState.NoResults ->
-                    Box(modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize()) {
                         Text(
                             text = "No processes found.",
                             modifier = Modifier.align(Alignment.Center),

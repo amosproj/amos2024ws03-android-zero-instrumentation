@@ -13,8 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 
 @Composable
-fun OverlayAxisLegend(chartMetadata: ChartMetadata) {
-    Row(horizontalArrangement = Arrangement.SpaceEvenly) {
+fun OverlayAxisLegend(modifier: Modifier = Modifier, chartMetadata: ChartMetadata) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.weight(1f)) {
             Text("X-Axis: ", fontWeight = FontWeight.Bold)
             Text(chartMetadata.xLabel)

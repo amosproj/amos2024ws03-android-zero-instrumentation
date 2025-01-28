@@ -31,6 +31,7 @@ fun DropdownOption.Timeframe.toMillis() = this.amount.toDuration(this.unit).inWh
 
 fun DropdownOption.Timeframe.toSeconds() = this.amount.toDuration(this.unit).inWholeSeconds
 
+@Suppress("MagicNumber")
 fun Number.bytesToHumanReadableSize(): String {
     val bytes = this.toDouble()
     return when {

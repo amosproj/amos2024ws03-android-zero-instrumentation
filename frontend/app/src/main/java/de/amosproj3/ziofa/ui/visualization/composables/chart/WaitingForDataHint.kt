@@ -6,8 +6,9 @@ package de.amosproj3.ziofa.ui.visualization.composables.chart
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 
 @Composable
-fun WaitingForDataHint() {
-    Text("Waiting for first data point...")
+fun WaitingForDataHint(modifier: Modifier = Modifier) {
+    Text("Waiting for first data point...", modifier = modifier)
 }

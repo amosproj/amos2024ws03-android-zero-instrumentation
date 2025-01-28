@@ -86,6 +86,7 @@ fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
  * Create a [Flow] of [GraphedData.EventListData] for the given selection. New features have to be
  * mapped to their events here.
  */
+@Suppress("LongMethod") // this is a mapping
 fun DataStreamProvider.getEventListData(
     selectedComponent: DropdownOption,
     selectedMetric: DropdownOption.Metric,

@@ -30,9 +30,9 @@ const val TITLE_TEXT_SIZE = 25f
 @Preview(device = Devices.AUTOMOTIVE_1024p)
 @Composable
 fun ErrorScreen(
+    modifier: Modifier = Modifier,
     error: String = "No error message available",
     title: String = "Error while communicating with backend",
-    modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column(

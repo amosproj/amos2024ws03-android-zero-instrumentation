@@ -62,6 +62,8 @@ fun VicoTimeSeries(
     }
 }
 
+private const val AXIS_LABEL_FONT_SIZE_SP = 15f
+
 @Composable
 private fun CartesianChartModelProducer.TimeSeriesChart(
     chartMetadata: ChartMetadata,
@@ -94,7 +96,7 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                             if (overlayMode) null
                             else
                                 rememberTextComponent(
-                                    textSize = TextUnit(15f, TextUnitType.Sp),
+                                    textSize = TextUnit(AXIS_LABEL_FONT_SIZE_SP, TextUnitType.Sp),
                                     color = Color.White,
                                     margins = dimensions(end = 4.dp),
                                     padding = dimensions(8.dp, 2.dp),
@@ -113,7 +115,7 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
                             if (overlayMode) null
                             else
                                 rememberTextComponent(
-                                    textSize = TextUnit(15f, TextUnitType.Sp),
+                                    textSize = TextUnit(AXIS_LABEL_FONT_SIZE_SP, TextUnitType.Sp),
                                     color = Color.White,
                                     margins = dimensions(top = 4.dp),
                                     padding = dimensions(8.dp, 2.dp),
