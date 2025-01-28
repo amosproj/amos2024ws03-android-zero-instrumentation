@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.visualization.mappings
 
 import de.amosproj3.ziofa.api.events.DataStreamProvider

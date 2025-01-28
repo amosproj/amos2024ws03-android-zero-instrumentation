@@ -131,7 +131,7 @@ private fun buildYAxis(yMin: Float, yMax: Float, ySteps: Int) =
 private fun buildXAxis(xLabels: List<String>, overlayMode: Boolean) =
     AxisData.Builder()
         .axisStepSize(if (overlayMode) Y_STEP_SIZE_OVERLAY else Y_STEP_SIZE)
-        .steps(xLabels.size-1)
+        .steps(xLabels.size - 1)
         .labelData { i -> xLabels.getOrNull(i) ?: "" }
         .labelAndAxisLinePadding(20.dp)
         .build()

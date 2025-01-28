@@ -19,10 +19,7 @@ import uniffi.shared.EventType
 import uniffi.shared.JniMethodName
 import uniffi.shared.SysFdAction
 
-// TODO: remove these hacks :(
 var gcPids = setOf<UInt>()
-var jniPids = listOf<UInt>()
-var fdOpenPids = listOf<UInt>()
 
 private fun uniffi.shared.Process.into() =
     Process(
@@ -126,7 +123,6 @@ private fun uniffi.shared.Event.into() =
         null -> null
     }
 
-// TODO remove these awful hacks
 private fun uniffi.shared.Configuration.into() =
     Configuration(
         vfsWrite = vfsWrite?.let { VfsWriteConfig(entries = it.entries) },
@@ -140,10 +136,10 @@ private fun uniffi.shared.Configuration.into() =
                     pid = it.pid,
                 )
             },
-        jniReferences = JniReferencesConfig(jniPids),
+        jniReferences = jniReferences?.let { JniReferencesConfig(it.pids) },
         sysSigquit = sysSigquit?.let { SysSigquitConfig(pids = it.pids) },
         gc = gc?.let { GcConfig(gcPids) },
-        sysFdTracking = SysFdTrackingConfig(fdOpenPids),
+        sysFdTracking = sysFdTracking?.let { SysFdTrackingConfig(it.pids) },
     )
 
 private fun Configuration.into() =
@@ -159,22 +155,14 @@ private fun Configuration.into() =
                     pid = it.pid,
                 )
             },
-        jniReferences =
-            jniReferences?.let {
-                jniPids = it.pids
-                null
-            },
+        jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
         sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
         gc =
             gc?.let {
                 gcPids = it.pids
                 uniffi.shared.GcConfig()
             },
-        sysFdTracking =
-            sysFdTracking?.let {
-                fdOpenPids = it.pids
-                null
-            },
+        sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
     )
 
 private fun uniffi.shared.StringResponse.into() = StringResponse(name)

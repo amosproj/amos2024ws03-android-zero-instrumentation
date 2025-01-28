@@ -51,11 +51,9 @@ fun Flow<Number>.toTimestampedSeries(seriesSize: Int, secondsPerDatapoint: Float
 
 fun Flow<List<Event.SysSendmsg>>.averageMessageDuration() =
     this.map {
-        if(it.isNotEmpty()){
-            val avg = it.map {
-                it.durationNanoSecs.toLong()
-            }.average()
-            if(avg!=0.0) avg.nanosToMillis() else avg
+        if (it.isNotEmpty()) {
+            val avg = it.map { it.durationNanoSecs.toLong() }.average()
+            if (avg != 0.0) avg.nanosToMillis() else avg
         } else 0.0
     }
 
@@ -67,24 +65,24 @@ fun Flow<List<Event.VfsWrite>>.averagesPerFd() =
 
 fun Flow<Event.JniReferences>.toReferenceCount() =
     this.scan(0 to 0) { prev, next ->
-        when (next.jniMethodName) {
-            Event.JniReferences.JniMethodName.AddLocalRef -> prev.first + 1 to prev.second
-            Event.JniReferences.JniMethodName.DeleteLocalRef -> prev.first - 1 to prev.second
-            Event.JniReferences.JniMethodName.AddGlobalRef -> prev.first to prev.second + 1
-            Event.JniReferences.JniMethodName.DeleteGlobalRef -> prev.first to prev.second - 1
-            null -> prev
+            when (next.jniMethodName) {
+                Event.JniReferences.JniMethodName.AddLocalRef -> prev.first + 1 to prev.second
+                Event.JniReferences.JniMethodName.DeleteLocalRef -> prev.first - 1 to prev.second
+                Event.JniReferences.JniMethodName.AddGlobalRef -> prev.first to prev.second + 1
+                Event.JniReferences.JniMethodName.DeleteGlobalRef -> prev.first to prev.second - 1
+                null -> prev
+            }
         }
-    }
         .map { it.first + it.second }
 
 fun Flow<Event.SysFdTracking>.countFileDescriptors() =
     this.scan(0 to 0) { prev, next ->
-        when (next.fdAction) {
-            Event.SysFdTracking.SysFdAction.Created -> prev.first + 1 to prev.second
-            Event.SysFdTracking.SysFdAction.Destroyed -> prev.first - 1 to prev.second
-            null -> prev
+            when (next.fdAction) {
+                Event.SysFdTracking.SysFdAction.Created -> prev.first + 1 to prev.second
+                Event.SysFdTracking.SysFdAction.Destroyed -> prev.first - 1 to prev.second
+                null -> prev
+            }
         }
-    }
         .map { it.first + it.second }
 
 fun Flow<Event.Gc>.toMultiMemoryGraphData() =

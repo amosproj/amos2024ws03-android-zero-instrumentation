@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Luca Bretting <luca.bretting@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 package de.amosproj3.ziofa.ui.visualization.composables.overlay
 
 import androidx.compose.foundation.layout.Arrangement
@@ -9,7 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import de.amosproj3.ziofa.ui.visualization.data.ChartMetadata
 
 @Composable
-fun OverlayAxisLegend(chartMetadata: ChartMetadata){
+fun OverlayAxisLegend(chartMetadata: ChartMetadata) {
     Row(horizontalArrangement = Arrangement.SpaceEvenly) {
         Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.weight(1f)) {
             Text("X-Axis: ", fontWeight = FontWeight.Bold)

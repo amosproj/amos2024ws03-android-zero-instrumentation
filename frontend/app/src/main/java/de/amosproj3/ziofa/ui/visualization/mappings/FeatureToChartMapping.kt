@@ -19,14 +19,12 @@ import de.amosproj3.ziofa.ui.visualization.utils.averagesPerFd
 import de.amosproj3.ziofa.ui.visualization.utils.countFileDescriptors
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
 import de.amosproj3.ziofa.ui.visualization.utils.lastValuePerTimeframe
-import de.amosproj3.ziofa.ui.visualization.utils.nanosToMillis
 import de.amosproj3.ziofa.ui.visualization.utils.sortAndClip
 import de.amosproj3.ziofa.ui.visualization.utils.toCountedMultiSeries
 import de.amosproj3.ziofa.ui.visualization.utils.toMillis
 import de.amosproj3.ziofa.ui.visualization.utils.toMultiMemoryGraphData
 import de.amosproj3.ziofa.ui.visualization.utils.toReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toSeconds
-import de.amosproj3.ziofa.ui.visualization.utils.toTimestampedMultiSeries
 import de.amosproj3.ziofa.ui.visualization.utils.toTimestampedSeries
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
@@ -47,10 +45,7 @@ fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
             ChartMetadata(yLabel = "Average duration", xLabel = "Seconds since start")
 
         is BackendFeatureOptions.JniReferencesOption ->
-            ChartMetadata(
-                yLabel = "# Indirect References",
-                xLabel = "Seconds since start",
-            )
+            ChartMetadata(yLabel = "# Indirect References", xLabel = "Seconds since start")
 
         is BackendFeatureOptions.OpenFileDescriptors ->
             ChartMetadata(yLabel = "# Open File Descriptors", xLabel = "Seconds since start")

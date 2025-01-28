@@ -13,7 +13,6 @@ import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import de.amosproj3.ziofa.ui.visualization.data.OverlaySettings
 import de.amosproj3.ziofa.ui.visualization.mappings.getChartData
 import de.amosproj3.ziofa.ui.visualization.mappings.getChartMetadata
-import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_CHART_METADATA
 import de.amosproj3.ziofa.ui.visualization.utils.isValidSelection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi

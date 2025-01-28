@@ -82,7 +82,7 @@ fun VisualizationScreen(
                                         VisualizationAction.OverlaySettingsChanged(it)
                                     )
                                 },
-                                chartMetadata = state.chartMetadata
+                                chartMetadata = state.chartMetadata,
                             )
                     }
                 }

@@ -84,44 +84,44 @@ class VisualizationViewModel(
      */
     private val selectionData =
         combine(
-            selectedComponent,
-            selectedMetric,
-            selectedTimeframe,
-            runningComponentsAccess.runningComponentsList,
-            configurationAccess.configurationState,
-        ) { activeComponent, activeMetric, activeTimeframe, runningComponents, configState ->
-            val config =
-                when (configState) {
-                    is ConfigurationState.Synchronized -> configState.configuration
-                    is ConfigurationState.Different -> configState.backendConfiguration
-                    else -> return@combine DEFAULT_SELECTION_DATA
-                }
-            val configuredComponents =
-                runningComponents.filter { runningComponent ->
-                    config.toUIOptionsForPids(runningComponent.pids).any { it.active }
-                }
-            val availableMetricsForComponent =
-                activeComponent?.let {
-                    config.getActiveMetricsForPids(pids = it.getPIDsOrNull())
-                }
-            val componentsDropdownOptions =
-                configuredComponents
-                    .toUIOptions()
-                    .plus(
-                        activeComponent?.let { listOf(it) } ?: listOf()
-                    ) // prevent the selected component from disappearing if process ends
-                    .toSet() // convert to set to remove the duplicate if it is already in
-                    // the list
-                    .toImmutableList()
-            SelectionData(
-                selectedComponent = activeComponent,
-                selectedMetric = activeMetric,
-                selectedTimeframe = activeTimeframe,
-                componentOptions = componentsDropdownOptions,
-                metricOptions = availableMetricsForComponent,
-                timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
-            )
-        }
+                selectedComponent,
+                selectedMetric,
+                selectedTimeframe,
+                runningComponentsAccess.runningComponentsList,
+                configurationAccess.configurationState,
+            ) { activeComponent, activeMetric, activeTimeframe, runningComponents, configState ->
+                val config =
+                    when (configState) {
+                        is ConfigurationState.Synchronized -> configState.configuration
+                        is ConfigurationState.Different -> configState.backendConfiguration
+                        else -> return@combine DEFAULT_SELECTION_DATA
+                    }
+                val configuredComponents =
+                    runningComponents.filter { runningComponent ->
+                        config.toUIOptionsForPids(runningComponent.pids).any { it.active }
+                    }
+                val availableMetricsForComponent =
+                    activeComponent?.let {
+                        config.getActiveMetricsForPids(pids = it.getPIDsOrNull())
+                    }
+                val componentsDropdownOptions =
+                    configuredComponents
+                        .toUIOptions()
+                        .plus(
+                            activeComponent?.let { listOf(it) } ?: listOf()
+                        ) // prevent the selected component from disappearing if process ends
+                        .toSet() // convert to set to remove the duplicate if it is already in
+                        // the list
+                        .toImmutableList()
+                SelectionData(
+                    selectedComponent = activeComponent,
+                    selectedMetric = activeMetric,
+                    selectedTimeframe = activeTimeframe,
+                    componentOptions = componentsDropdownOptions,
+                    metricOptions = availableMetricsForComponent,
+                    timeframeOptions = if (activeMetric != null) DEFAULT_TIMEFRAME_OPTIONS else null,
+                )
+            }
             .onEach {
                 // Select the first available option automatically
                 if (it.selectedComponent == null && it.componentOptions.isNotEmpty())
@@ -138,8 +138,8 @@ class VisualizationViewModel(
     @OptIn(ExperimentalCoroutinesApi::class)
     val visualizationScreenState =
         combine(selectionData, displayMode, overlaySettings, overlayEnabled) { a, b, c, d ->
-            VisualizationSettings(a, b, c, d)
-        }
+                VisualizationSettings(a, b, c, d)
+            }
             .flatMapLatest {
                 val selection = it.selection
                 val selectedComponent = it.selection.selectedComponent
@@ -168,7 +168,8 @@ class VisualizationViewModel(
                                 )
                                 .toEventListViewOrNull(selection)
 
-                        VisualizationDisplayMode.OVERLAY -> it.overlayLauncher(selectedMetric.getChartMetadata())
+                        VisualizationDisplayMode.OVERLAY ->
+                            it.overlayLauncher(selectedMetric.getChartMetadata())
                     } ?: it.noVisualizationExists()
                 } else {
                     it.waitingForMetricSelection()

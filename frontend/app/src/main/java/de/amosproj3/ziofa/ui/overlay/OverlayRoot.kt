@@ -60,7 +60,7 @@ fun TimeSeriesOverlay(data: GraphedData.TimeSeriesData, modifier: Modifier = Mod
     if (data.seriesData.isNotEmpty()) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
             Text("ZIOFA OVERLAY", color = Color.Red)
-            VicoTimeSeries(seriesData = data.seriesData, data.metaData, overlayMode = true, )
+            VicoTimeSeries(seriesData = data.seriesData, data.metaData, overlayMode = true)
         }
     }
 }

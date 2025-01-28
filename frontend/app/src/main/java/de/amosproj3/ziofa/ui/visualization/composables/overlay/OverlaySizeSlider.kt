@@ -29,10 +29,7 @@ fun OverlaySizeSlider(
     var overlaySize by remember { mutableFloatStateOf(overlaySizePct) }
 
     Column(modifier = modifier.padding(horizontal = 10.dp)) {
-        Text(
-            "Overlay Size",
-            fontWeight = FontWeight.Bold,
-        )
+        Text("Overlay Size", fontWeight = FontWeight.Bold)
 
         Spacer(Modifier.height(10.dp))
 

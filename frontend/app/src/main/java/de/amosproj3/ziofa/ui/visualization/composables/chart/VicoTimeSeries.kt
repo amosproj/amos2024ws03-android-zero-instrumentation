@@ -75,56 +75,60 @@ private fun CartesianChartModelProducer.TimeSeriesChart(
 
     CartesianChartHost(
         chart =
-        rememberCartesianChart(
-            rememberLineCartesianLayer(
-                LineCartesianLayer.LineProvider.series(
-                    LineCartesianLayer.rememberLine(
-                        remember {
-                            LineCartesianLayer.LineFill.single(
-                                fill(if (overlayMode) mainColor else VICO_LINE_COLOR)
-                            )
-                        }
+            rememberCartesianChart(
+                rememberLineCartesianLayer(
+                    LineCartesianLayer.LineProvider.series(
+                        LineCartesianLayer.rememberLine(
+                            remember {
+                                LineCartesianLayer.LineFill.single(
+                                    fill(if (overlayMode) mainColor else VICO_LINE_COLOR)
+                                )
+                            }
+                        )
                     )
-                )
-            ),
-            startAxis =
-            VerticalAxis.rememberStart(
-                label = rememberTextComponent(color = mainColor, typeface = typeface),
-                titleComponent =
-                if (overlayMode) null else rememberTextComponent(
-                    textSize = TextUnit(15f, TextUnitType.Sp),
-                    color = Color.White,
-                    margins = dimensions(end = 4.dp),
-                    padding = dimensions(8.dp, 2.dp),
-                    background =
-                    rememberShapeComponent(
-                        fill = fill(MaterialTheme.colorScheme.secondary),
-                        shape = CorneredShape.Pill,
-                    ),
                 ),
-                title = if (overlayMode) null else yLabel,
-            ),
-            bottomAxis =
-            HorizontalAxis.rememberBottom(
-                label = rememberTextComponent(color = mainColor, typeface = typeface),
-                titleComponent =
-                if (overlayMode) null else rememberTextComponent(
-                    textSize = TextUnit(15f, TextUnitType.Sp),
-                    color = Color.White,
-                    margins = dimensions(top = 4.dp),
-                    padding = dimensions(8.dp, 2.dp),
-                    background =
-                    shapeComponent(
-                        fill = fill(MaterialTheme.colorScheme.primary),
-                        shape = CorneredShape.Pill,
+                startAxis =
+                    VerticalAxis.rememberStart(
+                        label = rememberTextComponent(color = mainColor, typeface = typeface),
+                        titleComponent =
+                            if (overlayMode) null
+                            else
+                                rememberTextComponent(
+                                    textSize = TextUnit(15f, TextUnitType.Sp),
+                                    color = Color.White,
+                                    margins = dimensions(end = 4.dp),
+                                    padding = dimensions(8.dp, 2.dp),
+                                    background =
+                                        rememberShapeComponent(
+                                            fill = fill(MaterialTheme.colorScheme.secondary),
+                                            shape = CorneredShape.Pill,
+                                        ),
+                                ),
+                        title = if (overlayMode) null else yLabel,
                     ),
-                ),
-                title = if (overlayMode) null else xLabel,
-                guideline = null,
-                itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented() },
+                bottomAxis =
+                    HorizontalAxis.rememberBottom(
+                        label = rememberTextComponent(color = mainColor, typeface = typeface),
+                        titleComponent =
+                            if (overlayMode) null
+                            else
+                                rememberTextComponent(
+                                    textSize = TextUnit(15f, TextUnitType.Sp),
+                                    color = Color.White,
+                                    margins = dimensions(top = 4.dp),
+                                    padding = dimensions(8.dp, 2.dp),
+                                    background =
+                                        shapeComponent(
+                                            fill = fill(MaterialTheme.colorScheme.primary),
+                                            shape = CorneredShape.Pill,
+                                        ),
+                                ),
+                        title = if (overlayMode) null else xLabel,
+                        guideline = null,
+                        itemPlacer = remember { HorizontalAxis.ItemPlacer.segmented() },
+                    ),
+                layerPadding = cartesianLayerPadding(scalableStart = 16.dp, scalableEnd = 16.dp),
             ),
-            layerPadding = cartesianLayerPadding(scalableStart = 16.dp, scalableEnd = 16.dp),
-        ),
         modelProducer = this@TimeSeriesChart,
         modifier = modifier,
         zoomState = rememberVicoZoomState(zoomEnabled = false),
