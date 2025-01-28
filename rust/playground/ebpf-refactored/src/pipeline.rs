@@ -10,8 +10,7 @@ use core::{
 use aya_ebpf::{
     bindings::pt_regs,
     helpers::{bpf_get_current_task, bpf_ktime_get_ns},
-    macros::{map, raw_tracepoint, uprobe, uretprobe},
-    maps::{Array, HashMap, PerCpuArray, RingBuf},
+    macros::{raw_tracepoint, uprobe, uretprobe},
     programs::{ProbeContext, RawTracePointContext, RetProbeContext},
     EbpfContext, PtRegs,
 };
@@ -23,13 +22,17 @@ use ebpf_types::{
 };
 
 use crate::{
-    blocking::{initialize_blocking_enter, initialize_blocking_exit},
-    fdtracking::{initialize_fdtracking_enter, initialize_fdtracking_exit},
-    process_info::process_info_from_task,
-    programs::{filter, FILTER_CONFIG},
-    signal::initialize_signal_enter,
-    task_info::task_info_from_task,
-    write::{initialize_write_enter, initialize_write_exit},
+    events::{
+        blocking::{initialize_blocking_enter, initialize_blocking_exit},
+        fdtracking::{initialize_fdtracking_enter, initialize_fdtracking_exit},
+        signal::initialize_signal_enter,
+        write::{initialize_write_enter, initialize_write_exit},
+    },
+    filter::filter,
+    maps::{
+        ProcessInfoCache, TaskInfoCache, EVENT_BRIDGE, EVENT_BUFFER, EVENT_RB, FILTER_CONFIG,
+        GLOBAL_BLOCKING_THRESHOLD,
+    },
 };
 
 struct ProgramInfo<'a, T> {
@@ -44,6 +47,7 @@ impl<T: EventData + Clone + Copy + 'static> ProgramInfo<'_, T> {
         let mut entry = EVENT_RB.reserve::<Event<T>>(0)?;
         let entry_mut = unsafe { entry.assume_init_mut() };
         entry_mut.kind = T::EVENT_KIND;
+
         entry_mut.context = EventContext {
             timestamp: unsafe { bpf_ktime_get_ns() },
             task: *self.task_context,
@@ -120,22 +124,10 @@ impl<T> EventInfo<T> {
 }
 
 #[repr(C)]
-struct RawEventData {
+pub struct RawEventData {
     initialized: bool,
     data: [u8; max_raw_event_data_size()],
 }
-
-#[map]
-static EVENT_BUFFER: PerCpuArray<RawEventData> = PerCpuArray::with_max_entries(1, 0);
-
-#[map]
-static EVENT_BRIDGE: HashMap<u64, RawEventData> = HashMap::with_max_entries(10240, 0);
-
-#[map]
-static EVENT_RB: RingBuf = RingBuf::with_byte_size(8192 * 1024, 0);
-
-#[map]
-static GLOBAL_BLOCKING_THRESHOLD: Array<u64> = Array::with_max_entries(1, 0);
 
 fn event_bridge_key<T: EventData>(task: TaskStruct) -> Option<u64> {
     let tid = task.pid().ok()? as u64;
@@ -153,8 +145,8 @@ unsafe fn program_info_base<T: EventData>(
         _t: PhantomData,
     };
     Some(ProgramInfo {
-        task_context: &*task_info_from_task(task)?,
-        process_context: &*process_info_from_task(task)?,
+        task_context: TaskInfoCache::get(task)?,
+        process_context: ProcessInfoCache::get(task)?,
         filter_config: FILTER_CONFIG.get(T::EVENT_KIND as u32)?,
         event_info,
     })
@@ -277,7 +269,6 @@ pub fn sys_enter_write(ctx: RawTracePointContext) -> Option<()> {
 pub fn sys_exit_write(ctx: RawTracePointContext) -> Option<()> {
     unsafe {
         let exit_info = SysExitInfo::new(&ctx);
-
         let mut program_info = exit_info.program_info::<Write>()?;
 
         if filter::<Write>(
@@ -288,7 +279,6 @@ pub fn sys_exit_write(ctx: RawTracePointContext) -> Option<()> {
             return None;
         }
 
-        info!(&ctx, "{}", program_info.event_info.bytes_written);
         initialize_write_exit(exit_info.task, &mut program_info.event_info)?;
 
         program_info.submit()?;

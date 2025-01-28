@@ -4,14 +4,10 @@
 
 use core::ptr::{copy_nonoverlapping, slice_from_raw_parts, slice_from_raw_parts_mut};
 
-use aya_ebpf::{
-    helpers::{bpf_probe_read_kernel, bpf_probe_read_kernel_buf},
-    macros::map,
-    maps::PerCpuArray,
-};
+use aya_ebpf::helpers::{bpf_probe_read_kernel, bpf_probe_read_kernel_buf};
 use ebpf_relocation_helpers::{Dentry, File, Mount, Path, TaskStruct, Vfsmount};
 
-use crate::{bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt};
+use crate::{bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt, maps::PATH_BUF};
 
 pub struct PathWalker {
     vfs_mount: Vfsmount,
@@ -202,6 +198,3 @@ pub fn get_path_from_fd(fd: u64, task: TaskStruct) -> Option<Path> {
 
     Some(path)
 }
-
-#[map]
-static PATH_BUF: PerCpuArray<[u8; PATH_MAX * 2]> = PerCpuArray::with_max_entries(1, 0);

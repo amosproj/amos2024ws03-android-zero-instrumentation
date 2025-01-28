@@ -19,10 +19,4 @@ aya-log-ebpf = { workspace = true }
 ebpf-types = { workspace = true }
 ebpf-relocation-helpers = { workspace = true }
 syscall-numbers = { workspace = true }
-
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-lto = "thin"
-panic = "abort"
+const-assert = "1.0.1"
