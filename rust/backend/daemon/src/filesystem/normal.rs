@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{fs::File, io::{self, BufReader, BufWriter}};
+use std::{
+    fs::File,
+    io::{self, BufReader, BufWriter},
+};
 
 use shared::config::Configuration;
 

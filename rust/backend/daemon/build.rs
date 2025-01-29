@@ -55,7 +55,7 @@ fn main() {
     let Metadata { packages, .. } = MetadataCommand::new().no_deps().exec().unwrap();
     let ebpf_package = packages
         .into_iter()
-        .find(|Package { name, .. }| name == "backend-ebpf")
+        .find(|Package { name, .. }| name == "ebpf-refactored")
         .unwrap();
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
@@ -86,6 +86,7 @@ fn main() {
         println!("cargo:rerun-if-changed={}", ebpf_dir.as_str());
 
         let mut cmd = Command::new("cargo");
+        cmd.env("CARGO_ENCODED_RUSTFLAGS", "-Cdebuginfo=2");
         cmd.args([
             "build",
             "-Z",

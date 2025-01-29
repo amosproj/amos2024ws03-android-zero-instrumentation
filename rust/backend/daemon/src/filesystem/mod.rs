@@ -7,9 +7,8 @@ use std::future::Future;
 
 use shared::config::Configuration;
 
-
-mod normal;
 mod memory;
+mod normal;
 
 pub use normal::NormalConfigurationStorage;
 
@@ -21,4 +20,3 @@ pub trait ConfigurationStorage: Send + Sync + 'static {
 
     fn save(&self, config: &Configuration, path: &str) -> impl Future<Output = io::Result<()>> + Send ;
 }
-

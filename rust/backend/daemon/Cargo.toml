@@ -21,7 +21,6 @@ tokio-stream = { workspace = true, features = ["sync"] }
 serde_json = { workspace = true }
 aya = { workspace = true }
 thiserror = { workspace = true }
-backend-common = { workspace = true, features = ["user"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 procfs = { workspace = true }
@@ -42,7 +41,8 @@ fmmap = { workspace = true }
 flume = { workspace = true }
 hyper-util = { workspace = true }
 tower = { workspace = true }
-garbage-collection = { workspace = true, features = ["serialize"] }
+garbage-collection = { workspace = true, features = ["serialize", "btf"] }
+ebpf-types = { workspace = true, features = ["user"]}
 
 [build-dependencies]
 cargo_metadata = { workspace = true }

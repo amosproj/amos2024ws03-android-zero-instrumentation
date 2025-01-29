@@ -5,35 +5,24 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
-use crate::filesystem::{ConfigurationStorage, NormalConfigurationStorage};
-use crate::registry;
-use crate::symbols::actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg};
-use crate::symbols::SymbolHandler;
-use crate::{
-    constants,
-    ebpf_utils::EbpfErrorWrapper,
-    features::Features,
-    procfs_utils::{list_processes, ProcErrorWrapper},
-};
+use std::{path::PathBuf, sync::Arc};
+
 use async_broadcast::{broadcast, Receiver, Sender};
 use ractor::{call, Actor, ActorRef};
-use shared::ziofa::{
-    Event, GetSymbolOffsetRequest, GetSymbolOffsetResponse, GetSymbolsRequest, PidMessage,
-    SearchSymbolsRequest, SearchSymbolsResponse, StringResponse, Symbol,
-};
 use shared::{
     config::Configuration,
     ziofa::{
         ziofa_server::{Ziofa, ZiofaServer},
-        CheckServerResponse, ProcessList,
+        CheckServerResponse, Event, GetSymbolOffsetRequest, GetSymbolOffsetResponse,
+        GetSymbolsRequest, PidMessage, ProcessList, SearchSymbolsRequest, SearchSymbolsResponse,
+        StringResponse, Symbol,
     },
 };
-use std::path::PathBuf;
-use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
+
+use crate::{collector::{CollectorSupervisor, CollectorSupervisorArguments}, constants, ebpf_utils::EbpfErrorWrapper, features::Features, filesystem::{ConfigurationStorage, NormalConfigurationStorage}, procfs_utils::{list_processes, ProcErrorWrapper}, registry, symbols::{actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg}, SymbolHandler}};
 
 pub struct ZiofaImpl<C>
 where C: ConfigurationStorage {
@@ -72,7 +61,8 @@ pub struct Channel {
 
 impl Channel {
     pub fn new() -> Self {
-        let (tx, rx) = broadcast(8192);
+        let (mut tx, rx) = broadcast(8192);
+        tx.set_overflow(true);
         Self { tx, rx }
     }
 }
@@ -308,8 +298,14 @@ async fn setup() -> (ActorRef<()>, ZiofaServer<ZiofaImpl<NormalConfigurationStor
 
     let filesystem = NormalConfigurationStorage;
 
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem, symbol_actor_ref));
-    
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(
+        features,
+        channel,
+        symbol_handler,
+        filesystem,
+        symbol_actor_ref,
+    ));
+
     (collector_ref, ziofa_server)
 }
 
@@ -330,25 +326,25 @@ mod tests {
     use std::io;
 
     use hyper_util::rt::TokioIo;
+    use shared::ziofa::ziofa_client::ZiofaClient;
     use tokio::io::duplex;
     use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
     use tonic::transport::Endpoint;
     use tower::service_fn;
-    use shared::ziofa::ziofa_client::ZiofaClient;
 
     use super::*;
-    
+
     #[tokio::test]
     async fn test_in_memory_connection() {
-        
         // We use a channel, this is plays the role of our operating system, that would normally give us a tcp socket when we connect to the server
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-        
+
         // Normal setup like in the default case
         let (collector_ref, ziofa_server) = setup().await;
-        
+
         // We create a new endpoint, the connection url is ignored in the `connect_with_connector` call
-        let channel = Endpoint::try_from("http://[::1]:50051").unwrap()
+        let channel = Endpoint::try_from("http://[::1]:50051")
+            .unwrap()
             .connect_with_connector(service_fn({
                 move |_| {
                     // We create a new duplex stream, this plays the role of the tcp socket
@@ -360,39 +356,44 @@ mod tests {
                         Ok::<_, io::Error>(TokioIo::new(left))
                     }
                 }
-            })).await.unwrap();
-        
+            }))
+            .await
+            .unwrap();
+
         // We can create multiple clients
         let mut client = ZiofaClient::new(channel.clone());
         let mut other = ZiofaClient::new(channel);
-        
+
         // stop condition
         let (stop_tx, stop_rx) = tokio::sync::oneshot::channel();
-        
+
         let stop = async move {
             let _ = stop_rx.await;
         };
-        
+
         let server_task = tokio::spawn(async move {
             Server::builder()
                 .add_service(ziofa_server)
                 // UnboundedReceiverStream is a wrapper to turn a Receiver into a Stream
                 // Network operations can fail so it expects a result type, we just wrap it in Ok
-                .serve_with_incoming_shutdown(UnboundedReceiverStream::new(rx).map(Ok::<_, io::Error>), stop)
+                .serve_with_incoming_shutdown(
+                    UnboundedReceiverStream::new(rx).map(Ok::<_, io::Error>),
+                    stop,
+                )
                 .await
                 .unwrap();
         });
-        
+
         // We can now call the server as we like
         let _ = client.check_server(()).await.unwrap();
         let _ = other.check_server(()).await.unwrap();
-        
+
         // gracefully shutdown the server
         stop_tx.send(()).expect("still running");
-        
+
         // wait for the task/server to be done
         server_task.await.unwrap();
-        
+
         // stop the collector
         collector_ref.stop_and_wait(None, None).await.unwrap();
     }

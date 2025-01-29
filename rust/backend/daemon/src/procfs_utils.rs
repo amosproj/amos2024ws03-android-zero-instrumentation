@@ -47,4 +47,3 @@ pub fn list_processes() -> Result<ProcessList, ProcError> {
         ProcessList { processes }
     })
 }
-

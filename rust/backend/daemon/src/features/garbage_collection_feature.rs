@@ -5,53 +5,68 @@
 //
 // SPDX-License-Identifier: MIT
 
-use aya::programs::uprobe::UProbeLink;
-use aya::EbpfError;
-use aya::programs::UProbe;
+use aya::{
+    programs::{uprobe::UProbeLink, UProbe},
+    EbpfError,
+};
 use ractor::ActorRef;
 use shared::config::GcConfig;
-use crate::features::Feature;
-use crate::registry::{EbpfRegistry, RegistryGuard};
-use crate::symbols::actors::SymbolActorMsg;
 
+use crate::{
+    features::Feature,
+    registry::{EbpfRegistry, RegistryGuard},
+    symbols::actors::SymbolActorMsg,
+};
+
+/// Offset of the collect_garbage_internal function in libart.so
+/// Found via disassembling and looking at the exported CollectGc method
 const COLLECT_GC_INTERNAL_OFFSET: u64 = 0x57ad10;
 
 pub struct GcFeature {
-    collect_garbage_internal: RegistryGuard<UProbe>,
-    collect_garbage_internal_ret: RegistryGuard<UProbe>,
-    collect_garbage_internal_link: Option<UProbeLink>,
-    collect_garbage_internal_ret_link: Option<UProbeLink>,
+    trace_gc_enter: RegistryGuard<UProbe>,
+    trace_gc_exit: RegistryGuard<UProbe>,
+    trace_enter_gc_link: Option<UProbeLink>,
+    trace_exit_gc_link: Option<UProbeLink>,
 }
 
 impl GcFeature {
     fn create(registry: &EbpfRegistry) -> Self {
         Self {
-            collect_garbage_internal: registry.program.collect_garbage_internal.take(),
-            collect_garbage_internal_ret: registry.program.collect_garbage_internal_ret.take(),
-            collect_garbage_internal_link: None,
-            collect_garbage_internal_ret_link: None,
+            trace_gc_enter: registry.program.trace_gc_enter.take(),
+            trace_gc_exit: registry.program.trace_gc_exit.take(),
+            trace_enter_gc_link: None,
+            trace_exit_gc_link: None,
         }
     }
 
     fn attach(&mut self) -> Result<(), EbpfError> {
-        if self.collect_garbage_internal_link.is_none() {
-            let link_id = self.collect_garbage_internal.attach(None, COLLECT_GC_INTERNAL_OFFSET, "/apex/com.android.art/lib64/libart.so", None)?;
-            self.collect_garbage_internal_link = Some(self.collect_garbage_internal.take_link(link_id)?);
+        if self.trace_enter_gc_link.is_none() {
+            let link_id = self.trace_gc_enter.attach(
+                None,
+                COLLECT_GC_INTERNAL_OFFSET,
+                "/apex/com.android.art/lib64/libart.so",
+                None,
+            )?;
+            self.trace_enter_gc_link = Some(self.trace_gc_enter.take_link(link_id)?);
         }
 
-        if self.collect_garbage_internal_ret_link.is_none() {
-            let link_id = self.collect_garbage_internal_ret.attach(None, COLLECT_GC_INTERNAL_OFFSET, "/apex/com.android.art/lib64/libart.so", None)?;
-            self.collect_garbage_internal_ret_link = Some(self.collect_garbage_internal_ret.take_link(link_id)?);
+        if self.trace_exit_gc_link.is_none() {
+            let link_id = self.trace_gc_exit.attach(
+                None,
+                COLLECT_GC_INTERNAL_OFFSET,
+                "/apex/com.android.art/lib64/libart.so",
+                None,
+            )?;
+            self.trace_exit_gc_link = Some(self.trace_gc_exit.take_link(link_id)?);
         }
 
         Ok(())
     }
 
     fn detach(&mut self) {
-        let _ = self.collect_garbage_internal_link.take();
-        let _ = self.collect_garbage_internal_ret_link.take();
+        let _ = self.trace_enter_gc_link.take();
+        let _ = self.trace_exit_gc_link.take();
     }
-
 }
 
 impl Feature for GcFeature {
@@ -73,8 +88,3 @@ impl Feature for GcFeature {
         Ok(())
     }
 }
-
-
-
-
-

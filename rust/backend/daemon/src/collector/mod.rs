@@ -4,16 +4,16 @@
 //
 // SPDX-License-Identifier: MIT
 
-use backend_common::{
-    JNICall, JNIMethodName, SysFdAction, SysFdActionCall, SysGcCall, SysSendmsgCall,
-    SysSigquitCall, VfsWriteCall,
+use aya::maps::ring_buf::RingBufItem;
+use bytemuck::checked;
+use ebpf_types::{
+    Blocking, Event as EbpfEvent, EventKind, FileDescriptorChange, FileDescriptorOp,
+    GarbageCollect, Jni, Signal, Write,
 };
-use shared::ziofa::event::EventType;
-use shared::ziofa::jni_references_event::JniMethodName;
-use shared::ziofa::log_event::EventData;
 use shared::ziofa::{
-    sys_fd_tracking_event, Event, GcEvent, JniReferencesEvent, LogEvent, SysFdTrackingEvent,
-    SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent,
+    event::EventType, jni_references_event::JniMethodName, log_event::EventData,
+    sys_fd_tracking_event::SysFdAction, Event, GcEvent, JniReferencesEvent, LogEvent,
+    SysFdTrackingEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent,
 };
 
 mod aggregator;
@@ -28,110 +28,130 @@ pub trait IntoEvent {
     fn into_event(self) -> Event;
 }
 
-impl IntoEvent for VfsWriteCall {
+impl IntoEvent for RingBufItem<'_> {
+    fn into_event(self) -> Event {
+        let kind = checked::from_bytes::<EventKind>(&self[..size_of::<EventKind>()]);
+        match *kind {
+            EventKind::Write => checked::from_bytes::<EbpfEvent<Write>>(&self).into_event(),
+            EventKind::Blocking => checked::from_bytes::<EbpfEvent<Blocking>>(&self).into_event(),
+            EventKind::Signal => checked::from_bytes::<EbpfEvent<Signal>>(&self).into_event(),
+            EventKind::GarbageCollect => {
+                checked::from_bytes::<EbpfEvent<GarbageCollect>>(&self).into_event()
+            }
+            EventKind::FileDescriptorChange => {
+                checked::from_bytes::<EbpfEvent<FileDescriptorChange>>(&self).into_event()
+            }
+            EventKind::Jni => checked::from_bytes::<EbpfEvent<Jni>>(&self).into_event(),
+            _ => todo!(),
+        }
+    }
+}
+
+impl IntoEvent for EbpfEvent<Write> {
     fn into_event(self) -> Event {
         Event {
             event_type: Some(EventType::Log(LogEvent {
                 event_data: Some(EventData::VfsWrite(VfsWriteEvent {
-                    pid: self.pid,
-                    tid: self.tid,
-                    begin_time_stamp: self.begin_time_stamp,
-                    fp: self.fp,
-                    bytes_written: self.bytes_written as u64,
+                    pid: self.context.task.pid,
+                    tid: self.context.task.tid,
+                    begin_time_stamp: self.context.timestamp,
+                    fp: self.data.file_descriptor,
+                    bytes_written: self.data.bytes_written,
                 })),
             })),
         }
     }
 }
 
-impl IntoEvent for SysSendmsgCall {
-    fn into_event(self) -> Event {
-        Event {
-            event_type: Some(EventType::Log(LogEvent {
-                event_data: Some(EventData::SysSendmsg(SysSendmsgEvent {
-                    pid: self.pid,
-                    tid: self.tid,
-                    begin_time_stamp: self.begin_time_stamp,
-                    fd: self.fd,
-                    duration_nano_sec: self.duration_nano_sec,
-                })),
-            })),
-        }
-    }
-}
-
-impl IntoEvent for JNICall {
-    fn into_event(self) -> Event {
-        Event {
-            event_type: Some(EventType::Log(LogEvent {
-                event_data: Some(EventData::JniReferences(JniReferencesEvent {
-                    pid: self.pid,
-                    tid: self.tid,
-                    begin_time_stamp: self.begin_time_stamp,
-                    jni_method_name: (match self.method_name {
-                        JNIMethodName::AddLocalRef => JniMethodName::AddLocalRef,
-                        JNIMethodName::DeleteLocalRef => JniMethodName::DeleteLocalRef,
-                        JNIMethodName::AddGlobalRef => JniMethodName::AddGlobalRef,
-                        JNIMethodName::DeleteGlobalRef => JniMethodName::DeleteGlobalRef,
-                    })
-                    .into(),
-                })),
-            })),
-        }
-    }
-}
-
-impl IntoEvent for SysSigquitCall {
+impl IntoEvent for EbpfEvent<Signal> {
     fn into_event(self) -> Event {
         Event {
             event_type: Some(EventType::Log(LogEvent {
                 event_data: Some(EventData::SysSigquit(SysSigquitEvent {
-                    pid: self.pid,
-                    tid: self.tid,
-                    time_stamp: self.time_stamp,
-                    target_pid: self.target_pid,
+                    pid: self.context.task.pid,
+                    tid: self.context.task.tid,
+                    time_stamp: self.context.timestamp,
+                    target_pid: self.data.target_pid as u64, // TODO: negative value
+                                                             // TODO: signal kind
                 })),
             })),
         }
     }
 }
 
-impl IntoEvent for SysGcCall {
+impl IntoEvent for EbpfEvent<GarbageCollect> {
     fn into_event(self) -> Event {
         Event {
             event_type: Some(EventType::Log(LogEvent {
                 event_data: Some(EventData::Gc(GcEvent {
-                    pid: self.pid,
-                    tid: self.tid,
-                    target_footprint: self.heap.target_footprint as u64,
-                    num_bytes_allocated: self.heap.num_bytes_allocated as u64,
-                    gcs_completed: self.heap.gcs_completed,
-                    gc_cause: self.heap.gc_cause as u32,
-                    duration_ns: self.heap.duration_ns,
-                    freed_objects: self.heap.freed_objects,
-                    freed_bytes: self.heap.freed_bytes,
-                    freed_los_objects: self.heap.freed_los_objects,
-                    freed_los_bytes: self.heap.freed_los_bytes,
-                    pause_times: self.heap.pause_times.to_vec(),
+                    pid: self.context.task.pid,
+                    tid: self.context.task.tid,
+                    target_footprint: self.data.target_footprint,
+                    num_bytes_allocated: self.data.num_bytes_allocated,
+                    gc_cause: self.data.gc_cause,
+                    freed_bytes: self.data.freed_bytes as i64,
+                    freed_objects: self.data.freed_objects,
+                    pause_times: vec![],
+                    duration_ns: self.data.duration_ns,
+                    freed_los_bytes: self.data.freed_los_bytes as i64,
+                    freed_los_objects: self.data.freed_los_objects,
+                    gcs_completed: self.data.gcs_completed,
                 })),
             })),
         }
     }
 }
 
-impl IntoEvent for SysFdActionCall {
+impl IntoEvent for EbpfEvent<FileDescriptorChange> {
     fn into_event(self) -> Event {
         Event {
             event_type: Some(EventType::Log(LogEvent {
                 event_data: Some(EventData::SysFdTracking(SysFdTrackingEvent {
-                    pid: self.pid,
-                    tid: self.tid,
-                    time_stamp: self.time_stamp,
-                    fd_action: (match self.fd_action {
-                        SysFdAction::Created => sys_fd_tracking_event::SysFdAction::Created,
-                        SysFdAction::Destroyed => sys_fd_tracking_event::SysFdAction::Destroyed,
-                    })
+                    pid: self.context.task.pid,
+                    tid: self.context.task.tid,
+                    time_stamp: self.context.timestamp,
+                    fd_action: match self.data.operation {
+                        FileDescriptorOp::Open => SysFdAction::Created,
+                        FileDescriptorOp::Close => SysFdAction::Destroyed,
+                    }
                     .into(),
+                })),
+            })),
+        }
+    }
+}
+
+impl IntoEvent for EbpfEvent<Jni> {
+    fn into_event(self) -> Event {
+        Event {
+            event_type: Some(EventType::Log(LogEvent {
+                event_data: Some(EventData::JniReferences(JniReferencesEvent {
+                    pid: self.context.task.pid,
+                    tid: self.context.task.tid,
+                    begin_time_stamp: self.context.timestamp,
+                    jni_method_name: match self.data {
+                        Jni::AddLocalRef => JniMethodName::AddLocalRef,
+                        Jni::DeleteLocalRef => JniMethodName::DeleteLocalRef,
+                        Jni::AddGlobalRef => JniMethodName::AddGlobalRef,
+                        Jni::DeleteGlobalRef => JniMethodName::DeleteGlobalRef,
+                    }
+                    .into(),
+                })),
+            })),
+        }
+    }
+}
+
+impl IntoEvent for EbpfEvent<Blocking> {
+    fn into_event(self) -> Event {
+        Event {
+            event_type: Some(EventType::Log(LogEvent {
+                event_data: Some(EventData::SysSendmsg(SysSendmsgEvent {
+                    pid: self.context.task.pid,
+                    tid: self.context.task.tid,
+                    begin_time_stamp: self.context.timestamp,
+                    fd: self.data.syscall_id, // TODO: we have blocking event now
+                    duration_nano_sec: self.data.duration,
                 })),
             })),
         }

@@ -6,11 +6,17 @@
 
 use bytemuck::{CheckedBitPattern, Pod, PodInOption, Zeroable, ZeroableInOption};
 
+#[cfg(feature = "btf")]
+extern crate alloc;
+
 #[cfg(feature = "parse")]
 pub mod parse;
 
 #[cfg(feature = "read")]
 pub mod read;
+
+#[cfg(feature = "btf")]
+pub mod btf;
 
 // SAFETY: When all fields are 0, the struct might as well be None.
 unsafe impl PodInOption for HeapMetadata {}
@@ -129,5 +135,5 @@ pub struct Heap {
     pub freed_bytes: i64,
     pub freed_los_objects: u64,
     pub freed_los_bytes: i64,
-    pub pause_times: [u64; 8]
+    pub pause_times: [u64; 8],
 }

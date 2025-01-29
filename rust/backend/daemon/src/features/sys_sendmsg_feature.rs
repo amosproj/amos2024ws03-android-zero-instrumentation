@@ -5,63 +5,53 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::features::{update_pids, Feature};
-use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
-use crate::symbols::actors::SymbolActorMsg;
-use aya::programs::trace_point::TracePointLink;
-use aya::programs::TracePoint;
-use aya::EbpfError;
+use aya::{
+    programs::{raw_trace_point::RawTracePointLink, RawTracePoint},
+    EbpfError,
+};
 use ractor::ActorRef;
 use shared::config::SysSendmsgConfig;
 
+use crate::{
+    features::Feature,
+    registry::{EbpfRegistry, RegistryGuard},
+    symbols::actors::SymbolActorMsg,
+};
+
 pub struct SysSendmsgFeature {
-    sys_enter_sendmsg: RegistryGuard<TracePoint>,
-    sys_exit_sendmsg: RegistryGuard<TracePoint>,
-    sys_sendmsg_pids: RegistryGuard<OwnedHashMap<u32, u64>>,
-    sys_enter_sendmsg_link: Option<TracePointLink>,
-    sys_exit_sendmsg_link: Option<TracePointLink>,
+    sys_enter_blocking: RegistryGuard<RawTracePoint>,
+    sys_exit_blocking: RegistryGuard<RawTracePoint>,
+    sys_enter_blocking_link: Option<RawTracePointLink>,
+    sys_exit_blocking_link: Option<RawTracePointLink>,
 }
 
 impl SysSendmsgFeature {
     fn create(registry: &EbpfRegistry) -> Self {
         Self {
-            sys_enter_sendmsg: registry.program.sys_enter_sendmsg.take(),
-            sys_exit_sendmsg: registry.program.sys_exit_sendmsg.take(),
-            sys_sendmsg_pids: registry.config.sys_sendmsg_pids.take(),
-            sys_enter_sendmsg_link: None,
-            sys_exit_sendmsg_link: None,
+            sys_enter_blocking: registry.program.sys_enter_blocking.take(),
+            sys_exit_blocking: registry.program.sys_exit_blocking.take(),
+            sys_enter_blocking_link: None,
+            sys_exit_blocking_link: None,
         }
     }
 
     fn attach(&mut self) -> Result<(), EbpfError> {
-        if self.sys_enter_sendmsg_link.is_none() {
-            let link_id = self
-                .sys_enter_sendmsg
-                .attach("syscalls", "sys_enter_sendmsg")?;
-            self.sys_enter_sendmsg_link = Some(self.sys_enter_sendmsg.take_link(link_id)?);
+        if self.sys_enter_blocking_link.is_none() {
+            let link_id = self.sys_enter_blocking.attach("sys_enter")?;
+            self.sys_enter_blocking_link = Some(self.sys_enter_blocking.take_link(link_id)?);
         }
 
-        if self.sys_exit_sendmsg_link.is_none() {
-            let link_id = self
-                .sys_exit_sendmsg
-                .attach("syscalls", "sys_exit_sendmsg")?;
-            self.sys_exit_sendmsg_link = Some(self.sys_exit_sendmsg.take_link(link_id)?);
+        if self.sys_exit_blocking_link.is_none() {
+            let link_id = self.sys_exit_blocking.attach("sys_exit")?;
+            self.sys_exit_blocking_link = Some(self.sys_exit_blocking.take_link(link_id)?);
         }
 
         Ok(())
     }
 
     fn detach(&mut self) {
-        // the TrakePointLinks will be automatically detached when the reference is dropped
-        let _ = self.sys_enter_sendmsg_link.take();
-        let _ = self.sys_exit_sendmsg_link.take();
-    }
-
-    fn update_pids(
-        &mut self,
-        entries: &std::collections::HashMap<u32, u64>,
-    ) -> Result<(), EbpfError> {
-        update_pids(entries, &mut self.sys_sendmsg_pids)
+        let _ = self.sys_enter_blocking_link.take();
+        let _ = self.sys_exit_blocking_link.take();
     }
 }
 
@@ -72,14 +62,10 @@ impl Feature for SysSendmsgFeature {
     }
 
     async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
-        match config {
-            Some(config) => {
-                self.attach()?;
-                self.update_pids(&config.entries)?;
-            }
-            None => {
-                self.detach();
-            }
+        if config.is_some() {
+            self.attach()?;
+        } else {
+            self.detach();
         }
         Ok(())
     }

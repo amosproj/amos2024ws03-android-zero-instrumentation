@@ -50,7 +50,7 @@ jobs:
       - name: Cargo Clippy
         run: | 
           cd rust
-          nix develop --command cargo clippy --workspace --all-targets --all-features --exclude backend-ebpf
+          nix develop --command cargo clippy --workspace --all-targets --all-features --exclude ebpf-refactored
           # nix develop --command cargo clippy --workspace --all-targets --all-features --package backend-ebpf -- -C panic=abort -Zpanic_abort_tests
   
   rust-test:
@@ -68,7 +68,7 @@ jobs:
       - name: Cargo test
         run: | 
           cd rust
-          nix develop --command cargo test --workspace --all-targets --all-features --exclude client --exclude backend-ebpf-test --exclude backend-daemon
+          nix develop --command cargo test --workspace --all-targets --all-features --exclude client --exclude ebpf-test-refactored --exclude backend-daemon
 
   rust-build:
     name: Rust Build

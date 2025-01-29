@@ -8,9 +8,8 @@ use clap::Parser;
 use clap::Subcommand;
 use client::Client;
 use client::ClientError;
-use shared::config::GcConfig;
 use shared::config::SysFdTrackingConfig;
-use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig, SysSigquitConfig};
+use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, SysSigquitConfig};
 use std::collections::HashMap;
 use tokio_stream::StreamExt;
 
@@ -110,14 +109,16 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
     client
         .set_configuration(Configuration {
             uprobes: vec![],
-            vfs_write: None,
+            vfs_write: Some(VfsWriteConfig {
+                entries: HashMap::from([(pid, 0)]),
+            }),
             sys_sendmsg: Some(SysSendmsgConfig {
                 entries: HashMap::from([(pid, 0)]),
             }),
             jni_references: None,
-            sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-            gc: Some(GcConfig { }),
-            sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
+            sys_sigquit: Some(SysSigquitConfig { pids: vec![pid] }),
+            gc: None,
+            sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![pid] }),
         })
         .await?;
 
@@ -140,9 +141,9 @@ async fn set_config(client: &mut Client) -> Result<()> {
             sys_sendmsg: Some(SysSendmsgConfig {
                 entries: HashMap::new(),
             }),
-            jni_references: Some(JniReferencesConfig { pids: vec![] }),
+            jni_references: None,
             sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-            gc: Some(GcConfig { }),
+            gc: None,
             sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
         })
         .await?;
