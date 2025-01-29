@@ -16,4 +16,8 @@ interface DataStreamProvider {
     fun jniReferenceEvents(pids: List<UInt>?): Flow<Event.JniReferences>
 
     fun sigquitEvents(pids: List<UInt>?): Flow<Event.SysSigquit>
+
+    fun gcEvents(pids: List<UInt>?): Flow<Event.Gc>
+
+    fun fileDescriptorTrackingEvents(pids: List<UInt>?): Flow<Event.SysFdTracking>
 }

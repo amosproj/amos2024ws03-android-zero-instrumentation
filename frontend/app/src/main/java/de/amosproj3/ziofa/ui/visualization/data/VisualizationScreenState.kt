@@ -26,6 +26,7 @@ sealed class VisualizationScreenState {
         /** Screen displays the overlay launcher. */
         data class OverlayView(
             override val selectionData: SelectionData,
+            val chartMetadata: ChartMetadata,
             val overlaySettings: OverlaySettings,
             val overlayEnabled: Boolean,
         ) : Valid(selectionData)

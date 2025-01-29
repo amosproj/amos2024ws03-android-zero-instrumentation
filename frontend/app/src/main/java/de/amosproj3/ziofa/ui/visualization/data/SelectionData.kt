@@ -40,7 +40,7 @@ data class SelectionData(
     val componentOptions: ImmutableList<DropdownOption>,
     val metricOptions: ImmutableList<DropdownOption>?,
     val timeframeOptions: ImmutableList<DropdownOption>?,
-    val selectedComponent: DropdownOption,
+    val selectedComponent: DropdownOption?,
     val selectedMetric: DropdownOption?,
     val selectedTimeframe: DropdownOption?,
 )

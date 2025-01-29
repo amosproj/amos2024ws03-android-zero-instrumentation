@@ -19,6 +19,8 @@ import uniffi.shared.EventType
 import uniffi.shared.JniMethodName
 import uniffi.shared.SysFdAction
 
+var gcPids = setOf<UInt>()
+
 private fun uniffi.shared.Process.into() =
     Process(
         pid,
@@ -63,6 +65,7 @@ private fun uniffi.shared.Event.into() =
                             when (jniMethodNameFromI32(d.v1.jniMethodName)) {
                                 JniMethodName.ADD_LOCAL_REF ->
                                     Event.JniReferences.JniMethodName.AddLocalRef
+
                                 JniMethodName.DELETE_LOCAL_REF ->
                                     Event.JniReferences.JniMethodName.DeleteLocalRef
 
@@ -115,6 +118,7 @@ private fun uniffi.shared.Event.into() =
 
                 null -> null
             }
+
         is EventType.TimeSeries -> null
         null -> null
     }
@@ -132,10 +136,10 @@ private fun uniffi.shared.Configuration.into() =
                     pid = it.pid,
                 )
             },
-        jniReferences = jniReferences?.let { JniReferencesConfig(pids = it.pids) },
+        jniReferences = jniReferences?.let { JniReferencesConfig(it.pids) },
         sysSigquit = sysSigquit?.let { SysSigquitConfig(pids = it.pids) },
-        gc = gc?.let { GcConfig },
-        sysFdTracking = sysFdTracking?.let { SysFdTrackingConfig(pids = it.pids) },
+        gc = gc?.let { GcConfig(gcPids) },
+        sysFdTracking = sysFdTracking?.let { SysFdTrackingConfig(it.pids) },
     )
 
 private fun Configuration.into() =
@@ -153,7 +157,11 @@ private fun Configuration.into() =
             },
         jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
         sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
-        gc = gc?.let { uniffi.shared.GcConfig() },
+        gc =
+            gc?.let {
+                gcPids = it.pids
+                uniffi.shared.GcConfig()
+            },
         sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
     )
 
@@ -183,6 +191,7 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
 
+    // TODO remove the workarounds
     override suspend fun setConfiguration(configuration: Configuration) =
         inner.setConfiguration(configuration.into())
 
@@ -194,6 +203,10 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun getSymbols(filePath: String): Flow<Symbol> =
         inner.getSymbolFlow(filePath).mapNotNull { it.into() }
+
+    override suspend fun indexSymbols() {
+        inner.indexSymbols()
+    }
 
     override suspend fun initStream(): Flow<Event> = inner.initStreamFlow().mapNotNull { it.into() }
 }
