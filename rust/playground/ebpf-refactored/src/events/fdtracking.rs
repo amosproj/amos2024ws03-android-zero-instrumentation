@@ -2,28 +2,75 @@
 //
 // SPDX-License-Identifier: MIT
 
+use core::mem::MaybeUninit;
+
 use aya_ebpf::helpers::bpf_probe_read_kernel;
 use ebpf_relocation_helpers::TaskStruct;
 use ebpf_types::{FileDescriptorChange, FileDescriptorOp};
 
-use crate::syscalls;
+use super::SyscallProg;
+use crate::{
+    event_local::{EventLocal, EventLocalData, EventLocalValue},
+    pipeline::{ProgramInfo, SysEnterInfo, SysExitInfo},
+    syscalls,
+};
 
-pub fn initialize_fdtracking_enter(
-    syscall_id: i64,
-    fdtracking_data: &mut FileDescriptorChange,
-) -> Option<()> {
-    fdtracking_data.operation = get_file_op(syscall_id)?;
-
-    Some(())
+#[repr(C)]
+pub struct FdTrackingEnter {
+    operation: FileDescriptorOp,
 }
 
-pub fn initialize_fdtracking_exit(
-    task: TaskStruct,
-    fdtracking_data: &mut FileDescriptorChange,
-) -> Option<()> {
-    fdtracking_data.open_fds = get_open_fds(task)?;
+impl EventLocalData for FileDescriptorChange {
+    type Data = FdTrackingEnter;
+}
 
-    Some(())
+impl SyscallProg for FileDescriptorChange {
+    fn enter<'a>(
+        sys_enter: SysEnterInfo,
+        _: ProgramInfo,
+        mem: &'a mut MaybeUninit<EventLocal<Self>>,
+    ) -> Option<&'a mut EventLocal<Self>> {
+        initialize_fdtracking_enter(sys_enter.syscall_id, mem)
+    }
+
+    fn exit<'a>(
+        sys_exit: SysExitInfo,
+        _: ProgramInfo,
+        entry: &EventLocalValue<Self>,
+        mem: &'a mut MaybeUninit<Self>,
+    ) -> Option<&'a Self> {
+        initialize_fdtracking_exit(sys_exit.task, entry, mem)
+    }
+}
+
+#[inline(always)]
+fn initialize_fdtracking_enter(
+    syscall_id: i64,
+    fdtracking_data: &mut MaybeUninit<EventLocal<FileDescriptorChange>>,
+) -> Option<&mut EventLocal<FileDescriptorChange>> {
+    let ptr = fdtracking_data.as_mut_ptr();
+
+    unsafe {
+        (&raw mut (*ptr).data.operation).write(get_file_op(syscall_id)?);
+
+        Some(fdtracking_data.assume_init_mut())
+    }
+}
+
+#[inline(always)]
+fn initialize_fdtracking_exit<'a>(
+    task: TaskStruct,
+    fdtracking_enter: &EventLocalValue<FileDescriptorChange>,
+    fdtracking_data: &'a mut MaybeUninit<FileDescriptorChange>,
+) -> Option<&'a FileDescriptorChange> {
+    let ptr = fdtracking_data.as_mut_ptr();
+
+    unsafe {
+        (&raw mut (*ptr).open_fds).write(get_open_fds(task)?);
+        (&raw mut (*ptr).operation).write(fdtracking_enter.data.operation);
+
+        Some(fdtracking_data.assume_init_ref())
+    }
 }
 
 pub fn get_file_op(syscall_number: i64) -> Option<FileDescriptorOp> {

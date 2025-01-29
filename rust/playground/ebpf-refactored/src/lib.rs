@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: MIT
 
 #![cfg_attr(not(test), no_std)]
+#![allow(internal_features)]
+#![feature(core_intrinsics)]
 
 pub mod bounds_check;
 pub mod cache;
+pub mod event_local;
 pub mod events;
 pub mod filter;
 pub mod iterator_ext;
@@ -15,4 +18,5 @@ pub mod pipeline;
 pub mod scratch;
 pub mod syscalls;
 pub mod task_ext;
-pub mod event_local;
+
+extern crate aya_log_ebpf;

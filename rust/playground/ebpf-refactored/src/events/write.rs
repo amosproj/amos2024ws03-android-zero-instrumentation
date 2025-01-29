@@ -2,14 +2,50 @@
 //
 // SPDX-License-Identifier: MIT
 
+use core::mem::MaybeUninit;
+
 use aya_ebpf::PtRegs;
 use ebpf_relocation_helpers::TaskStruct;
 use ebpf_types::{Write, WriteSource};
 
+use super::SyscallProg;
 use crate::{
+    event_local::{EventLocal, EventLocalData, EventLocalValue},
     path::{get_path_from_fd, read_path_to_buf_with_default},
+    pipeline::{ProgramInfo, SysEnterInfo, SysExitInfo},
     syscalls,
 };
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct WriteEntryData {
+    pub source: WriteSource,
+    pub file_descriptor: u64,
+    pub bytes_written: u64,
+}
+
+impl EventLocalData for Write {
+    type Data = WriteEntryData;
+}
+
+impl SyscallProg for Write {
+    fn enter<'a>(
+        sys_enter: SysEnterInfo,
+        _: ProgramInfo,
+        mem: &'a mut MaybeUninit<EventLocal<Self>>,
+    ) -> Option<&'a mut EventLocal<Self>> {
+        initialize_write_enter(sys_enter.syscall_id, sys_enter.pt_regs, mem)
+    }
+
+    fn exit<'a>(
+        sys_exit: SysExitInfo,
+        _: ProgramInfo,
+        entry: &EventLocalValue<Self>,
+        mem: &'a mut MaybeUninit<Self>,
+    ) -> Option<&'a Self> {
+        initialize_write_exit(sys_exit.task, entry, mem)
+    }
+}
 
 /*
  * long sys_write(unsigned int fd, const char __user *buf,size_t count);
@@ -31,22 +67,38 @@ use crate::{
  * u64 sys_pwritev(fd: u64, buf: *const iovec, vlen: u64, pos_l: u64, pos_h: u64)
  * u64 sys_pwritev2(fd: u64, buf: *const iovec, vlen: u64, pos_l: u64, pos_h: u64, flags: i32)
  */
-pub fn initialize_write_enter(
+fn initialize_write_enter(
     syscall_id: i64,
     pt_regs: PtRegs,
-    write_data: &mut Write,
-) -> Option<()> {
-    write_data.source = write_syscall_to_write_source(syscall_id)?;
-    write_data.bytes_written = pt_regs.arg::<*const u64>(2)? as u64;
-    write_data.file_descriptor = pt_regs.arg::<*const u64>(0)? as u64;
+    write_data: &mut MaybeUninit<EventLocal<Write>>,
+) -> Option<&mut EventLocal<Write>> {
+    let ptr = write_data.as_mut_ptr();
 
-    Some(())
+    unsafe {
+        (&raw mut (*ptr).data.source).write(write_syscall_to_write_source(syscall_id)?);
+        (&raw mut (*ptr).data.file_descriptor).write(pt_regs.arg::<*const u64>(0)? as u64);
+        (&raw mut (*ptr).data.bytes_written).write(pt_regs.arg::<*const u64>(2)? as u64);
+
+        Some(write_data.assume_init_mut())
+    }
 }
 
-pub fn initialize_write_exit(task: TaskStruct, write_data: &mut Write) -> Option<()> {
-    let path = get_path_from_fd(write_data.file_descriptor, task)?;
-    read_path_to_buf_with_default(path, &mut write_data.file_path)?;
-    Some(())
+fn initialize_write_exit<'a>(
+    task: TaskStruct,
+    write_entry: &EventLocalValue<Write>,
+    write_data: &'a mut MaybeUninit<Write>,
+) -> Option<&'a Write> {
+    let path = get_path_from_fd(write_entry.data.file_descriptor, task)?;
+
+    let ptr = write_data.as_mut_ptr();
+    unsafe {
+        read_path_to_buf_with_default(path, &mut (*ptr).file_path)?;
+        (&raw mut (*ptr).source).write(write_entry.data.source);
+        (&raw mut (*ptr).bytes_written).write(write_entry.data.bytes_written);
+        (&raw mut (*ptr).file_descriptor).write(write_entry.data.file_descriptor);
+
+        Some(write_data.assume_init_ref())
+    }
 }
 
 fn write_syscall_to_write_source(syscall: i64) -> Option<WriteSource> {

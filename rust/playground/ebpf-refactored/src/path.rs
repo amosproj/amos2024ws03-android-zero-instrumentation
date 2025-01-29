@@ -7,9 +7,7 @@ use core::ptr::{copy_nonoverlapping, slice_from_raw_parts, slice_from_raw_parts_
 use aya_ebpf::helpers::{bpf_probe_read_kernel, bpf_probe_read_kernel_buf};
 use ebpf_relocation_helpers::{Dentry, File, Mount, Path, TaskStruct, Vfsmount};
 
-use crate::{
-    bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt, maps::ScratchPath,
-};
+use crate::{bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt, maps::ScratchPath};
 
 pub struct PathWalker {
     vfs_mount: Vfsmount,

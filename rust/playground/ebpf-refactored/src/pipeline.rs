@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use core::{
-    marker::PhantomData,
-    ops::{Deref, DerefMut}, ptr::null_mut,
-};
+use core::ptr::copy_nonoverlapping;
 
 use aya_ebpf::{
     bindings::pt_regs,
@@ -14,53 +11,36 @@ use aya_ebpf::{
     programs::{ProbeContext, RawTracePointContext, RetProbeContext},
     EbpfContext, PtRegs,
 };
-use aya_log_ebpf::info;
 use ebpf_relocation_helpers::{ffi::art_heap, ArtHeap, TaskStruct};
 use ebpf_types::{
-    Blocking, Event, EventContext, EventData, FileDescriptorChange, GarbageCollect,
-    Jni, ProcessContext, Signal, TaskContext, Write,
+    Blocking, Event, EventData, FileDescriptorChange, GarbageCollect, Jni, ProcessContext, Signal,
+    TaskContext, Write,
 };
 
 use crate::{
-    events::{
-        blocking::{initialize_blocking_enter, initialize_blocking_exit},
-        fdtracking::{initialize_fdtracking_enter, initialize_fdtracking_exit},
-        signal::initialize_signal_enter,
-        write::{initialize_write_enter, initialize_write_exit},
-    },
+    event_local::{EventLocal, EventLocalData, EventLocalValue},
+    events::SyscallProg,
     filter::FilterEntry,
     maps::{
-        EventFilter, ProcessInfoCache, TaskInfoCache, EVENTS,
+        EventFilter, EventStorage, ProcessInfoCache, ScratchEventLocal, TaskInfoCache, EVENTS,
         GLOBAL_BLOCKING_THRESHOLD,
     },
+    scratch::ScratchValue,
 };
 
-struct ProgramInfo<'a, T> {
-    task_context: &'a TaskContext,
-    process_context: &'a ProcessContext,
-    event_info: EventInfo<T>,
+#[derive(Clone, Copy)]
+pub struct ProgramInfo<'a> {
+    pub task_context: &'a TaskContext,
+    pub process_context: &'a ProcessContext,
 }
 
-impl<T: EventData + Clone + Copy + 'static> ProgramInfo<'_, T> {
-    fn submit(self) -> Option<()> {
-        let mut entry = EVENTS.reserve::<Event<T>>(0)?;
-        let entry_mut = unsafe { entry.assume_init_mut() };
-        entry_mut.kind = T::EVENT_KIND;
-
-        entry_mut.context = EventContext {
-            timestamp: unsafe { bpf_ktime_get_ns() },
-            task: *self.task_context,
-        };
-        entry_mut.data = *self.event_info;
-        entry.submit(0);
-
-        Some(())
-    }
-
-    fn submit_intermediate(&self) -> Option<()> {
-        self.event_info.set_initialized(true);
-
-        Some(())
+impl ProgramInfo<'_> {
+    #[inline(always)]
+    pub fn new(task: TaskStruct) -> Option<Self> {
+        Some(Self {
+            task_context: TaskInfoCache::get(task)?,
+            process_context: ProcessInfoCache::get(task)?,
+        })
     }
 
     fn filters(&self) -> [FilterEntry; 6] {
@@ -73,123 +53,53 @@ impl<T: EventData + Clone + Copy + 'static> ProgramInfo<'_, T> {
             FilterEntry::Cmdline(&self.process_context.cmdline),
         ]
     }
-}
 
-const fn max_raw_event_data_size() -> usize {
-    static SIZES: [usize; 4] = [
-        size_of::<Write>(),
-        size_of::<Blocking>(),
-        size_of::<FileDescriptorChange>(),
-        size_of::<Signal>(),
-    ];
+    fn submit<T: EventData + 'static>(self, event: &T) -> Option<()> {
+        let mut entry = EVENTS.reserve::<Event<T>>(0)?;
+        let ptr = entry.as_mut_ptr();
 
-    let mut max_size = SIZES[0];
-    let mut i = 1;
-    while i < SIZES.len() {
-        if SIZES[i] > max_size {
-            max_size = SIZES[i]
-        };
-
-        i += 1;
-    }
-
-    max_size -= 1;
-    max_size |= max_size >> 1;
-    max_size |= max_size >> 2;
-    max_size |= max_size >> 4;
-    max_size |= max_size >> 8;
-    max_size |= max_size >> 16;
-    max_size |= max_size >> 32;
-
-    max_size + 1
-}
-
-#[repr(C)]
-struct EventInfo<T> {
-    raw_event_data: *mut RawEventData,
-    _t: PhantomData<T>,
-}
-
-impl<T> Deref for EventInfo<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*((*self.raw_event_data).data.as_ptr() as *const T) }
-    }
-}
-
-impl<T> DerefMut for EventInfo<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *((*self.raw_event_data).data.as_mut_ptr() as *mut T) }
-    }
-}
-
-impl<T> EventInfo<T> {
-    pub fn set_initialized(&self, initialized: bool) {
-        unsafe { (*self.raw_event_data).initialized = initialized }
-    }
-    pub fn get_initialized(&self) -> bool {
-        unsafe { (*self.raw_event_data).initialized }
-    }
-}
-
-#[repr(C)]
-pub struct RawEventData {
-    initialized: bool,
-    data: [u8; max_raw_event_data_size()],
-}
-
-fn event_bridge_key<T: EventData>(task: TaskStruct) -> Option<u64> {
-    let tid = task.pid().ok()? as u64;
-    let event_id = T::EVENT_KIND as u64;
-
-    Some((tid << 32) | event_id)
-}
-
-unsafe fn program_info_base<T: EventData>(
-    task: TaskStruct,
-    raw_event_data: *mut RawEventData,
-) -> Option<ProgramInfo<'static, T>> {
-    let event_info = EventInfo {
-        raw_event_data,
-        _t: PhantomData,
-    };
-    Some(ProgramInfo {
-        task_context: TaskInfoCache::get(task)?,
-        process_context: ProcessInfoCache::get(task)?,
-        event_info,
-    })
-}
-
-unsafe fn program_info<T: EventData>(task: TaskStruct) -> Option<ProgramInfo<'static, T>> {
-    let key = event_bridge_key::<T>(task)?;
-    /* 
-    let raw_event_data = match EVENT_BRIDGE.get_ptr_mut(&key) {
-        Some(bridge) => bridge,
-        None => {
-            let raw_event_data = EVENT_BUFFER.get_ptr_mut(0)?;
-            EVENT_BRIDGE.insert(&key, &*raw_event_data, 0).ok()?;
-            EVENT_BRIDGE.get_ptr_mut(&key)?
+        unsafe {
+            (&raw mut (*ptr).kind).write(T::EVENT_KIND);
+            (&raw mut (*ptr).context.timestamp).write(bpf_ktime_get_ns());
+            copy_nonoverlapping(self.task_context, &raw mut (*ptr).context.task, 1);
+            copy_nonoverlapping(event, &raw mut (*ptr).data, 1);
         }
-    };
-    */
-    let raw_event_data = null_mut();
-    let program_info = program_info_base::<T>(task, raw_event_data)?;
-    program_info.event_info.set_initialized(false);
-    Some(program_info)
+
+        entry.submit(0);
+
+        Some(())
+    }
 }
 
-unsafe fn program_info_intermediate<T: EventData>(
-    task: TaskStruct,
-) -> Option<ProgramInfo<'static, T>> {
-    let key = event_bridge_key::<T>(task)?;
-    //let raw_event_data = EVENT_BRIDGE.get_ptr_mut(&key)?;
-    let raw_event_data = null_mut();
-    let program_info = program_info_base::<T>(task, raw_event_data)?;
-    if !program_info.event_info.get_initialized() {
-        return None;
-    };
-    Some(program_info)
+struct ProgramInfoEntry<'a, T: EventLocalData + 'static> {
+    info: ProgramInfo<'a>,
+    event: ScratchValue<EventLocal<T>>,
+}
+
+impl<T: EventLocalData + 'static> ProgramInfoEntry<'_, T> {
+    #[inline(always)]
+    pub fn new(task: TaskStruct) -> Option<Self> {
+        Some(Self {
+            info: ProgramInfo::new(task)?,
+            event: ScratchEventLocal::get::<EventLocal<T>>()?,
+        })
+    }
+}
+
+struct ProgramInfoExit<'a, T: EventLocalData + 'static> {
+    info: ProgramInfo<'a>,
+    event_entry: EventLocalValue<T>,
+}
+
+impl<T: EventLocalData + 'static> ProgramInfoExit<'_, T> {
+    #[inline(always)]
+    pub fn new(task: TaskStruct) -> Option<Self> {
+        let info = ProgramInfo::new(task)?;
+        Some(Self {
+            info,
+            event_entry: EventStorage::get::<T>(info.task_context.tid).ok()?,
+        })
+    }
 }
 
 unsafe fn current_task() -> TaskStruct {
@@ -208,218 +118,135 @@ unsafe fn sys_exit_return_value(ctx: &RawTracePointContext) -> u64 {
     *(ctx.as_ptr().add(8) as *mut u64)
 }
 
-struct SysEnterInfo {
-    task: TaskStruct,
-    syscall_id: i64,
-    pt_regs: PtRegs,
+pub struct SysEnterInfo {
+    pub task: TaskStruct,
+    pub syscall_id: i64,
+    pub pt_regs: PtRegs,
 }
 
 impl SysEnterInfo {
-    unsafe fn new(ctx: &RawTracePointContext) -> Self {
-        Self {
-            task: current_task(),
-            syscall_id: sys_enter_sycall_id(ctx),
-            pt_regs: sys_pt_regs(ctx),
+    fn new(ctx: &RawTracePointContext) -> Self {
+        unsafe {
+            Self {
+                task: current_task(),
+                syscall_id: sys_enter_sycall_id(ctx),
+                pt_regs: sys_pt_regs(ctx),
+            }
         }
-    }
-    unsafe fn program_info<T: EventData + Copy + 'static>(
-        &self,
-    ) -> Option<ProgramInfo<'static, T>> {
-        program_info::<T>(self.task)
     }
 }
 
-struct SysExitInfo {
-    task: TaskStruct,
-    return_value: u64,
-    _pt_regs: PtRegs,
+pub struct SysExitInfo {
+    pub task: TaskStruct,
+    pub return_value: u64,
+    pub pt_regs: PtRegs,
 }
 
 impl SysExitInfo {
-    unsafe fn new(ctx: &RawTracePointContext) -> Self {
-        Self {
-            task: current_task(),
-            return_value: sys_exit_return_value(ctx),
-            _pt_regs: sys_pt_regs(ctx),
+    fn new(ctx: &RawTracePointContext) -> Self {
+        unsafe {
+            Self {
+                task: current_task(),
+                return_value: sys_exit_return_value(ctx),
+                pt_regs: sys_pt_regs(ctx),
+            }
         }
     }
-    unsafe fn program_info<T: EventData + Copy + 'static>(
-        &self,
-    ) -> Option<ProgramInfo<'static, T>> {
-        program_info_intermediate::<T>(self.task)
+}
+
+fn sys_enter<P: SyscallProg>(ctx: &RawTracePointContext) -> Option<()> {
+    let enter_info = SysEnterInfo::new(ctx);
+    let mut program_info = ProgramInfoEntry::new(enter_info.task)?;
+
+    let data = P::enter(enter_info, program_info.info, &mut program_info.event)?;
+
+    EventStorage::set(program_info.info.task_context.tid, data).ok()
+}
+
+fn sys_exit<P: SyscallProg>(
+    ctx: &RawTracePointContext,
+    filter: impl Fn(&P) -> Option<()>,
+) -> Option<()> {
+    let exit_info = SysExitInfo::new(ctx);
+    let program_info = ProgramInfoExit::new(exit_info.task)?;
+
+    if EventFilter::filter_many::<P>(&program_info.info.filters()) {
+        return None;
     }
+
+    let mut event = ScratchEventLocal::get()?;
+    let event = P::exit(
+        exit_info,
+        program_info.info,
+        &program_info.event_entry,
+        &mut event,
+    )?;
+
+    filter(event)?;
+
+    program_info.info.submit(event)
 }
 
 #[raw_tracepoint]
 pub fn sys_enter_write(ctx: RawTracePointContext) -> Option<()> {
-    unsafe {
-        let enter_info = SysEnterInfo::new(&ctx);
-        let mut program_info = enter_info.program_info::<Write>()?;
-
-        if EventFilter::filter_many::<Write>(&program_info.filters()) {
-            return None;
-        }
-
-        initialize_write_enter(
-            enter_info.syscall_id,
-            enter_info.pt_regs,
-            &mut program_info.event_info,
-        )?;
-
-        info!(&ctx, "{}", program_info.event_info.bytes_written);
-
-        program_info.submit_intermediate()?;
-    }
-
-    Some(())
+    sys_enter::<Write>(&ctx)
 }
 
 #[raw_tracepoint]
 pub fn sys_exit_write(ctx: RawTracePointContext) -> Option<()> {
-    unsafe {
-        let exit_info = SysExitInfo::new(&ctx);
-        let mut program_info = exit_info.program_info::<Write>()?;
-
-        if EventFilter::filter_many::<Write>(&program_info.filters()) {
-            return None;
-        }
-
-        initialize_write_exit(exit_info.task, &mut program_info.event_info)?;
-
-        program_info.submit()?;
-    }
-    Some(())
+    sys_exit::<Write>(&ctx, |_| Some(()))
 }
 
 #[raw_tracepoint]
 pub fn sys_enter_blocking(ctx: RawTracePointContext) -> Option<()> {
-    unsafe {
-        let enter_info = SysEnterInfo::new(&ctx);
-        let mut program_info = enter_info.program_info::<Blocking>()?;
-
-        if EventFilter::filter_many::<Blocking>(&program_info.filters()) {
-            return None;
-        }
-
-        initialize_blocking_enter(enter_info.syscall_id, &mut program_info.event_info)?;
-
-        program_info.submit_intermediate()?;
-    }
-
-    Some(())
+    sys_enter::<Blocking>(&ctx)
 }
 
 #[raw_tracepoint]
 pub fn sys_exit_blocking(ctx: RawTracePointContext) -> Option<()> {
-    unsafe {
-        let exit_info = SysExitInfo::new(&ctx);
-        let mut program_info = exit_info.program_info::<Blocking>()?;
-
-        if EventFilter::filter_many::<Blocking>(&program_info.filters()) {
-            return None;
-        }
-
-        initialize_blocking_exit(&mut program_info.event_info)?;
-
+    sys_exit::<Blocking>(&ctx, |event| {
         if let Some(threshold) = GLOBAL_BLOCKING_THRESHOLD.get(0) {
-            if program_info.event_info.duration <= *threshold {
+            if event.duration <= *threshold {
                 return None;
             }
         }
-
-        program_info.submit()?;
-    }
-    Some(())
+        Some(())
+    })
 }
 
 #[raw_tracepoint]
 pub fn sys_enter_signal(ctx: RawTracePointContext) -> Option<()> {
-    unsafe {
-        let enter_info = SysEnterInfo::new(&ctx);
-        let mut program_info = enter_info.program_info::<Signal>()?;
-
-        if EventFilter::filter_many::<Signal>(&program_info.filters()) {
-            return None;
-        }
-
-        initialize_signal_enter(
-            enter_info.syscall_id,
-            enter_info.pt_regs,
-            &mut program_info.event_info,
-        )?;
-
-        program_info.submit_intermediate()?;
-    }
-
-    Some(())
+    sys_enter::<Signal>(&ctx)
 }
 
 #[raw_tracepoint]
 pub fn sys_exit_signal(ctx: RawTracePointContext) -> Option<()> {
-    unsafe {
-        let exit_info = SysExitInfo::new(&ctx);
-        if exit_info.return_value != 0 {
-            return None;
-        }
-
-        let program_info = exit_info.program_info::<Signal>()?;
-
-        if EventFilter::filter_many::<Signal>(&program_info.filters()) {
-            return None;
-        }
-
-        program_info.submit()?;
-    }
-    Some(())
+    sys_exit::<Signal>(&ctx, |_| Some(()))
 }
 
 #[raw_tracepoint]
 pub fn sys_enter_fdtracking(ctx: RawTracePointContext) -> Option<()> {
-    unsafe {
-        let enter_info = SysEnterInfo::new(&ctx);
-        let mut program_info = enter_info.program_info::<FileDescriptorChange>()?;
-
-        if EventFilter::filter_many::<FileDescriptorChange>(&program_info.filters()) {
-            return None;
-        }
-
-        initialize_fdtracking_enter(enter_info.syscall_id, &mut program_info.event_info)?;
-
-        program_info.submit_intermediate()?;
-    }
-
-    Some(())
+    sys_enter::<FileDescriptorChange>(&ctx)
 }
 
 #[raw_tracepoint]
 pub fn sys_exit_fdtracking(ctx: RawTracePointContext) -> Option<()> {
-    unsafe {
-        let exit_info = SysExitInfo::new(&ctx);
-        let mut program_info = exit_info.program_info::<FileDescriptorChange>()?;
-
-        if EventFilter::filter_many::<FileDescriptorChange>(&program_info.filters()) {
-            return None;
-        }
-
-        initialize_fdtracking_exit(exit_info.task, &mut program_info.event_info)?;
-
-        program_info.submit()?;
-    }
-    Some(())
+    sys_exit::<FileDescriptorChange>(&ctx, |_| Some(()))
 }
 
 unsafe fn trace_jni_enter(data: Jni) -> Option<()> {
     let task = current_task();
-    let mut program_info = program_info::<Jni>(task)?;
+    let program_info = ProgramInfo::new(task)?;
 
     if EventFilter::filter_many::<Jni>(&program_info.filters()) {
         return None;
     }
 
-    *program_info.event_info = data;
+    let mut event = ScratchEventLocal::get::<Jni>()?;
+    event.as_mut_ptr().write(data);
+    let event = event.assume_init_ref();
 
-    program_info.submit()?;
-    Some(())
+    program_info.submit(event)
 }
 
 #[uprobe]
@@ -439,37 +266,37 @@ fn trace_jni_del_global(_: ProbeContext) -> Option<()> {
     unsafe { trace_jni_enter(Jni::DeleteGlobalRef) }
 }
 
+impl EventLocalData for GarbageCollect {
+    type Data = ArtHeap;
+}
+
 #[uprobe]
 fn trace_gc_enter(ctx: ProbeContext) -> Option<()> {
-    unsafe {
-        let task = current_task();
-        let program_info = program_info::<GarbageCollect>(task)?;
+    let task = unsafe { current_task() };
+    let mut program_info = ProgramInfoEntry::<GarbageCollect>::new(task)?;
 
-        if EventFilter::filter_many::<GarbageCollect>(&program_info.filters()) {
-            return None;
-        }
+    let ptr = program_info.event.as_mut_ptr();
+    let data = unsafe {
+        (&raw mut (*ptr).data).write(ArtHeap::new(ctx.arg::<*mut art_heap>(0)?));
+        program_info.event.assume_init_mut()
+    };
 
-        let heap = ArtHeap::new(ctx.arg::<*mut art_heap>(0)?);
-        (program_info.event_info.raw_event_data as *mut ArtHeap).write(heap);
-
-        program_info.submit_intermediate()?;
-    }
-    Some(())
+    EventStorage::set(program_info.info.task_context.tid, data).ok()
 }
 
 #[uretprobe]
 fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
-    unsafe {
-        let task = current_task();
-        let mut program_info = program_info_intermediate::<GarbageCollect>(task)?;
+    let task = unsafe { current_task() };
+    let program_info = ProgramInfoExit::<GarbageCollect>::new(task)?;
 
-        if EventFilter::filter_many::<GarbageCollect>(&program_info.filters()) {
-            return None;
-        }
+    if EventFilter::filter_many::<GarbageCollect>(&program_info.info.filters()) {
+        return None;
+    }
 
-        let heap = (program_info.event_info.raw_event_data as *mut ArtHeap).read();
-
-        *program_info.event_info = GarbageCollect {
+    let mut event = ScratchEventLocal::get::<GarbageCollect>()?;
+    let event = unsafe {
+        let heap = program_info.event_entry.data;
+        event.as_mut_ptr().write(GarbageCollect {
             target_footprint: heap.target_footprint().ok()?,
             num_bytes_allocated: heap.num_bytes_allocated().ok()?,
             gc_cause: heap.gc_cause().ok()?,
@@ -479,9 +306,9 @@ fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
             freed_los_objects: heap.freed_los_objects().ok()?,
             freed_los_bytes: heap.freed_los_bytes().ok()?,
             gcs_completed: heap.gcs_completed().ok()?,
-        };
+        });
+        event.assume_init_ref()
+    };
 
-        program_info.submit()?;
-    }
-    Some(())
+    program_info.info.submit(event)
 }

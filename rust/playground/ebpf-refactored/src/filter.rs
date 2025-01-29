@@ -3,9 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use aya_ebpf::maps::{Array, HashMap};
-use ebpf_types::{
-    Equality, EventData, EventKind, FilterConfig, MissingBehavior,
-};
+use ebpf_types::{Equality, EventData, EventKind, FilterConfig, MissingBehavior};
 
 #[repr(transparent)]
 pub struct Filter<K: 'static, V: Matcher + 'static>(&'static HashMap<K, V>);
