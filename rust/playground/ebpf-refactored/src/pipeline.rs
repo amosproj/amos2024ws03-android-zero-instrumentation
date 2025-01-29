@@ -17,7 +17,7 @@ use aya_ebpf::{
 use aya_log_ebpf::info;
 use ebpf_relocation_helpers::{ffi::art_heap, ArtHeap, TaskStruct};
 use ebpf_types::{
-    Blocking, Event, EventContext, EventData, FileDescriptorChange, FilterConfig, GarbageCollect,
+    Blocking, Event, EventContext, EventData, FileDescriptorChange, GarbageCollect,
     Jni, ProcessContext, Signal, TaskContext, Write,
 };
 
@@ -28,9 +28,9 @@ use crate::{
         signal::initialize_signal_enter,
         write::{initialize_write_enter, initialize_write_exit},
     },
-    filter::filter,
+    filter::FilterEntry,
     maps::{
-        ProcessInfoCache, TaskInfoCache, EVENT_BRIDGE, EVENT_BUFFER, EVENT_RB, FILTER_CONFIG,
+        EventFilter, ProcessInfoCache, TaskInfoCache, EVENTS, EVENT_BRIDGE, EVENT_BUFFER,
         GLOBAL_BLOCKING_THRESHOLD,
     },
 };
@@ -38,13 +38,12 @@ use crate::{
 struct ProgramInfo<'a, T> {
     task_context: &'a TaskContext,
     process_context: &'a ProcessContext,
-    filter_config: &'a FilterConfig,
     event_info: EventInfo<T>,
 }
 
 impl<T: EventData + Clone + Copy + 'static> ProgramInfo<'_, T> {
     fn submit(self) -> Option<()> {
-        let mut entry = EVENT_RB.reserve::<Event<T>>(0)?;
+        let mut entry = EVENTS.reserve::<Event<T>>(0)?;
         let entry_mut = unsafe { entry.assume_init_mut() };
         entry_mut.kind = T::EVENT_KIND;
 
@@ -62,6 +61,17 @@ impl<T: EventData + Clone + Copy + 'static> ProgramInfo<'_, T> {
         self.event_info.set_initialized(true);
 
         Some(())
+    }
+
+    fn filters(&self) -> [FilterEntry; 6] {
+        [
+            FilterEntry::OwnPid(&self.task_context.pid),
+            FilterEntry::Pid(&self.task_context.pid),
+            FilterEntry::Tid(&self.task_context.tid),
+            FilterEntry::Comm(&self.task_context.comm),
+            FilterEntry::ExePath(&self.process_context.exe_path),
+            FilterEntry::Cmdline(&self.process_context.cmdline),
+        ]
     }
 }
 
@@ -147,7 +157,6 @@ unsafe fn program_info_base<T: EventData>(
     Some(ProgramInfo {
         task_context: TaskInfoCache::get(task)?,
         process_context: ProcessInfoCache::get(task)?,
-        filter_config: FILTER_CONFIG.get(T::EVENT_KIND as u32)?,
         event_info,
     })
 }
@@ -243,11 +252,7 @@ pub fn sys_enter_write(ctx: RawTracePointContext) -> Option<()> {
         let enter_info = SysEnterInfo::new(&ctx);
         let mut program_info = enter_info.program_info::<Write>()?;
 
-        if filter::<Write>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<Write>(&program_info.filters()) {
             return None;
         }
 
@@ -271,11 +276,7 @@ pub fn sys_exit_write(ctx: RawTracePointContext) -> Option<()> {
         let exit_info = SysExitInfo::new(&ctx);
         let mut program_info = exit_info.program_info::<Write>()?;
 
-        if filter::<Write>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<Write>(&program_info.filters()) {
             return None;
         }
 
@@ -292,11 +293,7 @@ pub fn sys_enter_blocking(ctx: RawTracePointContext) -> Option<()> {
         let enter_info = SysEnterInfo::new(&ctx);
         let mut program_info = enter_info.program_info::<Blocking>()?;
 
-        if filter::<Blocking>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<Blocking>(&program_info.filters()) {
             return None;
         }
 
@@ -314,11 +311,7 @@ pub fn sys_exit_blocking(ctx: RawTracePointContext) -> Option<()> {
         let exit_info = SysExitInfo::new(&ctx);
         let mut program_info = exit_info.program_info::<Blocking>()?;
 
-        if filter::<Blocking>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<Blocking>(&program_info.filters()) {
             return None;
         }
 
@@ -341,11 +334,7 @@ pub fn sys_enter_signal(ctx: RawTracePointContext) -> Option<()> {
         let enter_info = SysEnterInfo::new(&ctx);
         let mut program_info = enter_info.program_info::<Signal>()?;
 
-        if filter::<Signal>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<Signal>(&program_info.filters()) {
             return None;
         }
 
@@ -371,11 +360,7 @@ pub fn sys_exit_signal(ctx: RawTracePointContext) -> Option<()> {
 
         let program_info = exit_info.program_info::<Signal>()?;
 
-        if filter::<Signal>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<Signal>(&program_info.filters()) {
             return None;
         }
 
@@ -390,11 +375,7 @@ pub fn sys_enter_fdtracking(ctx: RawTracePointContext) -> Option<()> {
         let enter_info = SysEnterInfo::new(&ctx);
         let mut program_info = enter_info.program_info::<FileDescriptorChange>()?;
 
-        if filter::<FileDescriptorChange>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<FileDescriptorChange>(&program_info.filters()) {
             return None;
         }
 
@@ -412,11 +393,7 @@ pub fn sys_exit_fdtracking(ctx: RawTracePointContext) -> Option<()> {
         let exit_info = SysExitInfo::new(&ctx);
         let mut program_info = exit_info.program_info::<FileDescriptorChange>()?;
 
-        if filter::<FileDescriptorChange>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<FileDescriptorChange>(&program_info.filters()) {
             return None;
         }
 
@@ -431,11 +408,7 @@ unsafe fn trace_jni_enter(data: Jni) -> Option<()> {
     let task = current_task();
     let mut program_info = program_info::<Jni>(task)?;
 
-    if filter::<Jni>(
-        program_info.filter_config,
-        program_info.task_context,
-        program_info.process_context,
-    ) {
+    if EventFilter::filter_many::<Jni>(&program_info.filters()) {
         return None;
     }
 
@@ -468,11 +441,7 @@ fn trace_gc_enter(ctx: ProbeContext) -> Option<()> {
         let task = current_task();
         let program_info = program_info::<GarbageCollect>(task)?;
 
-        if filter::<Jni>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<GarbageCollect>(&program_info.filters()) {
             return None;
         }
 
@@ -490,11 +459,7 @@ fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
         let task = current_task();
         let mut program_info = program_info_intermediate::<GarbageCollect>(task)?;
 
-        if filter::<Jni>(
-            program_info.filter_config,
-            program_info.task_context,
-            program_info.process_context,
-        ) {
+        if EventFilter::filter_many::<GarbageCollect>(&program_info.filters()) {
             return None;
         }
 

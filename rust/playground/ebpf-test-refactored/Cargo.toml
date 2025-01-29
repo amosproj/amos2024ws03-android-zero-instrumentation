@@ -18,3 +18,8 @@ aya-log = { workspace = true }
 test-log = { workspace = true, features = ["color", "log", "trace"] }
 tokio = { workspace = true, features = ["macros", "net", "signal", "time", "rt-multi-thread"] }
 ebpf-types = { workspace = true, features = ["user"] }
+
+[[test]]
+name = "prog_test_run"
+path = "tests/prog_test_run.rs"
+test = true

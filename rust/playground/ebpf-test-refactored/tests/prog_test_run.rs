@@ -56,7 +56,7 @@ fn prog_run(fd: RawFd, args: &[u64]) -> Result<i64, io::Error> {
 }
 
 fn get_event<T: CheckedBitPattern + 'static>(ebpf: &mut Ebpf) -> Box<Event<T>> {
-    let mut map: RingBuf<_> = ebpf.map_mut("EVENT_RB").unwrap().try_into().unwrap();
+    let mut map: RingBuf<_> = ebpf.map_mut("EVENTS").unwrap().try_into().unwrap();
     let event = map.next().unwrap();
     let event = checked::from_bytes::<Event<T>>(&event);
     Box::from(*event)

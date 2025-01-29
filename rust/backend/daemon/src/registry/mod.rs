@@ -103,7 +103,7 @@ impl EbpfConfigRegistry {
 impl EbpfEventRegistry {
     fn from_pin() -> Result<Self, MapError> {
         Ok(Self {
-            events: RingBuf::try_from_pin(path("EVENT_RB"))?.into(),
+            events: RingBuf::try_from_pin(path("EVENTS"))?.into(),
         })
     }
 }
@@ -165,7 +165,7 @@ pub fn load_and_pin() -> Result<EbpfRegistry, EbpfError> {
     ebpf.pin_map("CMDLINE_FILTER", ZIOFA_EBPF_PATH).unwrap();
     ebpf.pin_map("FILTER_CONFIG", ZIOFA_EBPF_PATH).unwrap();
     ebpf.pin_map("CONFIG", ZIOFA_EBPF_PATH).unwrap();
-    ebpf.pin_map("EVENT_RB", ZIOFA_EBPF_PATH).unwrap();
+    ebpf.pin_map("EVENTS", ZIOFA_EBPF_PATH).unwrap();
     ebpf.pin_map("GLOBAL_BLOCKING_THRESHOLD", ZIOFA_EBPF_PATH)
         .unwrap();
 

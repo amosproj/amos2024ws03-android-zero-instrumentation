@@ -7,7 +7,9 @@ use core::ptr::{copy_nonoverlapping, slice_from_raw_parts, slice_from_raw_parts_
 use aya_ebpf::helpers::{bpf_probe_read_kernel, bpf_probe_read_kernel_buf};
 use ebpf_relocation_helpers::{Dentry, File, Mount, Path, TaskStruct, Vfsmount};
 
-use crate::{bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt, maps::PATH_BUF};
+use crate::{
+    bounds_check::EbpfBoundsCheck, iterator_ext::IteratorExt, maps::ScratchPath,
+};
 
 pub struct PathWalker {
     vfs_mount: Vfsmount,
@@ -182,7 +184,8 @@ pub fn read_path_to_buf(
 
 #[inline(always)]
 pub fn read_path_to_buf_with_default(path: Path, buf: &mut [u8; PATH_MAX]) -> Option<usize> {
-    let intermediate = unsafe { &mut *PATH_BUF.get_ptr_mut(0)? };
+    let mut intermediate = ScratchPath::get()?;
+    let intermediate = unsafe { intermediate.assume_init_mut() };
     read_path_to_buf(path, intermediate, buf)
 }
 
