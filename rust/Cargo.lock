@@ -581,6 +581,7 @@ dependencies = [
  "cargo_metadata 0.19.1",
  "clap",
  "crossbeam",
+ "ebpf-types",
  "flume",
  "fmmap",
  "garbage-collection",

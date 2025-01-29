@@ -2,17 +2,22 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::collector::time_series::TimeSeries;
-use crate::constants::TIMESERIES_LENGTH;
-use ractor::concurrency::{Duration, JoinHandle};
-use ractor::{cast, Actor, ActorProcessingErr, ActorRef};
-use shared::ziofa::event::EventType;
-use shared::ziofa::log_event::EventData;
-use shared::ziofa::time_series_event::EventTypeEnum;
-use shared::ziofa::time_series_event::TimeSeriesType;
-use shared::ziofa::{Event, TimeSeriesEvent as ZioTimeSeriesEvent};
 use std::collections::HashMap;
+
+use ractor::{
+    cast,
+    concurrency::{Duration, JoinHandle},
+    Actor, ActorProcessingErr, ActorRef,
+};
+use shared::ziofa::{
+    event::EventType,
+    log_event::EventData,
+    time_series_event::{EventTypeEnum, TimeSeriesType},
+    Event, TimeSeriesEvent as ZioTimeSeriesEvent,
+};
 use tokio::time;
+
+use crate::{collector::time_series::TimeSeries, constants::TIMESERIES_LENGTH};
 
 pub struct Aggregator;
 impl Aggregator {

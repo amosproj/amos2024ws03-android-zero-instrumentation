@@ -19,4 +19,3 @@ impl From<EbpfErrorWrapper> for tonic::Status {
         Self::from_error(Box::new(err))
     }
 }
-

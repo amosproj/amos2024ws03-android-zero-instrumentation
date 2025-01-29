@@ -2,63 +2,62 @@
 //
 // SPDX-License-Identifier: MIT
 
-use aya::EbpfError;
-use aya::programs::trace_point::TracePointLink;
-use aya::programs::TracePoint;
+use aya::{
+    programs::{
+        raw_trace_point::RawTracePointLink, trace_point::TracePointLink, RawTracePoint, TracePoint,
+    },
+    EbpfError,
+};
 use ractor::ActorRef;
 use shared::config::SysSigquitConfig;
-use crate::features::{update_pids, Feature};
-use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
-use crate::symbols::actors::SymbolActorMsg;
+
+use crate::{
+    features::Feature,
+    registry::{EbpfRegistry, OwnedHashMap, RegistryGuard},
+    symbols::actors::SymbolActorMsg,
+};
 
 pub struct SysSigquitFeature {
-    sys_enter_sigquit: RegistryGuard<TracePoint>,
-    sys_enter_sigquit_link: Option<TracePointLink>,
-    trace_sigquit_pids: RegistryGuard<OwnedHashMap<u32, u64>>,
+    sys_enter_signal: RegistryGuard<RawTracePoint>,
+    sys_exit_signal: RegistryGuard<RawTracePoint>,
+
+    sys_enter_signal_link: Option<RawTracePointLink>,
+    sys_exit_signal_link: Option<RawTracePointLink>,
 }
 
 impl SysSigquitFeature {
     fn create(registry: &EbpfRegistry) -> Self {
         Self {
-            sys_enter_sigquit: registry.program.sys_sigquit.take(),
-            sys_enter_sigquit_link: None,
-            trace_sigquit_pids: registry.config.sys_sigquit_pids.take(),
+            sys_enter_signal: registry.program.sys_enter_signal.take(),
+            sys_exit_signal: registry.program.sys_exit_signal.take(),
+            sys_enter_signal_link: None,
+            sys_exit_signal_link: None,
         }
     }
 
     fn attach(&mut self) -> Result<(), EbpfError> {
-        if self.sys_enter_sigquit_link.is_none() {
-            let link_id = self.sys_enter_sigquit.attach("syscalls","sys_enter_kill")?;
-            self.sys_enter_sigquit_link = Some(self.sys_enter_sigquit.take_link(link_id)?);
+        if self.sys_enter_signal_link.is_none() {
+            let link_id = self.sys_enter_signal.attach("sys_enter")?;
+            self.sys_enter_signal_link = Some(self.sys_enter_signal.take_link(link_id)?);
+        }
+
+        if self.sys_exit_signal_link.is_none() {
+            let link_id = self.sys_exit_signal.attach("sys_exit")?;
+            self.sys_exit_signal_link = Some(self.sys_exit_signal.take_link(link_id)?);
         }
 
         Ok(())
     }
 
     fn detach(&mut self) {
-        // the TrakePointLinks will be automatically detached when the reference is dropped
-        let _ = self.sys_enter_sigquit_link.take();
-    }
-
-    fn update_pids(
-        &mut self,
-        pids: &[u32]
-    ) -> Result<(), EbpfError> {
-
-        // the general update_pids function for all features works with hashmaps, so the list is converted into a hashmap with keys always being 0
-        let pid_0_tuples: Vec<(u32, u64)> = pids.iter().map(|pid| (*pid, 0)).collect();
-        let pids_as_hashmap: std::collections::HashMap<u32, u64> = std::collections::HashMap::from_iter(pid_0_tuples);
-
-        update_pids(&pids_as_hashmap, &mut self.trace_sigquit_pids)
+        let _ = self.sys_enter_signal_link.take();
+        let _ = self.sys_exit_signal_link.take();
     }
 }
 
 impl Feature for SysSigquitFeature {
     type Config = SysSigquitConfig;
-    fn init(
-        registry: &EbpfRegistry,
-        _: Option<ActorRef<SymbolActorMsg>>
-    ) -> Self {
+    fn init(registry: &EbpfRegistry, _: Option<ActorRef<SymbolActorMsg>>) -> Self {
         SysSigquitFeature::create(registry)
     }
 
@@ -66,7 +65,6 @@ impl Feature for SysSigquitFeature {
         match config {
             Some(config) => {
                 self.attach()?;
-                self.update_pids(&config.pids)?;
             }
             None => {
                 self.detach();
@@ -75,8 +73,3 @@ impl Feature for SysSigquitFeature {
         Ok(())
     }
 }
-
-
-
-
-

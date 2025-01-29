@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{marker::PhantomData, os::fd::{AsRawFd, RawFd}};
+use std::{
+    marker::PhantomData,
+    os::fd::{AsRawFd, RawFd},
+};
 
 use backend_common::TryFromRaw;
 
@@ -19,15 +22,13 @@ impl<T> AsRawFd for TypedRingBuffer<T> {
     }
 }
 
-impl<T: TryFromRaw> TypedRingBuffer<T> 
-{
+impl<T: TryFromRaw> TypedRingBuffer<T> {
     pub fn next(&mut self) -> Option<T> {
         self.inner
             .next()
             .map(|data| T::try_from_raw(&data).expect("wrong data type"))
     }
 }
-
 
 impl<T> TypedRingBuffer<T> {
     pub fn new(inner: OwnedRingBuf) -> Self {

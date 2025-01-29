@@ -5,80 +5,27 @@
 
 use std::collections::HashMap;
 
-use crate::collector::event_dispatcher::{EventDispatcher, EventDispatcherState};
-use crate::collector::ring_buf::{RingBufCollector, RingBufCollectorArguments};
-use crate::collector::IntoEvent;
-use crate::registry::{EbpfEventRegistry, RegistryItem, TypedRingBuffer};
 use backend_common::TryFromRaw;
 use ractor::{Actor, ActorCell, ActorProcessingErr, ActorRef, SupervisionEvent};
 use shared::ziofa::Event;
 use tonic::Status;
 use tracing::error;
 
-#[derive(Clone, Copy)]
-enum CollectorT {
-    VfsWrite,
-    SysSendmsg,
-    JniCall,
-    SysSigquit,
-    Gc,
-    SysFdTracking,
-}
+use crate::{
+    collector::{
+        event_dispatcher::{EventDispatcher, EventDispatcherState},
+        ring_buf::{RingBufCollector, RingBufCollectorArguments},
+        IntoEvent,
+    },
+    registry::{EbpfEventRegistry, OwnedRingBuf, RegistryItem, TypedRingBuffer},
+};
 
 pub struct CollectorSupervisor;
 
 pub struct CollectorSupervisorState {
     registry: EbpfEventRegistry,
-    collectors: CollectorRefs,
+    event_colletor: ActorCell,
     events: ActorRef<Event>,
-}
-
-struct CollectorRefs {
-    collectors: HashMap<ActorCell, CollectorT>,
-}
-
-impl CollectorRefs {
-    async fn from_registry(
-        registry: EbpfEventRegistry,
-        event_actor: ActorRef<Event>,
-        supervisor: ActorCell,
-    ) -> Result<Self, ActorProcessingErr> {
-        let mut this = Self {
-            collectors: HashMap::new(),
-        };
-        this.start_all(&registry, &event_actor, &supervisor).await?;
-        Ok(this)
-    }
-    fn who_is(&self, cell: &ActorCell) -> Option<CollectorT> {
-        self.collectors.get(cell).copied()
-    }
-    fn remove(&mut self, cell: &ActorCell) -> Option<CollectorT> {
-        self.collectors.remove(cell)
-    }
-    async fn start_all(&mut self, registry: &EbpfEventRegistry, event_actor: &ActorRef<Event>, supervisor: &ActorCell) -> Result<(), ActorProcessingErr> {
-        for who in [CollectorT::VfsWrite, CollectorT::SysSendmsg, CollectorT::JniCall, CollectorT::SysSigquit, CollectorT::Gc, CollectorT::SysFdTracking] {
-            self.start(who, registry, event_actor, supervisor).await?;
-        }
-        Ok(())
-    }
-    async fn start(
-        &mut self,
-        who: CollectorT,
-        registry: &EbpfEventRegistry,
-        event_actor: &ActorRef<Event>,
-        supervisor: &ActorCell,
-    ) -> Result<(), ActorProcessingErr> {
-        let actor_ref = match who {
-            CollectorT::VfsWrite => start_collector(registry.vfs_write_events.clone(), event_actor.clone(), supervisor.clone()).await?,
-            CollectorT::SysSendmsg => start_collector(registry.sys_sendmsg_events.clone(), event_actor.clone(), supervisor.clone()).await?,
-            CollectorT::JniCall => start_collector(registry.jni_ref_calls.clone(), event_actor.clone(), supervisor.clone()).await?,
-            CollectorT::SysSigquit => start_collector(registry.sys_sigquit_events.clone(), event_actor.clone(), supervisor.clone()).await?,
-            CollectorT::Gc => start_collector(registry.gc_events.clone(), event_actor.clone(), supervisor.clone()).await?,
-            CollectorT::SysFdTracking => start_collector(registry.sys_fd_tracking_events.clone(), event_actor.clone(), supervisor.clone()).await?,
-        };
-        self.collectors.insert(actor_ref.get_cell(), who);
-        Ok(())
-    }
 }
 
 pub struct CollectorSupervisorArguments {
@@ -112,13 +59,17 @@ impl Actor for CollectorSupervisor {
             myself.get_cell(),
         )
         .await?;
-        let collectors =
-            CollectorRefs::from_registry(args.registry.clone(), events.clone(), myself.get_cell())
-                .await?;
+        let event_colletor = start_collector(
+            args.registry.events.clone(),
+            events.clone(),
+            myself.get_cell(),
+        )
+        .await?
+        .get_cell();
 
         Ok(CollectorSupervisorState {
             registry: args.registry.clone(),
-            collectors,
+            event_colletor,
             events,
         })
     }
@@ -130,13 +81,15 @@ impl Actor for CollectorSupervisor {
         state: &mut Self::State,
     ) -> Result<(), ActorProcessingErr> {
         if let SupervisionEvent::ActorFailed(actor_cell, error) = message {
-            if let Some(who) = state.collectors.who_is(&actor_cell) {
+            if actor_cell == state.event_colletor {
                 error!("Collector {:?} failed with {:?}", actor_cell, error);
-                let _ = state.collectors.remove(&actor_cell);
-                state
-                    .collectors
-                    .start(who, &state.registry, &state.events, &myself.get_cell())
-                    .await?;
+                state.event_colletor = start_collector(
+                    state.registry.events.clone(),
+                    state.events.clone(),
+                    myself.get_cell(),
+                )
+                .await?
+                .get_cell();
                 Ok(())
             } else {
                 Err(ActorProcessingErr::from(format!(
@@ -150,17 +103,16 @@ impl Actor for CollectorSupervisor {
     }
 }
 
-async fn start_collector<T>(
-    item: RegistryItem<TypedRingBuffer<T>>,
+async fn start_collector(
+    item: RegistryItem<OwnedRingBuf>,
     event_actor: ActorRef<Event>,
     supervisor: ActorCell,
 ) -> Result<ActorRef<()>, ActorProcessingErr>
 where
-    T: TryFromRaw + IntoEvent + Send + Sync + 'static,
 {
     let (actor_ref, _) = Actor::spawn_linked(
         None,
-        RingBufCollector::default(),
+        RingBufCollector,
         RingBufCollectorArguments::new(item, event_actor),
         supervisor,
     )

@@ -6,7 +6,19 @@
 
 use std::io;
 
-use tantivy::{directory::MmapDirectory, schema::{IndexRecordOption, SchemaBuilder, TextFieldIndexing, TextOptions, FAST, INDEXED, STORED, STRING}, store::{Compressor, ZstdCompressor}, tokenizer::{LowerCaser, SimpleTokenizer, TextAnalyzer, Token, TokenFilter, TokenStream, Tokenizer, TokenizerManager}, Index, IndexSettings};
+use tantivy::{
+    directory::MmapDirectory,
+    schema::{
+        IndexRecordOption, SchemaBuilder, TextFieldIndexing, TextOptions, FAST, INDEXED, STORED,
+        STRING,
+    },
+    store::{Compressor, ZstdCompressor},
+    tokenizer::{
+        LowerCaser, SimpleTokenizer, TextAnalyzer, Token, TokenFilter, TokenStream, Tokenizer,
+        TokenizerManager,
+    },
+    Index, IndexSettings,
+};
 
 use crate::constants::INDEX_PATH;
 
@@ -25,10 +37,9 @@ struct SplitCamelCaseTokenStream<'a, T> {
     parts: &'a mut Vec<Token>,
 }
 
-
 impl TokenFilter for SplitCamelCase {
     type Tokenizer<T: Tokenizer> = SplitCamelCaseFilter<T>;
-    
+
     fn transform<T: Tokenizer>(self, tokenizer: T) -> Self::Tokenizer<T> {
         SplitCamelCaseFilter {
             inner: tokenizer,
@@ -63,7 +74,7 @@ impl<T: TokenStream> SplitCamelCaseTokenStream<'_, T> {
                 self.cuts.push(index);
             }
         }
-        
+
         for index in self.cuts.iter().rev() {
             let (head, tail) = text.split_at(*index);
 
@@ -73,7 +84,7 @@ impl<T: TokenStream> SplitCamelCaseTokenStream<'_, T> {
                 ..*token
             });
         }
-        
+
         self.parts.push(token.clone());
     }
 }
@@ -81,15 +92,15 @@ impl<T: TokenStream> SplitCamelCaseTokenStream<'_, T> {
 impl<T: TokenStream> TokenStream for SplitCamelCaseTokenStream<'_, T> {
     fn advance(&mut self) -> bool {
         self.parts.pop();
-        
+
         if !self.parts.is_empty() {
             return true;
         }
-        
+
         if !self.tail.advance() {
             return false;
         }
-        
+
         self.split();
         true
     }
@@ -99,7 +110,9 @@ impl<T: TokenStream> TokenStream for SplitCamelCaseTokenStream<'_, T> {
     }
 
     fn token_mut(&mut self) -> &mut tantivy::tokenizer::Token {
-        self.parts.last_mut().unwrap_or_else(|| self.tail.token_mut())
+        self.parts
+            .last_mut()
+            .unwrap_or_else(|| self.tail.token_mut())
     }
 }
 
@@ -110,26 +123,26 @@ pub fn index() -> Result<Index, io::Error> {
         .filter(SplitCamelCase)
         .filter(LowerCaser)
         .build();
-    
+
     let schema = {
         let mut builder = SchemaBuilder::new();
         builder.add_text_field(
-            "symbol_name", 
+            "symbol_name",
             TextOptions::default()
                 .set_indexing_options(
                     TextFieldIndexing::default()
                         .set_tokenizer("code")
-                        .set_index_option(IndexRecordOption::WithFreqsAndPositions)
-                    )
+                        .set_index_option(IndexRecordOption::WithFreqsAndPositions),
+                )
                 .set_stored()
-                .set_fast(Some("raw"))
-                );
+                .set_fast(Some("raw")),
+        );
         builder.add_text_field("symbol_name_exact", STRING | STORED);
         builder.add_u64_field("symbol_offset", STORED | FAST | INDEXED);
         builder.add_text_field("library_path", STRING | STORED);
         builder.build()
     };
-    
+
     let directory = MmapDirectory::open(INDEX_PATH).map_err(io::Error::other)?;
 
     let index = Index::builder()
@@ -145,6 +158,6 @@ pub fn index() -> Result<Index, io::Error> {
         .schema(schema)
         .open_or_create(directory)
         .map_err(io::Error::other)?;
-    
+
     Ok(index)
 }

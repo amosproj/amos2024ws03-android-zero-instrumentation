@@ -2,18 +2,20 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{ops::{Deref, DerefMut}, os::fd::{AsRawFd, RawFd}, sync::Arc};
+use std::{
+    ops::{Deref, DerefMut},
+    os::fd::{AsRawFd, RawFd},
+    sync::Arc,
+};
 
 use crossbeam::atomic::AtomicCell;
 use thiserror::Error;
 
-use super::{OwnedRingBuf, typed_ringbuf::TypedRingBuffer};
+use super::{typed_ringbuf::TypedRingBuffer, OwnedRingBuf};
 
 struct SingleOwner<T>(AtomicCell<Option<Box<T>>>);
 
 pub struct RegistryItem<T>(Arc<SingleOwner<T>>);
-
-
 
 impl<T> Clone for RegistryItem<T> {
     fn clone(&self) -> Self {
@@ -33,7 +35,6 @@ impl<T> From<T> for RegistryItem<T> {
     }
 }
 
-
 pub struct RegistryGuard<T> {
     inner: Option<Box<T>>,
     _registry_entry: RegistryItem<T>,
@@ -51,8 +52,11 @@ pub enum TakeError {
 
 impl<T> RegistryItem<T> {
     pub fn try_take(&self) -> Result<RegistryGuard<T>, TakeError> {
-        if let Some(value) = self.0.0.take() {
-            Ok(RegistryGuard { inner: Some(value), _registry_entry: self.clone() })
+        if let Some(value) = self.0 .0.take() {
+            Ok(RegistryGuard {
+                inner: Some(value),
+                _registry_entry: self.clone(),
+            })
         } else {
             Err(TakeError::AlreadyTaken)
         }
@@ -78,7 +82,7 @@ impl<T> DerefMut for RegistryGuard<T> {
 
 impl<T> Drop for RegistryGuard<T> {
     fn drop(&mut self) {
-        self._registry_entry.0.0.store(self.inner.take());
+        self._registry_entry.0 .0.store(self.inner.take());
     }
 }
 
