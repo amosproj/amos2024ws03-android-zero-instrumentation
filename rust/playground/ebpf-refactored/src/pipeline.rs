@@ -289,9 +289,10 @@ fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
     let task = unsafe { current_task() };
     let program_info = ProgramInfoExit::<GarbageCollect>::new(task)?;
 
-    if EventFilter::filter_many::<GarbageCollect>(&program_info.info.filters()) {
-        return None;
-    }
+    // TODO: Currently the frontend expects all gc events
+    // if EventFilter::filter_many::<GarbageCollect>(&program_info.info.filters()) {
+    //     return None;
+    // }
 
     let mut event = ScratchEventLocal::get::<GarbageCollect>()?;
     let event = unsafe {
