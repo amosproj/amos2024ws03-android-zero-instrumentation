@@ -28,6 +28,15 @@ To automatically update all dependencies, run
 Format `./gradlew combinedFormat` <br/>
 Check: `./gradlew ktfmtCheck`
 
+## Installing for overlay mode
+Overlay mode on AAOS requires elevated priviledges (a runtime permission not grantable as the settings
+menu for granting it does not exist in our emulator)
+* `adb root`
+* `adb shell pm grant de.amosproj3.ziofa android.permission.SYSTEM_ALERT_WINDOW`
+* `adb shell pm grant --user 10 de.amosproj3.ziofa android.permission.SYSTEM_ALERT_WINDOW`
+
+You only need to do this the first time, afterwards you can use the normal install method. 
+
 ## Troubleshooting
 ### The frontend crashes
 Make sure the backend is running or that you are running a mocked version.

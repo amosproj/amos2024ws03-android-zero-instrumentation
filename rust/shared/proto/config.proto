@@ -23,6 +23,8 @@ message Configuration {
   optional JniReferencesConfig jniReferences = 3;
   optional SysSigquitConfig sys_sigquit = 4;
   repeated UprobeConfig uprobes = 5;
+  optional GcConfig gc = 6;
+  optional SysFdTrackingConfig sys_fd_tracking = 7;
 }
 
 message VfsWriteConfig {
@@ -38,5 +40,11 @@ message JniReferencesConfig {
 }
 
 message SysSigquitConfig {
+  repeated uint32 pids = 1;
+}
+
+message GcConfig { }
+
+message SysFdTrackingConfig {
   repeated uint32 pids = 1;
 }

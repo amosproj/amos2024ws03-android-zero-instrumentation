@@ -16,6 +16,7 @@ pub struct MemoryConfigurationStorage {
 }
 
 impl MemoryConfigurationStorage {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         MemoryConfigurationStorage {
             storage: RwLock::new(HashMap::new()),

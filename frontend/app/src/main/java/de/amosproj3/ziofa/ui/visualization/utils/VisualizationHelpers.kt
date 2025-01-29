@@ -11,6 +11,7 @@ import de.amosproj3.ziofa.ui.shared.toUIOptionsForPids
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import kotlinx.collections.immutable.toImmutableList
 
 fun DropdownOption.getPIDsOrNull(): List<UInt>? {
     return when (this) {
@@ -23,32 +24,43 @@ fun DropdownOption.getPIDsOrNull(): List<UInt>? {
 
 fun List<RunningComponent>.toUIOptions() =
     this.map { component ->
-        when (component) {
-            is RunningComponent.Application ->
-                DropdownOption.App(
-                    appName = component.packageInfo.displayName,
-                    packageName = component.packageInfo.displayName,
-                    icon = component.packageInfo.icon,
-                    pids = component.processList.map { it.pid },
-                )
+            when (component) {
+                is RunningComponent.Application ->
+                    DropdownOption.App(
+                        appName = component.packageInfo.displayName,
+                        packageName = component.packageInfo.displayName,
+                        icon = component.packageInfo.icon,
+                        pids = component.processList.map { it.pid },
+                    )
 
-            is RunningComponent.StandaloneProcess ->
-                DropdownOption.Process(
-                    component.process.cmd.toReadableString(),
-                    pid = component.process.pid,
-                )
+                is RunningComponent.StandaloneProcess ->
+                    DropdownOption.Process(
+                        component.process.cmd.toReadableString(),
+                        pid = component.process.pid,
+                    )
+            }
         }
-    }
+        .toImmutableList()
 
+/** Assert that the selection is valid (not-null) and has the correct subclasses */
 @OptIn(ExperimentalContracts::class)
-fun isValidSelection(selectedMetric: DropdownOption?, selectedTimeframe: DropdownOption?): Boolean {
+fun isValidSelection(
+    selectedComponent: DropdownOption?,
+    selectedMetric: DropdownOption?,
+    selectedTimeframe: DropdownOption?,
+): Boolean {
     contract {
         returns(true) implies
-            (selectedMetric is DropdownOption.Metric &&
+            ((selectedComponent is DropdownOption.Process ||
+                selectedComponent is DropdownOption.App) &&
+                selectedComponent != null &&
+                selectedMetric is DropdownOption.Metric &&
                 selectedTimeframe is DropdownOption.Timeframe)
     }
 
-    return selectedMetric != null &&
+    return selectedComponent != null &&
+        (selectedComponent is DropdownOption.App || selectedComponent is DropdownOption.Process) &&
+        selectedMetric != null &&
         selectedMetric is DropdownOption.Metric &&
         selectedTimeframe != null &&
         selectedTimeframe is DropdownOption.Timeframe
@@ -59,4 +71,7 @@ fun isValidSelection(selectedMetric: DropdownOption?, selectedTimeframe: Dropdow
  * configured (== active) for the any of the given [pids].
  */
 fun Configuration.getActiveMetricsForPids(pids: List<UInt>?) =
-    this.toUIOptionsForPids(pids).filter { it.active }.map { DropdownOption.Metric(it) }
+    this.toUIOptionsForPids(pids)
+        .filter { it.active }
+        .map { DropdownOption.Metric(it) }
+        .toImmutableList()

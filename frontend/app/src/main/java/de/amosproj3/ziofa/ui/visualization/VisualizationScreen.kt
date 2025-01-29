@@ -7,30 +7,28 @@ package de.amosproj3.ziofa.ui.visualization
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.amosproj3.ziofa.ui.configuration.composables.ErrorScreen
-import de.amosproj3.ziofa.ui.visualization.composables.EventListViewer
-import de.amosproj3.ziofa.ui.visualization.composables.MetricDropdown
-import de.amosproj3.ziofa.ui.visualization.composables.SwitchModeFab
-import de.amosproj3.ziofa.ui.visualization.composables.VicoBar
-import de.amosproj3.ziofa.ui.visualization.composables.VicoTimeSeries
-import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
-import de.amosproj3.ziofa.ui.visualization.data.GraphedData
-import de.amosproj3.ziofa.ui.visualization.data.SelectionData
+import de.amosproj3.ziofa.ui.visualization.composables.selection.MetricSelection
+import de.amosproj3.ziofa.ui.visualization.composables.selection.SelectMetricPrompt
+import de.amosproj3.ziofa.ui.visualization.composables.selection.SwitchModeFab
+import de.amosproj3.ziofa.ui.visualization.composables.selection.ToggleAutoscrollFab
+import de.amosproj3.ziofa.ui.visualization.composables.selection.VisualizationNonExistentPrompt
+import de.amosproj3.ziofa.ui.visualization.composables.viewers.ChartViewer
+import de.amosproj3.ziofa.ui.visualization.composables.viewers.EventListViewer
+import de.amosproj3.ziofa.ui.visualization.composables.viewers.OverlayLauncher
+import de.amosproj3.ziofa.ui.visualization.data.VisualizationAction
 import de.amosproj3.ziofa.ui.visualization.data.VisualizationScreenState
 import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
@@ -44,125 +42,93 @@ fun VisualizationScreen(
     Box(modifier = modifier.fillMaxSize()) {
         val visualizationScreenState by
             remember { viewModel.visualizationScreenState }.collectAsState()
+        var autoScrollActive by remember { mutableStateOf(true) }
+
         val state = visualizationScreenState
         Timber.i("Updating UI based on $state")
 
         Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxSize()) {
             when (state) {
-                is VisualizationScreenState.ChartView -> {
+                is VisualizationScreenState.Valid -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        optionSelected = { viewModel.optionSelected(it) },
+                        optionSelected = {
+                            viewModel.processAction(VisualizationAction.OptionChanged(it))
+                        },
                     )
-                    ChartViewer(state.graphedData)
+
+                    when (state) {
+                        is VisualizationScreenState.Valid.ChartView ->
+                            ChartViewer(state.graphedData)
+
+                        is VisualizationScreenState.Valid.EventListView ->
+                            EventListViewer(
+                                eventListData = state.graphedData,
+                                eventListMetadata = state.eventListMetadata,
+                                autoScrollActive = autoScrollActive,
+                            )
+
+                        is VisualizationScreenState.Valid.OverlayView ->
+                            OverlayLauncher(
+                                overlaySettings = state.overlaySettings,
+                                overlayEnabled = state.overlayEnabled,
+                                overlayStatusChanged = {
+                                    viewModel.processAction(
+                                        VisualizationAction.OverlayStatusChanged(it)
+                                    )
+                                },
+                                overlaySettingsChanged = {
+                                    viewModel.processAction(
+                                        VisualizationAction.OverlaySettingsChanged(it)
+                                    )
+                                },
+                                chartMetadata = state.chartMetadata,
+                            )
+                    }
                 }
 
-                is VisualizationScreenState.EventListView -> {
+                is VisualizationScreenState.Incomplete -> {
                     MetricSelection(
                         selectionData = state.selectionData,
-                        optionSelected = { viewModel.optionSelected(it) },
+                        optionSelected = {
+                            viewModel.processAction(VisualizationAction.OptionChanged(it))
+                        },
                     )
-                    EventListViewer(state.graphedData, state.eventListMetadata)
+
+                    // Show a prompt to explain the incomplete selection
+                    when (state) {
+                        is VisualizationScreenState.Incomplete.WaitingForMetricSelection ->
+                            SelectMetricPrompt()
+
+                        is VisualizationScreenState.Incomplete.NoVisualizationExists ->
+                            VisualizationNonExistentPrompt()
+                    }
                 }
 
-                is VisualizationScreenState.WaitingForMetricSelection -> {
-                    MetricSelection(
-                        selectionData = state.selectionData,
-                        optionSelected = { viewModel.optionSelected(it) },
-                    )
-                    SelectMetricPrompt()
-                }
-
-                is VisualizationScreenState.Invalid -> ErrorScreen(state.error)
+                is VisualizationScreenState.Invalid -> ErrorScreen(error = state.error)
                 VisualizationScreenState.Loading -> CircularProgressIndicator()
             }
         }
 
-        when (state) {
-            is VisualizationScreenState.EventListView -> {
-                SwitchModeFab(
-                    modifier = Modifier.align(Alignment.BottomEnd),
-                    onClick = { viewModel.switchMode() },
-                    text = "Switch to chart mode",
-                )
-            }
-
-            is VisualizationScreenState.ChartView -> {
-                SwitchModeFab(
-                    modifier = Modifier.align(Alignment.BottomEnd),
-                    onClick = { viewModel.switchMode() },
-                    text = "Switch to event mode",
-                )
-            }
-
-            else -> {}
+        // Show autoscroll toggle on event list view
+        if (state is VisualizationScreenState.Valid.EventListView) {
+            ToggleAutoscrollFab(
+                autoScrollActive = autoScrollActive,
+                onClick = { autoScrollActive = !autoScrollActive },
+                modifier = Modifier.align(Alignment.BottomStart),
+            )
         }
-    }
-}
 
-@Composable
-fun SelectMetricPrompt(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxSize()) {
-        Text(
-            "Please make a selection!",
-            Modifier.align(Alignment.Center),
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
-@Composable
-fun ChartViewer(data: GraphedData) {
-    when (data) {
-        is GraphedData.TimeSeriesData ->
-            VicoTimeSeries(seriesData = data.seriesData, chartMetadata = data.metaData)
-
-        is GraphedData.HistogramData ->
-            VicoBar(seriesData = data.seriesData, chartMetadata = data.metaData)
-
-        GraphedData.EMPTY -> {}
-        else -> TODO()
-    }
-}
-
-@Composable
-fun MetricSelection(
-    selectionData: SelectionData,
-    optionSelected: (DropdownOption) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier.fillMaxWidth()) {
-        val dropdownModifier = Modifier.weight(1f).padding(end = 0.dp)
-
-        MetricDropdown(
-            selectionData.componentOptions,
-            "Select a package",
-            modifier = dropdownModifier,
-            optionSelected = { optionSelected(it) },
-            selectedOption = selectionData.selectedComponent.displayName,
-        )
-        selectionData.metricOptions
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { metricOptions ->
-                MetricDropdown(
-                    metricOptions,
-                    "Select a metric",
-                    modifier = dropdownModifier,
-                    optionSelected = { optionSelected(it) },
-                    selectedOption = selectionData.selectedMetric?.displayName ?: "Please select...",
-                )
-            } ?: Spacer(Modifier.weight(1f))
-        selectionData.timeframeOptions
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { timeframeOptions ->
-                MetricDropdown(
-                    timeframeOptions,
-                    "Select an interval for aggregation",
-                    modifier = dropdownModifier,
-                    optionSelected = { optionSelected(it) },
-                    selectedOption =
-                        selectionData.selectedTimeframe?.displayName ?: "Please select...",
-                )
-            } ?: Spacer(Modifier.weight(1f))
+        // Show switch mode fab on incomplete or valid states
+        if (
+            state is VisualizationScreenState.Valid || state is VisualizationScreenState.Incomplete
+        ) {
+            SwitchModeFab(
+                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+                onDisplayModeSelected = {
+                    viewModel.processAction(VisualizationAction.ModeChanged(it))
+                },
+            )
+        }
     }
 }

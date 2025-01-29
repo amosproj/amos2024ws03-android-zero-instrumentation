@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};
 use shared::ziofa::{Event, StringResponse, Symbol};
 use shared::ziofa::jni_references_event::JniMethodName;
+use shared::ziofa::sys_fd_tracking_event::SysFdAction;
 
 type Result<T> = core::result::Result<T, ClientError>;
 
@@ -196,9 +197,26 @@ impl Client {
 
         Ok(SymbolStream(Mutex::new(Box::pin(stream))))
     }
+    
+    pub async fn index_symbols(&self) -> Result<()> {
+        Ok(self.0.lock().await.index_symbols().await?)
+    }
+    
+    pub async fn search_symbols(&self, query: String, limit: u64) -> Result<Vec<Symbol>> {
+        Ok(self.0.lock().await.search_symbols(query, limit).await?)
+    }
+
+    pub async fn get_symbol_offset(&self, symbol_name: String, library_path: String) -> Result<Option<u64>> {
+        Ok(self.0.lock().await.get_symbol_offset(symbol_name, library_path).await?)
+    }
 }
 
 #[uniffi::export]
 pub fn jni_method_name_from_i32(num: i32) -> JniMethodName {
     JniMethodName::try_from(num).unwrap()
+}
+
+#[uniffi::export]
+pub fn sys_fd_action_from_i32(num: i32) -> SysFdAction {
+    SysFdAction::try_from(num).unwrap()
 }

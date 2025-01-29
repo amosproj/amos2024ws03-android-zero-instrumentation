@@ -23,6 +23,10 @@ service Ziofa {
     rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
     rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
+
+    rpc IndexSymbols(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc SearchSymbols(SearchSymbolsRequest) returns (SearchSymbolsResponse) {}
+    rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
 }
 
 message StringResponse {
@@ -33,9 +37,28 @@ message GetSymbolsRequest {
     string file_path = 2;
 }
 
+message SearchSymbolsRequest {
+    string query = 1;
+    uint64 limit = 2;
+}
+
+message SearchSymbolsResponse {
+    repeated Symbol symbols = 1;
+}
+
+message GetSymbolOffsetRequest {
+    string symbol_name = 1;
+    string library_path = 2;
+}
+
+message GetSymbolOffsetResponse {
+    optional uint64 offset = 1;
+}
+
 message Symbol {
     string method = 1;
-    uint64 offset = 2;
+    string path = 2;
+    uint64 offset = 3;
 }
 
 message PidMessage{
@@ -66,11 +89,20 @@ message CmdlineData {
 }
 
 message Event {
+    oneof event_type {
+        TimeSeriesEvent time_series = 1;
+        LogEvent log = 2;
+    }
+}
+
+message LogEvent {
     oneof event_data {
         VfsWriteEvent vfs_write = 1;
         SysSendmsgEvent sys_sendmsg = 2;
         JniReferencesEvent jni_references = 3;
         SysSigquitEvent sys_sigquit = 4;
+        GcEvent gc = 5;
+        SysFdTrackingEvent sys_fd_tracking = 6;
     }
 }
 
@@ -109,4 +141,51 @@ message SysSigquitEvent {
     uint32 tid = 2;
     uint64 time_stamp = 3;
     uint64 target_pid = 4;
+}
+
+message TimeSeriesEvent {
+  enum EventTypeEnum{
+    VfsWriteEvent = 0;
+    SysSendmsgEvent = 1;
+    JniReferencesEvent = 2;
+    SysSigquitEvent = 3;
+    GcEvent = 4;
+    SysFdTrackingEvent =5;
+  }
+  EventTypeEnum event_type_enum = 1;
+  uint32 timeframe_ms = 2;
+
+  message TimeSeriesType{
+      repeated uint64 list = 1;
+  }
+
+  map<uint32, TimeSeriesType>time_series_map = 3;
+}
+
+
+message GcEvent {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 target_footprint = 3;
+    uint64 num_bytes_allocated = 4;
+    uint32 gcs_completed = 5;
+    uint32 gc_cause = 6;
+    uint64 duration_ns = 7;
+    uint64 freed_objects = 8;
+    int64 freed_bytes = 9;
+    uint64 freed_los_objects = 10;
+    int64 freed_los_bytes = 11;
+    repeated uint64 pause_times = 12;
+}
+
+message SysFdTrackingEvent {
+    enum SysFdAction {
+        Undefined = 0;
+        Created = 1;
+        Destroyed = 2;
+    }
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 time_stamp = 3;
+    SysFdAction fd_action = 4;
 }

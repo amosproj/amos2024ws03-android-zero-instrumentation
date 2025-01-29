@@ -9,23 +9,28 @@ mod jni_reference_feature;
 mod vfs_write_feature;
 mod sys_sendmsg_feature;
 mod sys_sigquit_feature;
+mod garbage_collection_feature;
+mod sys_fd_tracking_feature;
 
 use std::collections::BTreeSet;
 use aya::EbpfError;
+use garbage_collection_feature::GcFeature;
 use jni_reference_feature::JNIReferencesFeature;
+use ractor::ActorRef;
 use shared::config::Configuration;
 use sys_sendmsg_feature::SysSendmsgFeature;
 use sys_sigquit_feature::SysSigquitFeature;
 use vfs_write_feature::VfsWriteFeature;
+use sys_fd_tracking_feature::SysFdTrackingFeature;
 
-use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
+use crate::{registry::{EbpfRegistry, OwnedHashMap, RegistryGuard}, symbols::actors::SymbolActorMsg};
 
 
 pub trait Feature {
     type Config;
 
-    fn init(registry: &EbpfRegistry) -> Self;
-    fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError>;
+    fn init(registry: &EbpfRegistry, symbol_actor_ref: Option<ActorRef<SymbolActorMsg>>) -> Self;
+    async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError>;
 
 }
 
@@ -34,34 +39,41 @@ pub struct Features {
     sys_sigquit_feature: SysSigquitFeature,
     vfs_write_feature: VfsWriteFeature,
     jni_reference_feature: JNIReferencesFeature,
+    gc_feature: GcFeature,
+    sys_fd_tracking_feature: SysFdTrackingFeature,
 }
 
 impl Features {
 
-    pub fn init_all_features(registry: &EbpfRegistry) -> Self {
-        let sys_sendmsg_feature = SysSendmsgFeature::init(registry);
-        let vfs_write_feature = VfsWriteFeature::init(registry);
-        let jni_reference_feature = JNIReferencesFeature::init(registry);
-        let sys_sigquit_feature = SysSigquitFeature::init(registry);
+    pub fn init_all_features(registry: &EbpfRegistry, symbol_actor_ref: ActorRef<SymbolActorMsg>) -> Self {
+        let sys_sendmsg_feature = SysSendmsgFeature::init(registry, None);
+        let vfs_write_feature = VfsWriteFeature::init(registry, None);
+        let jni_reference_feature = JNIReferencesFeature::init(registry, Some(symbol_actor_ref));
+        let sys_sigquit_feature = SysSigquitFeature::init(registry, None);
+        let gc_feature = GcFeature::init(registry, None);
+        let sys_fd_tracking_feature = SysFdTrackingFeature::init(registry, None);
 
         Self {
             sys_sendmsg_feature,
             vfs_write_feature,
             jni_reference_feature,
             sys_sigquit_feature,
+            gc_feature,
+            sys_fd_tracking_feature,
         }
     }
 
-    pub fn update_from_config(
+    pub async fn update_from_config(
         &mut self,
         config: &Configuration,
     ) -> Result<(), EbpfError> {
 
-
-        self.vfs_write_feature.apply(&config.vfs_write)?;
-        self.sys_sendmsg_feature.apply(&config.sys_sendmsg)?;
-        self.jni_reference_feature.apply( &config.jni_references)?;
-        self.sys_sigquit_feature.apply( &config.sys_sigquit)?;
+        self.vfs_write_feature.apply(&config.vfs_write).await?;
+        self.sys_sendmsg_feature.apply(&config.sys_sendmsg).await?;
+        self.jni_reference_feature.apply( &config.jni_references).await?;
+        self.sys_sigquit_feature.apply( &config.sys_sigquit).await?;
+        self.gc_feature.apply( &config.gc).await?;
+        self.sys_fd_tracking_feature.apply( &config.sys_fd_tracking).await?;
 
         Ok(())
     }

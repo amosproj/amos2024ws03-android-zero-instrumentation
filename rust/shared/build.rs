@@ -19,6 +19,8 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "EbpfEntry",
             "UprobeConfig",
             "Event",
+            "TimeSeriesEvent",
+            "LogEvent",
             "VfsWriteEvent",
             "SysSendmsgEvent",
             "JniReferencesEvent",
@@ -30,6 +32,11 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "Symbol",
             "SetConfigurationResponse",
             "SysSigquitConfig",
+            "GcConfig",
+            "GcEvent",
+            "SysFdTrackingConfig",
+            "SysFdTrackingEvent",
+            "TimeSeriesType"
         ]
     } else {
         vec![]
@@ -38,7 +45,7 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
 static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     if cfg!(feature = "uniffi") {
-        vec!["Process.cmd", "Event.event_data", "JniReferencesEvent.JniMethodName"]
+        vec!["Process.cmd", "Event.event_data", "JniReferencesEvent.JniMethodName", "Event.event_type", "LogEvent.event_data", "SysFdTrackingEvent.SysFdAction"]
     } else {
         vec![]
     }

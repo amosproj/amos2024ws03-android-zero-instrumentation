@@ -25,6 +25,7 @@ import de.amosproj3.ziofa.ui.configuration.composables.SubmitFab
 import de.amosproj3.ziofa.ui.symbols.composables.SearchResultList
 import de.amosproj3.ziofa.ui.symbols.composables.SymbolsSearchBar
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsScreenState
+import kotlinx.collections.immutable.toImmutableMap
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -50,7 +51,7 @@ fun SymbolsScreen(pids: List<UInt>, modifier: Modifier = Modifier, onSymbolsSubm
 
                     is SymbolsScreenState.SearchResultReady ->
                         SearchResultList(
-                            state.symbols,
+                            state.symbols.toImmutableMap(),
                             onOptionChanged = { symbol, active ->
                                 viewModel.symbolEntryChanged(symbol, active)
                             },

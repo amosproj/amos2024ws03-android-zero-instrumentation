@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
@@ -21,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -30,14 +34,31 @@ fun ProcessesSearchBar(
     onStartSearch: (String) -> Unit,
 ) {
 
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     Row(
         modifier = Modifier.background(MaterialTheme.colorScheme.primary),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChanged,
+            onValueChange = {
+                if (it.lastOrNull() == '\n') {
+                    keyboardController?.hide()
+                    onStartSearch(value)
+                } else {
+                    onValueChanged(it)
+                }
+            },
             modifier = Modifier.weight(8f).background(Color.White),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            keyboardActions =
+                KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        onStartSearch(value)
+                    }
+                ),
             placeholder = { Text("Search for processes and apps ... ") },
         )
         Icon(

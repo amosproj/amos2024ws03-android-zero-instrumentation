@@ -4,6 +4,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 use tracing_subscriber::EnvFilter;
 mod constants;
 mod ebpf_utils;
@@ -26,5 +27,5 @@ async fn main() {
     // apparently needed...
     helpers::bump_rlimit();
 
-    server::serve_forever().await;
+    server::serve_forever_socket().await;
 }

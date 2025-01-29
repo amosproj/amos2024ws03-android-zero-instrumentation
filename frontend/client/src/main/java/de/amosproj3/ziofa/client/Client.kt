@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -13,6 +13,8 @@ data class Configuration(
     val uprobes: List<UprobeConfig>,
     val jniReferences: JniReferencesConfig?,
     val sysSigquit: SysSigquitConfig?,
+    val gc: GcConfig?,
+    val sysFdTracking: SysFdTrackingConfig?,
 )
 
 data class VfsWriteConfig(val entries: Map<UInt, ULong>)
@@ -24,6 +26,11 @@ data class UprobeConfig(val fnName: String, val offset: ULong, var target: Strin
 data class JniReferencesConfig(val pids: List<UInt>)
 
 data class SysSigquitConfig(val pids: List<UInt>)
+
+/** Warning: This is a workaround. The configuration is not persisted! */
+data class GcConfig(val pids: Set<UInt>)
+
+data class SysFdTrackingConfig(val pids: List<UInt>)
 
 sealed class Event {
     data class VfsWrite(
@@ -62,6 +69,33 @@ sealed class Event {
         val timeStamp: ULong,
         val targetPid: ULong,
     ) : Event()
+
+    data class Gc(
+        val pid: UInt,
+        val tid: UInt,
+        var targetFootprint: ULong,
+        var numBytesAllocated: ULong,
+        var gcsCompleted: UInt,
+        var gcCause: UInt,
+        var durationNs: ULong,
+        var freedObjects: ULong,
+        var freedBytes: Long,
+        var freedLosObjects: ULong,
+        var freedLosBytes: Long,
+        var pauseTimes: List<ULong>,
+    ) : Event()
+
+    data class SysFdTracking(
+        val pid: UInt,
+        val tid: UInt,
+        val timeStamp: ULong,
+        val fdAction: SysFdAction?,
+    ) : Event() {
+        enum class SysFdAction {
+            Created,
+            Destroyed,
+        }
+    }
 }
 
 data class Process(val pid: UInt, val ppid: UInt, val state: String, val cmd: Command?)
@@ -106,6 +140,8 @@ interface Client {
     suspend fun getSymbols(filePath: String): Flow<Symbol>
 
     suspend fun initStream(): Flow<Event>
+
+    suspend fun indexSymbols()
 }
 
 interface ClientFactory {

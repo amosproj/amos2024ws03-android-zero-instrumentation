@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import de.amosproj3.ziofa.ui.about.AboutScreen
 import de.amosproj3.ziofa.ui.configuration.ConfigurationScreen
+import de.amosproj3.ziofa.ui.init.InitScreen
 import de.amosproj3.ziofa.ui.navigation.ConfigurationMenu
 import de.amosproj3.ziofa.ui.navigation.HomeScreen
 import de.amosproj3.ziofa.ui.navigation.composables.DynamicTopBar
@@ -30,6 +31,7 @@ import de.amosproj3.ziofa.ui.shared.deserializePIDs
 import de.amosproj3.ziofa.ui.shared.validPIDsOrNull
 import de.amosproj3.ziofa.ui.symbols.SymbolsScreen
 import de.amosproj3.ziofa.ui.visualization.VisualizationScreen
+import kotlinx.collections.immutable.toImmutableList
 
 val GLOBAL_CONFIGURATION_ROUTE =
     "${Routes.IndividualConfiguration.name}?displayName=${Uri.encode("all processes")}?pids=-1"
@@ -56,13 +58,19 @@ fun ZIOFAApp() {
         NavHost(
             navController,
             modifier = Modifier.fillMaxSize(),
-            startDestination = Routes.Home.name,
+            startDestination = Routes.Init.name,
         ) {
+            screenWithDefaultAnimations(Routes.Init.name) {
+                InitScreen(
+                    onInitFinished = { navController.navigate(Routes.Home.name) },
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
             screenWithDefaultAnimations(Routes.Home.name) {
                 HomeScreen(
                     toVisualize = { navController.navigate(Routes.Visualize.name) },
-                    toConfiguration = { navController.navigate(Routes.Configuration.name) },
-                    toAbout = { navController.navigate(Routes.About.name) },
+                    toConfiguration = { navController.navigate(Routes.Processes.name) },
+                    toReset = { navController.navigate(Routes.Reset.name) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -94,13 +102,19 @@ fun ZIOFAApp() {
                     },
                 )
             }
+
             parameterizedScreen(
                 "${Routes.IndividualConfiguration.name}?displayName={displayName}?pids={pids}",
                 arguments = listOf(DISPLAY_NAME_ARG, PIDS_ARG),
             ) {
                 ConfigurationScreen(
                     Modifier.padding(innerPadding),
-                    pids = it.arguments?.getString("pids")?.deserializePIDs()?.validPIDsOrNull(),
+                    pids =
+                        it.arguments
+                            ?.getString("pids")
+                            ?.deserializePIDs()
+                            ?.validPIDsOrNull()
+                            ?.toImmutableList(),
                     onAddUprobeSelected = {
                         navController.navigate(it.arguments.copyToSymbolsRoute())
                     },

@@ -5,9 +5,11 @@
 use aya::EbpfError;
 use aya::programs::trace_point::TracePointLink;
 use aya::programs::TracePoint;
+use ractor::ActorRef;
 use shared::config::SysSigquitConfig;
 use crate::features::{update_pids, Feature};
 use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
+use crate::symbols::actors::SymbolActorMsg;
 
 pub struct SysSigquitFeature {
     sys_enter_sigquit: RegistryGuard<TracePoint>,
@@ -53,11 +55,14 @@ impl SysSigquitFeature {
 
 impl Feature for SysSigquitFeature {
     type Config = SysSigquitConfig;
-    fn init(registry: &EbpfRegistry) -> Self {
+    fn init(
+        registry: &EbpfRegistry,
+        _: Option<ActorRef<SymbolActorMsg>>
+    ) -> Self {
         SysSigquitFeature::create(registry)
     }
 
-    fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
+    async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
         match config {
             Some(config) => {
                 self.attach()?;

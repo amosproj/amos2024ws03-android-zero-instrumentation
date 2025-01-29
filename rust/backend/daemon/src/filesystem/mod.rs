@@ -13,6 +13,7 @@ mod memory;
 
 pub use normal::NormalConfigurationStorage;
 
+#[allow(unused_imports)]
 pub use memory::MemoryConfigurationStorage;
 
 pub trait ConfigurationStorage: Send + Sync + 'static {

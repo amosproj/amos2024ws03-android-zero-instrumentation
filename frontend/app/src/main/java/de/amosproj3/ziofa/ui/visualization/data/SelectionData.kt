@@ -7,6 +7,7 @@ package de.amosproj3.ziofa.ui.visualization.data
 import android.graphics.drawable.Drawable
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import kotlin.time.DurationUnit
+import kotlinx.collections.immutable.ImmutableList
 
 /** These all need to be of the same type or else we need seperate dropdown composables */
 sealed class DropdownOption(val displayName: String) {
@@ -29,17 +30,17 @@ sealed class DropdownOption(val displayName: String) {
      * @param backendFeature the associated backend feature of the metric option
      */
     data class Metric(val backendFeature: BackendFeatureOptions) :
-        DropdownOption(backendFeature.featureName)
+        DropdownOption(backendFeature.name)
 
     /** Timeframe options */
     data class Timeframe(val amount: Int, val unit: DurationUnit) : DropdownOption("$amount $unit")
 }
 
 data class SelectionData(
-    val componentOptions: List<DropdownOption>,
-    val metricOptions: List<DropdownOption>?,
-    val timeframeOptions: List<DropdownOption>?,
-    val selectedComponent: DropdownOption,
+    val componentOptions: ImmutableList<DropdownOption>,
+    val metricOptions: ImmutableList<DropdownOption>?,
+    val timeframeOptions: ImmutableList<DropdownOption>?,
+    val selectedComponent: DropdownOption?,
     val selectedMetric: DropdownOption?,
     val selectedTimeframe: DropdownOption?,
 )

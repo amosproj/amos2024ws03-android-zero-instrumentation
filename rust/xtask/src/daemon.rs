@@ -2,50 +2,59 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
 // SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
-use std::process::{Child, Command};
+use std::{collections::HashMap, io::Write, process::{Command, Stdio}, sync::mpsc::Sender};
 
 use anyhow::{bail, Context as _, Result};
 use clap::Parser;
-use xtask::{android_launch_path, AYA_BUILD_EBPF};
+use runner::HostSpec;
+use xtask::{build_runner_client, build_runner_server, AYA_BUILD_EBPF};
 
 #[derive(Debug, Parser)]
 pub struct Options {
     /// Build and run the release target.
     #[clap(long)]
     pub release: bool,
-    /// The command used to wrap your application.
+    /// The command used to wrap the daemon. Only used when running on host.
     #[clap(short, long, default_value = "sudo -E")]
     pub runner: String,
-    /// Arguments to pass to your application.
-    #[clap(global = true, last = true)]
-    pub run_args: Vec<String>,
+    /// Arguments to pass to the daemon.
+    // #[clap(global = true, last = true)]
+    // pub run_args: Vec<String>,
     /// Whether to run on Android
     #[clap(long)]
     pub android: bool,
+    /// Don't wait for the daemon to exit
+    #[clap(long)]
+    pub background: bool,
 }
 
 /// Build and run the project.
-pub fn run(opts: Options, wait_for_exit: bool) -> Result<Option<Child>> {
+/// wait_for_exit specifies, if the daemon should run synchronously or in the background
+/// pkill_before_run specifies if the given binary should be pkill'ed before running
+pub fn run(opts: Options) -> Result<Option<Sender<()>>> {
     let Options {
         release,
         runner,
-        run_args,
         android,
+        background,
     } = opts;
 
-    let android_script = android_launch_path();
-
     if android {
-        // pkill any left backend-daemon process
-        let mut pkill = Command::new("adb");
-        pkill.args(["shell", "su", "root", "pkill", "backend-daemon"]);
-        pkill
-            .status()
-            .with_context(|| format!("failed to run {pkill:?}"))?;
-
+        let android_runner = build_runner_client();
+        let android_server = build_runner_server();
+        
+        let spec = HostSpec {
+            args: Vec::default(),
+            env: HashMap::from([("RUST_LOG".to_string(), "error".to_string())]),
+            root: true,
+            runner_path: android_server
+        };
+        
+        // build
         let mut cmd = Command::new("cargo");
         cmd.env(AYA_BUILD_EBPF, "true");
         cmd.args([
@@ -57,27 +66,40 @@ pub fn run(opts: Options, wait_for_exit: bool) -> Result<Option<Child>> {
             "backend-daemon",
             "--bin",
             "backend-daemon",
-            "--config",
         ]);
-        cmd.arg(format!(
-            "target.\"cfg(all())\".runner=\"{} {}\"",
-            android_script.display(),
-            run_args.join(" ")
-        ));
+        cmd.arg("--config");
+        cmd.arg(format!("target.'cfg(all())'.runner='{} {}'", android_runner, serde_json::to_string(&spec).unwrap()));
+        if background {
+            cmd.stdin(Stdio::piped());
+        }
+        if release {
+            cmd.arg("--release");
+        }
 
-        if wait_for_exit {
+        if !background {
             let status = cmd
                 .status()
                 .with_context(|| format!("failed to run {cmd:?}"))?;
             if status.code() != Some(0) {
                 bail!("{cmd:?} failed: {status:?}")
             }
-            Ok(None)
         } else {
-            let child = cmd.spawn().expect("Spawning process should work.");
-            Ok(Some(child))
+            let mut child = cmd.spawn().expect("Spawning process should work.");
+            let mut stdin = child.stdin.take().expect("stdin should be available");
+            
+            let (tx, rx) = std::sync::mpsc::channel();
+            
+            std::thread::spawn(move || {
+                let _ = rx.recv();
+                writeln!(stdin).expect("failed to write to stdin");
+                stdin.flush().expect("failed to flush stdin");
+                child.wait().expect("failed to wait for child");
+            });
+            
+            return Ok(Some(tx));
         }
     } else {
+        // build & run
         let mut cmd = Command::new("cargo");
         cmd.env(AYA_BUILD_EBPF, "true");
         cmd.args([
@@ -92,21 +114,19 @@ pub fn run(opts: Options, wait_for_exit: bool) -> Result<Option<Child>> {
         if release {
             cmd.arg("--release");
         }
-        if !run_args.is_empty() {
-            cmd.arg("--").args(run_args);
-        }
 
-        if wait_for_exit {
+        if !background {
             let status = cmd
                 .status()
                 .with_context(|| format!("failed to run {cmd:?}"))?;
+            println!("Status: {}", status.code().unwrap());
             if status.code() != Some(0) {
                 bail!("{cmd:?} failed: {status:?}")
             }
-            Ok(None)
         } else {
-            let child = cmd.spawn().expect("Spawning process should work.");
-            Ok(Some(child))
+            panic!("background mode is only for integration tests")
         }
     }
+    
+    Ok(None)
 }

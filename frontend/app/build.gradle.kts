@@ -114,6 +114,10 @@ dependencies {
     implementation(libs.arrow.core)
     implementation(libs.arrow.fx.coroutines)
     detektPlugins(libs.detekt.compose.rules)
+    implementation(libs.kotlinx.collections.immutable)
+    implementation(libs.ycharts)
+
+
 }
 
 tasks.cyclonedxBom {

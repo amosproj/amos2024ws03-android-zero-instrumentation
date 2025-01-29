@@ -15,7 +15,10 @@ members = [
   "shared",
   "client",
   "playground/sendmsg-demo",
-  "uniffi-bindgen", "backend/ebpf-test",
+  "uniffi-bindgen", 
+  "backend/ebpf-test",
+  "runner",
+  "garbage-collection",
 ]
 default-members = [
   "xtask",
@@ -23,6 +26,11 @@ default-members = [
   "backend/common",
   "shared",
   "client",
+]
+exclude = [
+  "playground/ebpf-refactored",
+  "playground/ebpf-test-refactored",
+  "playground/ebpf-types",
 ]
 
 [workspace.package]
@@ -35,6 +43,7 @@ aya = { version = "0.13.1", default-features = false }
 aya-ebpf = { version = "0.1.1", default-features = false }
 aya-log = { version = "0.2.1", default-features = false }
 aya-log-ebpf = { version = "0.1.1", default-features = false }
+aya-log-common = "0.1.15"
 
 anyhow = { version = "1", default-features = false }
 cargo_metadata = { version = "0.19.1", default-features = false }
@@ -60,6 +69,8 @@ xtask = { path = "./xtask" }
 backend-common = { path = "./backend/common" }
 backend-daemon = { path = "./backend/daemon" }
 backend-ebpf = { path = "./backend/ebpf" }
+runner = { path = "./runner" }
+garbage-collection = { path = "./garbage-collection" }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 procfs = "0.17.0"
@@ -73,6 +84,20 @@ bytemuck = { version = "1.20.0" }
 crossbeam = "0.8.4"
 ractor = { version = "0.13.4", default-features = false }
 aya-obj = "0.2.1"
+async-walkdir = "2.0.0"
+tokio-process-stream = "0.4.0"
+symbolic-demangle = { version = "12.12.3", default-features = false, features = ["cpp", "rust"] }
+symbolic-common = "12.12.3"
+tantivy = { version = "0.22.0", features = ["mmap", "zstd-compression"], default-features = false }
+fmmap = { version = "0.3.3", default-features = false, features = ["tokio-async"] }
+flume = { version = "0.11.1", default-features = false, features = ["async"] }
+adb_client = "2.1.0"
+ctrlc = "3.4.5"
+rustix = { version = "0.38.43" }
+tower = { version = "0.5.2" }
+hyper-util = { version = "0.1.10", features = ["tokio"] }
+clang = "2.0.0"
+clang-sys = "1.8.1"
 
 [profile.release.package.backend-ebpf]
 debug = 2

@@ -8,16 +8,20 @@
 use crate::collector::{CollectorSupervisor, CollectorSupervisorArguments};
 use crate::filesystem::{ConfigurationStorage, NormalConfigurationStorage};
 use crate::registry;
+use crate::symbols::actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg};
 use crate::symbols::SymbolHandler;
 use crate::{
     constants,
     ebpf_utils::EbpfErrorWrapper,
-    procfs_utils::{list_processes, ProcErrorWrapper},
     features::Features,
+    procfs_utils::{list_processes, ProcErrorWrapper},
 };
 use async_broadcast::{broadcast, Receiver, Sender};
-use ractor::Actor;
-use shared::ziofa::{Event, GetSymbolsRequest, PidMessage, StringResponse, Symbol};
+use ractor::{call, Actor, ActorRef};
+use shared::ziofa::{
+    Event, GetSymbolOffsetRequest, GetSymbolOffsetResponse, GetSymbolsRequest, PidMessage,
+    SearchSymbolsRequest, SearchSymbolsResponse, StringResponse, Symbol,
+};
 use shared::{
     config::Configuration,
     ziofa::{
@@ -37,21 +41,26 @@ where C: ConfigurationStorage {
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
     configuration_storage: C,
+    symbol_actor_ref: ActorRef<SymbolActorMsg>,
 }
 
-impl<C> ZiofaImpl<C> 
-where C: ConfigurationStorage {
+impl<C> ZiofaImpl<C>
+where
+    C: ConfigurationStorage,
+{
     pub fn new(
         features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
         symbol_handler: Arc<Mutex<SymbolHandler>>,
         configuration_storage: C,
+        symbol_actor_ref: ActorRef<SymbolActorMsg>,
     ) -> ZiofaImpl<C> {
         ZiofaImpl {
             features,
             channel,
             symbol_handler,
-            configuration_storage
+            configuration_storage,
+            symbol_actor_ref,
         }
     }
 }
@@ -102,6 +111,7 @@ where C: ConfigurationStorage {
         // TODO: set config path
         features_guard
             .update_from_config(&config)
+            .await
             .map_err(EbpfErrorWrapper::from)?;
 
         Ok(Response::new(()))
@@ -221,6 +231,7 @@ where C: ConfigurationStorage {
                 tx.send(Ok(Symbol {
                     method: symbol.to_string(),
                     offset: *offset,
+                    path: file_path.to_string_lossy().into_owned(),
                 }))
                 .await
                 .expect("Error sending odex file to client");
@@ -229,23 +240,67 @@ where C: ConfigurationStorage {
 
         Ok(Response::new(ReceiverStream::new(rx)))
     }
+
+    async fn index_symbols(&self, _: Request<()>) -> Result<Response<()>, Status> {
+        call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex)
+            .map_err(|e| Status::from_error(Box::new(e)))?;
+        Ok(Response::new(()))
+    }
+
+    async fn search_symbols(
+        &self,
+        request: Request<SearchSymbolsRequest>,
+    ) -> Result<Response<SearchSymbolsResponse>, Status> {
+        let SearchSymbolsRequest { query, limit } = request.into_inner();
+        let symbols = call!(
+            self.symbol_actor_ref,
+            SymbolActorMsg::Search,
+            SearchReq { query, limit }
+        )
+        .map_err(|e| Status::from_error(Box::new(e)))??;
+
+        Ok(Response::new(SearchSymbolsResponse { symbols }))
+    }
+
+    async fn get_symbol_offset(
+        &self,
+        request: Request<GetSymbolOffsetRequest>,
+    ) -> Result<Response<GetSymbolOffsetResponse>, Status> {
+        let GetSymbolOffsetRequest {
+            symbol_name,
+            library_path,
+        } = request.into_inner();
+        let offset = call!(
+            self.symbol_actor_ref,
+            SymbolActorMsg::GetOffset,
+            GetOffsetRequest {
+                symbol_name,
+                library_path
+            }
+        )
+        .map_err(|e| Status::from_error(Box::new(e)))?;
+
+        Ok(Response::new(GetSymbolOffsetResponse { offset }))
+    }
 }
 
 
-
-pub async fn serve_forever() {
+async fn setup() -> (ActorRef<()>, ZiofaServer<ZiofaImpl<NormalConfigurationStorage>>) {
     let registry = registry::load_and_pin().unwrap();
+
+    let symbol_actor_ref = SymbolActor::spawn().await.unwrap();
 
     let channel = Channel::new();
     let (collector_ref, _) = Actor::spawn(
-        None, 
-        CollectorSupervisor, 
-        CollectorSupervisorArguments::new(registry.event.clone(), 
-        channel.tx.clone())
-    ).await.unwrap();
+        None,
+        CollectorSupervisor,
+        CollectorSupervisorArguments::new(registry.event.clone(), channel.tx.clone()),
+    )
+    .await
+    .unwrap();
     let channel = Arc::new(channel);
 
-    let features = Features::init_all_features(&registry);
+    let features = Features::init_all_features(&registry, symbol_actor_ref.clone());
 
     let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
 
@@ -253,13 +308,92 @@ pub async fn serve_forever() {
 
     let filesystem = NormalConfigurationStorage;
 
-    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem));
+    let ziofa_server = ZiofaServer::new(ZiofaImpl::new(features, channel, symbol_handler, filesystem, symbol_actor_ref));
+    
+    (collector_ref, ziofa_server)
+}
+
+pub async fn serve_forever_socket() {
+    let (collector_ref, ziofa_server) = setup().await;
 
     Server::builder()
         .add_service(ziofa_server)
         .serve(constants::sock_addr())
         .await
         .unwrap();
-    
+
     collector_ref.stop_and_wait(None, None).await.unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io;
+
+    use hyper_util::rt::TokioIo;
+    use tokio::io::duplex;
+    use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
+    use tonic::transport::Endpoint;
+    use tower::service_fn;
+    use shared::ziofa::ziofa_client::ZiofaClient;
+
+    use super::*;
+    
+    #[tokio::test]
+    async fn test_in_memory_connection() {
+        
+        // We use a channel, this is plays the role of our operating system, that would normally give us a tcp socket when we connect to the server
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        
+        // Normal setup like in the default case
+        let (collector_ref, ziofa_server) = setup().await;
+        
+        // We create a new endpoint, the connection url is ignored in the `connect_with_connector` call
+        let channel = Endpoint::try_from("http://[::1]:50051").unwrap()
+            .connect_with_connector(service_fn({
+                move |_| {
+                    // We create a new duplex stream, this plays the role of the tcp socket
+                    let (left, right) = duplex(64);
+                    // We send the duplex stream over the channel, so our server gets the other end of it
+                    tx.send(right).unwrap();
+                    async move {
+                        // TokioIo is just a wrapper to make it compatible with the hyper webserver
+                        Ok::<_, io::Error>(TokioIo::new(left))
+                    }
+                }
+            })).await.unwrap();
+        
+        // We can create multiple clients
+        let mut client = ZiofaClient::new(channel.clone());
+        let mut other = ZiofaClient::new(channel);
+        
+        // stop condition
+        let (stop_tx, stop_rx) = tokio::sync::oneshot::channel();
+        
+        let stop = async move {
+            let _ = stop_rx.await;
+        };
+        
+        let server_task = tokio::spawn(async move {
+            Server::builder()
+                .add_service(ziofa_server)
+                // UnboundedReceiverStream is a wrapper to turn a Receiver into a Stream
+                // Network operations can fail so it expects a result type, we just wrap it in Ok
+                .serve_with_incoming_shutdown(UnboundedReceiverStream::new(rx).map(Ok::<_, io::Error>), stop)
+                .await
+                .unwrap();
+        });
+        
+        // We can now call the server as we like
+        let _ = client.check_server(()).await.unwrap();
+        let _ = other.check_server(()).await.unwrap();
+        
+        // gracefully shutdown the server
+        stop_tx.send(()).expect("still running");
+        
+        // wait for the task/server to be done
+        server_task.await.unwrap();
+        
+        // stop the collector
+        collector_ref.stop_and_wait(None, None).await.unwrap();
+    }
 }
