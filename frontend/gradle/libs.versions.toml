@@ -29,6 +29,7 @@ vico = "2.0.0-beta.3"
 coroutines = "1.9.0"
 flowredux="1.2.2"
 arrow = "1.2.4"
+ycharts = "2.1.0"
 
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanistDrawablepainter" }
@@ -66,6 +67,7 @@ flowredux-jvm = { module = 'com.freeletics.flowredux:flowredux-jvm', version.ref
 flowredux-compose = { module = 'com.freeletics.flowredux:compose' ,version.ref ="flowredux"}
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
 arrow-fx-coroutines = { module = "io.arrow-kt:arrow-fx-coroutines", version.ref = "arrow" }
+ycharts = { module = "co.yml:ycharts", version.ref = "ycharts" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

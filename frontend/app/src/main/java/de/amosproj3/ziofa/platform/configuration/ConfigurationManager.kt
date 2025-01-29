@@ -20,6 +20,7 @@ import de.amosproj3.ziofa.ui.configuration.utils.EMPTY_CONFIGURATION
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -61,6 +62,7 @@ class ConfigurationManager(clientFactory: ClientFactory) :
             inState<ConfigurationState.Uninitialized> {
                 onEnter { state ->
                     try {
+                        delay(1000) // for smoother transition on InitScreen
                         val client = state.snapshot.clientFactory.connect()
                         val configuration = client.initializeConfiguration()
                         state.override { configuration.synchronizedOrErrorState(client) }
@@ -124,7 +126,7 @@ class ConfigurationManager(clientFactory: ClientFactory) :
         }
     }
 
-    fun State<ConfigurationState.Synchronized>.applyChangeAndTransitionToDifferent(
+    private fun State<ConfigurationState.Synchronized>.applyChangeAndTransitionToDifferent(
         action: ConfigurationAction.ChangeFeature
     ) =
         this.override {

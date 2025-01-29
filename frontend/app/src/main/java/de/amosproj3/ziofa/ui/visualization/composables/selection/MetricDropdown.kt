@@ -5,10 +5,13 @@
 
 package de.amosproj3.ziofa.ui.visualization.composables.selection
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -22,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
 import kotlinx.collections.immutable.ImmutableList
@@ -33,14 +37,14 @@ fun MetricDropdown(
     title: String,
     modifier: Modifier = Modifier,
     optionSelected: (DropdownOption) -> Unit,
-    selectedOption: String,
+    selectedOption: String?,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
             TextField(
-                value = selectedOption,
+                value = selectedOption ?: "Please select ...",
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(title) },
@@ -58,7 +62,17 @@ fun MetricDropdown(
                         trailingIcon = {
                             if (option is DropdownOption.App) {
                                 val painter = rememberDrawablePainter(option.icon)
-                                Icon(painter = painter, contentDescription = "")
+                                Image(
+                                    painter = painter,
+                                    contentDescription = "",
+                                    modifier = Modifier.size(50.dp, 50.dp),
+                                )
+                            } else if (option is DropdownOption.Process) {
+                                Image(
+                                    imageVector = Icons.Filled.Info,
+                                    contentDescription = "",
+                                    modifier = Modifier.size(50.dp, 50.dp),
+                                )
                             }
                         },
                         onClick = {

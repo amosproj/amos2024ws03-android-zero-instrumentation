@@ -5,6 +5,7 @@
 package de.amosproj3.ziofa.platform.configuration
 
 import de.amosproj3.ziofa.api.configuration.GetSymbolsRequestState
+import de.amosproj3.ziofa.api.configuration.IndexingRequestState
 import de.amosproj3.ziofa.api.configuration.SymbolsAccess
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.ui.symbols.data.SymbolsEntry
@@ -62,4 +63,12 @@ class UProbeManager(private val clientFactory: ClientFactory) : SymbolsAccess {
             }
             .onStart { Timber.i("searchSymbols pids=$pids searchQuery=$searchQuery") }
             .flowOn(Dispatchers.IO)
+
+    /**
+     * Current problem: Symbols in the backend will be duplicated if they are already indexed and we
+     * call this again. We don't know whether indexing was already done.
+     */
+    override fun indexSymbols(): Flow<IndexingRequestState> {
+        TODO()
+    }
 }

@@ -6,7 +6,9 @@ package de.amosproj3.ziofa.platform.configuration
 
 import de.amosproj3.ziofa.api.configuration.ConfigurationAction
 import de.amosproj3.ziofa.client.Configuration
+import de.amosproj3.ziofa.client.GcConfig
 import de.amosproj3.ziofa.client.JniReferencesConfig
+import de.amosproj3.ziofa.client.SysFdTrackingConfig
 import de.amosproj3.ziofa.client.SysSendmsgConfig
 import de.amosproj3.ziofa.client.SysSigquitConfig
 import de.amosproj3.ziofa.client.UprobeConfig
@@ -84,6 +86,26 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
                     )
             )
         }
+
+        is BackendFeatureOptions.GcOption -> {
+            this.copy(
+                gc =
+                    this.gc.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
+                    )
+            )
+        }
+
+        is BackendFeatureOptions.OpenFileDescriptors -> {
+            this.copy(
+                sysFdTracking =
+                    this.sysFdTracking.updatePIDs(
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
+                    )
+            )
+        }
     }
 }
 
@@ -134,5 +156,21 @@ fun SysSigquitConfig?.updatePIDs(
     pidsToRemove: Set<UInt> = setOf(),
 ): SysSigquitConfig {
     val config = this ?: SysSigquitConfig(listOf())
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
+}
+
+fun SysFdTrackingConfig?.updatePIDs(
+    pidsToAdd: Set<UInt> = setOf(),
+    pidsToRemove: Set<UInt> = setOf(),
+): SysFdTrackingConfig {
+    val config = this ?: SysFdTrackingConfig(listOf())
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
+}
+
+fun GcConfig?.updatePIDs(
+    pidsToAdd: Set<UInt> = setOf(),
+    pidsToRemove: Set<UInt> = setOf(),
+): GcConfig {
+    val config = this ?: GcConfig(setOf())
     return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
 }
