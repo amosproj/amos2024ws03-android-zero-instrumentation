@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import de.amosproj3.ziofa.ui.visualization.composables.chart.VicoBar
 import de.amosproj3.ziofa.ui.visualization.composables.chart.VicoTimeSeries
+import de.amosproj3.ziofa.ui.visualization.composables.chart.YChartsMultiTimeSeries
 import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 
 @Composable
@@ -23,6 +24,8 @@ fun ChartViewer(data: GraphedData) {
 
         is GraphedData.HistogramData ->
             VicoBar(seriesData = data.seriesData, chartMetadata = data.metaData)
+
+        is GraphedData.MultiTimeSeriesData -> YChartsMultiTimeSeries(seriesData = data.seriesData)
 
         GraphedData.EMPTY -> {}
         else -> TODO() // crash because we havent implemented the visualization type yet

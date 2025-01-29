@@ -21,6 +21,7 @@ import de.amosproj3.ziofa.platform.overlay.OverlayManager
 import de.amosproj3.ziofa.platform.processes.PackageInformationProvider
 import de.amosproj3.ziofa.platform.processes.RunningComponentsProvider
 import de.amosproj3.ziofa.ui.configuration.ConfigurationViewModel
+import de.amosproj3.ziofa.ui.init.InitViewModel
 import de.amosproj3.ziofa.ui.overlay.OverlayViewModel
 import de.amosproj3.ziofa.ui.processes.ProcessesViewModel
 import de.amosproj3.ziofa.ui.reset.ResetViewModel
@@ -72,6 +73,7 @@ class ZiofaApplication : Application() {
     }
 
     private fun Module.createViewModelFactories() {
+        viewModel { InitViewModel(get()) }
         viewModel { (pids: List<UInt>) ->
             ConfigurationViewModel(configurationAccess = get(), pids = pids)
         }

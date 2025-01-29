@@ -2,75 +2,32 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{env, path::PathBuf};
+use std::env;
 
 pub fn main() {
-    println!("cargo:rerun-if-changed=src/c/relocation_helper.c");
-    println!("cargo:rerun-if-changed=src/c/relocation_helper.h");
-
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH")
         .expect("`CARGO_CFG_TARGET_ARCH` should be set in a buildscript");
 
     if target_arch == "bpf" {
-        build_helpers_bpf();
-    } else {
-        build_helpers_not_bpf();
+        let bitcode_path = env::var("DEP_RELOCATION_HELPERS_BITCODE_PATH")
+            .expect("`DEP_RELOCATION_HELPERS_BITCODE_PATH` should be set when importing `relocation-helpers`");
+
+        println!("cargo:rerun-if-changed={bitcode_path}");
+        println!("cargo:rustc-link-arg={bitcode_path}");
+        println!("cargo:rustc-link-arg=--btf");
     }
 
-    generate_bindings();
-}
-
-fn build_helpers_bpf() {
-    let endian = env::var("CARGO_CFG_TARGET_ENDIAN")
-        .expect("`CARGO_CFG_TARGET_ENDIAN` should be set in a buildscript");
-
-    let target = if endian == "little" {
-        "bpfel"
-    } else if endian == "big" {
-        "bpfeb"
+    println!("cargo::rerun-if-changed=CARGO_CFG_BPF_TARGET_ARCH");
+    if let Ok(arch) = env::var("CARGO_CFG_BPF_TARGET_ARCH") {
+        println!("cargo::rustc-cfg=bpf_target_arch=\"{arch}\"");
     } else {
-        panic!("unsupported target endian");
-    };
+        let arch = env::var("HOST").unwrap();
+        let mut arch = arch.split_once("-").map_or(&*arch, |x| x.0);
+        if arch.starts_with("riscv64") {
+            arch = "riscv64";
+        }
+        println!("cargo::rustc-cfg=bpf_target_arch=\"{arch}\"");
+    }
 
-    let bitcode_file = cc::Build::new()
-        .compiler("clang")
-        .no_default_flags(true)
-        .file("src/c/relocation_helpers.c")
-        .flag("-g")
-        .flag("-emit-llvm")
-        .flag(format!("--target={}", target))
-        .compile_intermediates()
-        .into_iter()
-        .next()
-        .expect("bitcode file should be compiled");
-
-    println!("cargo:rustc-link-arg={}", bitcode_file.display());
-    println!("cargo:rustc-link-arg=--btf");
-}
-
-fn build_helpers_not_bpf() {
-    cc::Build::default()
-        .compiler("clang")
-        .no_default_flags(true)
-        .file("src/c/relocation_helpers.c")
-        .flag("-flto=thin")
-        .compile("relocation_helpers");
-
-    println!("cargo:rustc-link-arg=-lc");
-}
-
-fn generate_bindings() {
-    let bindings = bindgen::Builder::default()
-        .use_core()
-        .header("src/c/relocation_helpers.h")
-        .generate()
-        .expect("generating bindings should not fail");
-
-    let out_dir = env::var("OUT_DIR").expect("`OUT_DIR` should be set in a buildscript");
-
-    let out_file_path = PathBuf::from(out_dir).join("relocation_helpers.rs");
-
-    bindings
-        .write_to_file(out_file_path)
-        .expect("writing bindings should not fail");
+    println!("cargo::rustc-check-cfg=cfg(bpf_target_arch, values(\"x86_64\",\"arm\",\"aarch64\",\"riscv64\",\"powerpc64\",\"s390x\"))");
 }

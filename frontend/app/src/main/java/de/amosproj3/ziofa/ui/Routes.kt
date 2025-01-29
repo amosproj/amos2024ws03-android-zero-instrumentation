@@ -14,4 +14,5 @@ enum class Routes {
     Configuration,
     Symbols,
     Reset,
+    Init,
 }

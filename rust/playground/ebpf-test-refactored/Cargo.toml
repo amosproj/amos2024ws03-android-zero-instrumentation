@@ -6,18 +6,20 @@
 [package]
 name = "ebpf-test-refactored"
 version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-
-[build-dependencies]
+edition.workspace = true
 
 [dev-dependencies]
-bytemuck = "1.21.0"
-libc = { version = "0.2.169", default-features = false, features = ["std"] }
-aya-obj = { version = "0.2.1", default-features = false, features = ["std"] }
-aya = { version = "0.13.1", default-features = false, features = ["tokio"] }
-aya-log = { version = "0.2.1", default-features = false }
-test-log = { version = "0.2.17", default-features = false, features = ["color", "log", "trace"] }
-tokio = { version = "1.43.0", default-features = false, features = ["macros", "net", "signal"] }
-ebpf-types = { path = "../ebpf-types", features = ["user"] }
+aya-ebpf = { workspace = true }
+bytemuck = { workspace = true }
+libc = { workspace = true }
+aya-obj = { workspace = true }
+aya = { workspace = true, features = ["tokio"] }
+aya-log = { workspace = true }
+test-log = { workspace = true, features = ["color", "log", "trace"] }
+tokio = { workspace = true, features = ["macros", "net", "signal", "time", "rt-multi-thread"] }
+ebpf-types = { workspace = true, features = ["user"] }
+
+[[test]]
+name = "prog_test_run"
+path = "tests/prog_test_run.rs"
+test = true

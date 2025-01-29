@@ -30,6 +30,7 @@ import de.amosproj3.ziofa.ui.processes.composables.EditButton
 import de.amosproj3.ziofa.ui.processes.composables.IconAndName
 import de.amosproj3.ziofa.ui.processes.composables.ProcessesHeader
 import de.amosproj3.ziofa.ui.processes.composables.ProcessesSearchBar
+import de.amosproj3.ziofa.ui.processes.data.ProcessesListState
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -40,7 +41,7 @@ fun ProcessesScreen(
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Column {
-            val options by remember { viewModel.applicationsAndProcessesList }.collectAsState()
+            val processesListState by remember { viewModel.processListState }.collectAsState()
             var searchQuery by remember { mutableStateOf("") }
 
             ProcessesSearchBar(
@@ -49,16 +50,26 @@ fun ProcessesScreen(
                 onStartSearch = { viewModel.startSearch(query = searchQuery) },
             )
             ProcessesHeader()
-            if (options.isNotEmpty()) {
-                LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
-                    items(options) { option ->
-                        ProcessListRow(option = option, onClickEdit = onClickEdit)
+            when (val state = processesListState) {
+                is ProcessesListState.Loading ->
+                    Box(modifier.fillMaxSize()) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
-                }
-            } else {
-                Box(modifier.fillMaxSize()) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
+
+                is ProcessesListState.NoResults ->
+                    Box(Modifier.fillMaxSize()) {
+                        Text(
+                            text = "No processes found.",
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+
+                is ProcessesListState.Valid ->
+                    LazyColumn(modifier = Modifier.padding(horizontal = 20.dp).fillMaxSize()) {
+                        items(state.list) { option ->
+                            ProcessListRow(option = option, onClickEdit = onClickEdit)
+                        }
+                    }
             }
         }
     }

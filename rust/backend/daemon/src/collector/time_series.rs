@@ -42,7 +42,7 @@ impl TimeSeries {
 
 impl From<TimeSeries> for shared::ziofa::time_series_event::TimeSeriesType {
     fn from(series: TimeSeries) -> Self {
-        shared::ziofa::time_series_event::TimeSeriesType{
+        shared::ziofa::time_series_event::TimeSeriesType {
             list: series.as_array(),
         }
     }

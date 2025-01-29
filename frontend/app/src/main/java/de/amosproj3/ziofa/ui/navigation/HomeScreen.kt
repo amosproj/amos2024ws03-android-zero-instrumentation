@@ -27,7 +27,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     toVisualize: () -> Unit = {},
     toConfiguration: () -> Unit = {},
-    toAbout: () -> Unit = {},
+    toReset: () -> Unit = {},
 ) {
     Box(
         modifier =
@@ -46,7 +46,7 @@ fun HomeScreen(
                             Emoji.Gear.unicode,
                             toConfiguration,
                         ),
-                        MenuOptionData(title = "About", Emoji.Info.unicode, toAbout),
+                        MenuOptionData(title = "Reset", Emoji.Reset.unicode, toReset),
                     )
             )
         }

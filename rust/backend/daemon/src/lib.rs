@@ -4,19 +4,19 @@
 //
 // SPDX-License-Identifier: MIT
 
+mod collector;
 mod constants;
 mod ebpf_utils;
+mod features;
+mod filesystem;
 mod helpers;
 mod procfs_utils;
-mod server;
-mod features;
-mod collector;
-mod symbols;
 mod registry;
-mod filesystem;
+mod server;
+mod symbols;
 
 pub async fn run_server() {
     helpers::bump_rlimit();
 
     server::serve_forever_socket().await;
-} 
+}

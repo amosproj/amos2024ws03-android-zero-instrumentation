@@ -5,93 +5,68 @@
 //
 // SPDX-License-Identifier: MIT
 
-use aya::EbpfError;
-use aya::programs::KProbe;
-use aya::programs::kprobe::KProbeLink;
+use aya::{
+    programs::{raw_trace_point::RawTracePointLink, RawTracePoint},
+    EbpfError,
+};
 use ractor::ActorRef;
 use shared::config::VfsWriteConfig;
-use crate::features::{Feature, update_pids};
-use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
-use crate::symbols::actors::SymbolActorMsg;
+
+use crate::{
+    features::Feature,
+    registry::{EbpfRegistry, RegistryGuard},
+    symbols::actors::SymbolActorMsg,
+};
 
 pub struct VfsWriteFeature {
-    vfs_write: RegistryGuard<KProbe>,
-    vfs_write_ret: RegistryGuard<KProbe>,
-    vfs_write_pids: RegistryGuard<OwnedHashMap<u32, u64>>,
-    vfs_write_link: Option<KProbeLink>,
-    vfs_write_ret_link: Option<KProbeLink>,
+    sys_enter_write: RegistryGuard<RawTracePoint>,
+    sys_exit_write: RegistryGuard<RawTracePoint>,
+    sys_enter_write_link: Option<RawTracePointLink>,
+    sys_exit_write_link: Option<RawTracePointLink>,
 }
 
 impl VfsWriteFeature {
-    
     pub fn create(registry: &EbpfRegistry) -> Self {
         Self {
-            vfs_write: registry.program.vfs_write.take(),
-            vfs_write_ret: registry.program.vfs_write_ret.take(),
-            vfs_write_pids: registry.config.vfs_write_pids.take(),
-            vfs_write_link: None,
-            vfs_write_ret_link: None,
+            sys_enter_write: registry.program.sys_enter_write.take(),
+            sys_exit_write: registry.program.sys_exit_write.take(),
+            sys_enter_write_link: None,
+            sys_exit_write_link: None,
         }
     }
 
     fn attach(&mut self) -> Result<(), EbpfError> {
-        if self.vfs_write_link.is_none() {
-            let link_id = self.vfs_write.attach("vfs_write", 0)?;
-            self.vfs_write_link = Some(self.vfs_write.take_link(link_id)?);
+        if self.sys_enter_write_link.is_none() {
+            let link_id = self.sys_enter_write.attach("sys_enter")?;
+            self.sys_enter_write_link = Some(self.sys_enter_write.take_link(link_id)?);
         }
 
-        if self.vfs_write_ret_link.is_none() {
-            let link_id = self.vfs_write_ret.attach("vfs_write", 0)?;
-            self.vfs_write_ret_link = Some(self.vfs_write_ret.take_link(link_id)?);
+        if self.sys_exit_write_link.is_none() {
+            let link_id = self.sys_exit_write.attach("sys_exit")?;
+            self.sys_exit_write_link = Some(self.sys_exit_write.take_link(link_id)?);
         }
-        
+
         Ok(())
     }
 
     fn detach(&mut self) {
-        let _ = self.vfs_write_link.take();
-        let _ = self.vfs_write_ret_link.take();
+        let _ = self.sys_enter_write_link.take();
+        let _ = self.sys_exit_write_link.take();
     }
-
-    fn update_pids(
-        &mut self,
-        entries: &std::collections::HashMap<u32, u64>,
-    ) -> Result<(), EbpfError> {
-        update_pids(entries, &mut self.vfs_write_pids)
-    }
-
-    
-
-    // fn update(&mut self, ebpf: &mut Ebpf) {
-    //     // update pids that are attached
-    //     !todo!();
-    // }
-
-    // fn events(&mut self, ebpf: &mut Ebpf) {
-    //     // return buffered stream of events
-    //     // will be discussed by Felix and Beni
-    // }    
 }
 
 impl Feature for VfsWriteFeature {
     type Config = VfsWriteConfig;
 
-    fn init(
-        registry: &EbpfRegistry,
-        _: Option<ActorRef<SymbolActorMsg>>
-    ) -> Self {
+    fn init(registry: &EbpfRegistry, _: Option<ActorRef<SymbolActorMsg>>) -> Self {
         VfsWriteFeature::create(registry)
     }
 
     async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
-        match config {
-            Some(config) => {
-                self.attach()?;
-                self.update_pids(&config.entries)?;
-            },
-            None => {
-                self.detach();
-            }
+        if config.is_some() {
+            self.attach()?;
+        } else {
+            self.detach();
         }
         Ok(())
     }

@@ -5,14 +5,19 @@
 // SPDX-License-Identifier: MIT
 
 #![allow(unused)]
-use crate::features::{update_pids, Feature};
-use crate::registry::{EbpfRegistry, OwnedHashMap, RegistryGuard};
-use crate::symbols::actors::{GetOffsetRequest, SymbolActorMsg};
-use aya::programs::UProbe;
-use aya::{programs::uprobe::UProbeLink, Ebpf, EbpfError};
+use aya::{
+    programs::{uprobe::UProbeLink, UProbe},
+    Ebpf, EbpfError,
+};
 use ractor::{call, Actor, ActorRef, RactorErr};
 use shared::config::JniReferencesConfig;
 use tracing_subscriber::{registry, Registry};
+
+use crate::{
+    features::Feature,
+    registry::{EbpfRegistry, OwnedHashMap, RegistryGuard},
+    symbols::actors::{GetOffsetRequest, SymbolActorMsg},
+};
 
 enum JNIMethod {
     AddLocal,
@@ -22,54 +27,52 @@ enum JNIMethod {
 }
 
 pub struct JNIReferencesFeature {
-    trace_add_local: RegistryGuard<UProbe>,
-    trace_del_local: RegistryGuard<UProbe>,
-    trace_add_global: RegistryGuard<UProbe>,
-    trace_del_global: RegistryGuard<UProbe>,
-    trace_ref_pids: RegistryGuard<OwnedHashMap<u32, u64>>,
-    trace_add_local_link: Option<UProbeLink>,
-    trace_del_local_link: Option<UProbeLink>,
-    trace_add_global_link: Option<UProbeLink>,
-    trace_del_global_link: Option<UProbeLink>,
+    trace_jni_add_local: RegistryGuard<UProbe>,
+    trace_jni_del_local: RegistryGuard<UProbe>,
+    trace_jni_add_global: RegistryGuard<UProbe>,
+    trace_jni_del_global: RegistryGuard<UProbe>,
+    trace_jni_add_local_link: Option<UProbeLink>,
+    trace_jni_del_local_link: Option<UProbeLink>,
+    trace_jni_add_global_link: Option<UProbeLink>,
+    trace_jni_del_global_link: Option<UProbeLink>,
     symbol_actor_ref: ActorRef<SymbolActorMsg>,
 }
 
 impl JNIReferencesFeature {
     fn create(registry: &EbpfRegistry, symbol_actor_ref: ActorRef<SymbolActorMsg>) -> Self {
         Self {
-            trace_add_local: registry.program.trace_add_local.take(),
-            trace_del_local: registry.program.trace_del_local.take(),
-            trace_add_global: registry.program.trace_add_global.take(),
-            trace_del_global: registry.program.trace_del_global.take(),
-            trace_ref_pids: registry.config.jni_ref_pids.take(),
-            trace_add_local_link: None,
-            trace_del_local_link: None,
-            trace_add_global_link: None,
-            trace_del_global_link: None,
+            trace_jni_add_local: registry.program.trace_jni_add_local.take(),
+            trace_jni_del_local: registry.program.trace_jni_del_local.take(),
+            trace_jni_add_global: registry.program.trace_jni_add_global.take(),
+            trace_jni_del_global: registry.program.trace_jni_del_global.take(),
+            trace_jni_add_local_link: None,
+            trace_jni_del_local_link: None,
+            trace_jni_add_global_link: None,
+            trace_jni_del_global_link: None,
             symbol_actor_ref,
         }
     }
 
     pub async fn attach(&mut self) -> Result<(), EbpfError> {
-        if self.trace_add_local_link.is_none() {
-            self.trace_add_local_link =
+        if self.trace_jni_add_local_link.is_none() {
+            self.trace_jni_add_local_link =
                 Some(self.jni_attach_program_by_name(JNIMethod::AddLocal).await?);
         }
 
-        if self.trace_del_local_link.is_none() {
-            self.trace_del_local_link =
+        if self.trace_jni_del_local_link.is_none() {
+            self.trace_jni_del_local_link =
                 Some(self.jni_attach_program_by_name(JNIMethod::DelLocal).await?);
         }
 
-        if self.trace_add_global_link.is_none() {
-            self.trace_add_global_link = Some(
+        if self.trace_jni_add_global_link.is_none() {
+            self.trace_jni_add_global_link = Some(
                 self.jni_attach_program_by_name(JNIMethod::AddGlobal)
                     .await?,
             );
         }
 
-        if self.trace_del_global_link.is_none() {
-            self.trace_del_global_link = Some(
+        if self.trace_jni_del_global_link.is_none() {
+            self.trace_jni_del_global_link = Some(
                 self.jni_attach_program_by_name(JNIMethod::DelGlobal)
                     .await?,
             );
@@ -79,19 +82,10 @@ impl JNIReferencesFeature {
     }
 
     pub fn detach(&mut self) {
-        let _ = self.trace_add_local_link.take();
-        let _ = self.trace_del_local_link.take();
-        let _ = self.trace_add_global_link.take();
-        let _ = self.trace_del_global_link.take();
-    }
-
-    fn update_pids(&mut self, pids: &[u32]) -> Result<(), EbpfError> {
-        // the general update_pids function for all features works with hashmaps, so the list is converted into a hashmap with keys always being 0
-        let pid_0_tuples: Vec<(u32, u64)> = pids.iter().map(|pid| (*pid, 0)).collect();
-        let pids_as_hashmap: std::collections::HashMap<u32, u64> =
-            std::collections::HashMap::from_iter(pid_0_tuples);
-
-        update_pids(&pids_as_hashmap, &mut self.trace_ref_pids)
+        let _ = self.trace_jni_add_local_link.take();
+        let _ = self.trace_jni_del_local_link.take();
+        let _ = self.trace_jni_add_global_link.take();
+        let _ = self.trace_jni_del_global_link.take();
     }
 
     async fn jni_get_offset_from_name(&self, name: &str) -> Option<u64> {
@@ -133,10 +127,10 @@ impl JNIReferencesFeature {
         }
 
         let jni_program = match (jni_method) {
-            JNIMethod::AddLocal => &mut self.trace_add_local,
-            JNIMethod::AddGlobal => &mut self.trace_add_global,
-            JNIMethod::DelLocal => &mut self.trace_del_local,
-            JNIMethod::DelGlobal => &mut self.trace_del_global,
+            JNIMethod::AddLocal => &mut self.trace_jni_add_local,
+            JNIMethod::AddGlobal => &mut self.trace_jni_add_global,
+            JNIMethod::DelLocal => &mut self.trace_jni_del_local,
+            JNIMethod::DelGlobal => &mut self.trace_jni_del_global,
         };
 
         let link_id = jni_program
@@ -166,7 +160,6 @@ impl Feature for JNIReferencesFeature {
         match config {
             Some(config) => {
                 self.attach().await?;
-                self.update_pids(&config.pids)?;
             }
             None => {
                 self.detach();

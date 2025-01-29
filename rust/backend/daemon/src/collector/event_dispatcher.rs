@@ -7,8 +7,6 @@ use ractor::Actor;
 use shared::ziofa::Event;
 use tonic::Status;
 
-
-
 pub struct EventDispatcher;
 
 pub struct EventDispatcherState {
@@ -21,29 +19,27 @@ impl EventDispatcherState {
     }
 }
 
-
 impl Actor for EventDispatcher {
     type Msg = Event;
     type State = EventDispatcherState;
     type Arguments = EventDispatcherState;
-    
+
     async fn pre_start(
-            &self,
-            _: ractor::ActorRef<Self::Msg>,
-            args: Self::Arguments,
-        ) -> Result<Self::State, ractor::ActorProcessingErr> {
+        &self,
+        _: ractor::ActorRef<Self::Msg>,
+        args: Self::Arguments,
+    ) -> Result<Self::State, ractor::ActorProcessingErr> {
         Ok(args)
     }
-    
+
     async fn handle(
-            &self,
-            _: ractor::ActorRef<Self::Msg>,
-            message: Self::Msg,
-            state: &mut Self::State,
-        ) -> Result<(), ractor::ActorProcessingErr> {
-        state.destination.broadcast_direct(Ok(message))
-            .await?;
-        
+        &self,
+        _: ractor::ActorRef<Self::Msg>,
+        message: Self::Msg,
+        state: &mut Self::State,
+    ) -> Result<(), ractor::ActorProcessingErr> {
+        state.destination.broadcast_direct(Ok(message)).await?;
+
         Ok(())
     }
 }

@@ -7,29 +7,15 @@ name = "ebpf-refactored"
 version = "0.1.0"
 edition = "2021"
 
-include = [
-    "src/c/relocation_helpers.c",
-    "src/c/relocation_helpers.h",
-]
-
 [lib]
 
+[features]
+bounds-check = []
+
 [dependencies]
-aya-ebpf = { version = "0.1.1", default-features = false }
-aya-log-common = { version = "0.1.15", default-features = false }
-aya-log-ebpf = { version = "0.1.1", default-features = false }
-ebpf-types = { path = "../ebpf-types" }
-
-[build-dependencies]
-bindgen = { version = "0.71.1", default-features = false, features = ["runtime"] }
-cc = { version = "1.2.10", default-features = false }
-
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-lto = "thin"
-panic = "abort"
-
-[dev-dependencies]
-paste = "1.0.15"
+aya-ebpf = { workspace = true }
+aya-log-common = { workspace = true }
+aya-log-ebpf = { workspace = true }
+ebpf-types = { workspace = true }
+ebpf-relocation-helpers = { workspace = true }
+syscall-numbers = { workspace = true }

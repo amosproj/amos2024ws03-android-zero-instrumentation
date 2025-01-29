@@ -27,7 +27,8 @@ data class JniReferencesConfig(val pids: List<UInt>)
 
 data class SysSigquitConfig(val pids: List<UInt>)
 
-data object GcConfig
+/** Warning: This is a workaround. The configuration is not persisted! */
+data class GcConfig(val pids: Set<UInt>)
 
 data class SysFdTrackingConfig(val pids: List<UInt>)
 
@@ -139,6 +140,8 @@ interface Client {
     suspend fun getSymbols(filePath: String): Flow<Symbol>
 
     suspend fun initStream(): Flow<Event>
+
+    suspend fun indexSymbols()
 }
 
 interface ClientFactory {

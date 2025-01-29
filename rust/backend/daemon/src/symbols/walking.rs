@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{ffi::OsStr, path::{Path, PathBuf}};
+use std::{
+    ffi::OsStr,
+    path::{Path, PathBuf},
+};
 
 use async_walkdir::{DirEntry, Error, WalkDir};
 use tokio_stream::{Stream, StreamExt};
@@ -12,7 +15,7 @@ pub enum SymbolFilePath {
     Odex(PathBuf),
     Oat(PathBuf),
     Art(PathBuf),
-    So(PathBuf)
+    So(PathBuf),
 }
 
 impl TryFrom<PathBuf> for SymbolFilePath {
@@ -24,7 +27,7 @@ impl TryFrom<PathBuf> for SymbolFilePath {
             Some("oat") => Ok(SymbolFilePath::Oat(value)),
             Some("art") => Ok(SymbolFilePath::Art(value)),
             Some("so") => Ok(SymbolFilePath::So(value)),
-            _ => Err(value)
+            _ => Err(value),
         }
     }
 }
@@ -52,5 +55,11 @@ pub fn all_symbol_files() -> impl Stream<Item = SymbolFilePath> {
     let vendor = WalkDir::new("/vendor");
     let apex = WalkDir::new("/apex");
 
-    system.merge(system_ext).merge(data).merge(product).merge(vendor).merge(apex).filter_map(path_filter_map)
+    system
+        .merge(system_ext)
+        .merge(data)
+        .merge(product)
+        .merge(vendor)
+        .merge(apex)
+        .filter_map(path_filter_map)
 }

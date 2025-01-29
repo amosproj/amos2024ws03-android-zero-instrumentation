@@ -34,6 +34,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /** Screen for configuring eBPF programs */
+@Suppress("LongMethod") // does not improve readability
 @Preview(device = Devices.AUTOMOTIVE_1024p)
 @Composable
 fun ConfigurationScreen(
@@ -51,6 +52,16 @@ fun ConfigurationScreen(
             is ConfigurationScreenState.Valid -> {
                 // Render list of options
                 LazyColumn(Modifier.fillMaxWidth()) {
+                    item {
+                        PresetFeatureOptionsGroup(
+                            options = state.options,
+                            type = FeatureType.MEMORY,
+                            onOptionChanged = { option, newState ->
+                                viewModel.optionChanged(option, newState)
+                            },
+                        )
+                    }
+
                     item {
                         PresetFeatureOptionsGroup(
                             options = state.options,
@@ -95,7 +106,10 @@ fun ConfigurationScreen(
             }
 
             is ConfigurationScreenState.Invalid -> {
-                ErrorScreen(state.errorMessage)
+                ErrorScreen(
+                    error = state.errorMessage,
+                    title = "Error while reading/writing configuration",
+                )
             }
 
             is ConfigurationScreenState.Loading -> {

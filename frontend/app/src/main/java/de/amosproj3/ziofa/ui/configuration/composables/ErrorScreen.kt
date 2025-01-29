@@ -29,14 +29,18 @@ const val TITLE_TEXT_SIZE = 25f
 
 @Preview(device = Devices.AUTOMOTIVE_1024p)
 @Composable
-fun ErrorScreen(error: String = "No error message available") {
-    Box(modifier = Modifier.fillMaxSize()) {
+fun ErrorScreen(
+    modifier: Modifier = Modifier,
+    error: String = "No error message available",
+    title: String = "Error while communicating with backend",
+) {
+    Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Error while communicating with backend",
+                text = title,
                 color = Color.Red,
                 fontSize = TextUnit(TITLE_TEXT_SIZE, TextUnitType.Sp),
             )

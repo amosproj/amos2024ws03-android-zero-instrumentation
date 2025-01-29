@@ -82,6 +82,7 @@ fun VisualizationScreen(
                                         VisualizationAction.OverlaySettingsChanged(it)
                                     )
                                 },
+                                chartMetadata = state.chartMetadata,
                             )
                     }
                 }
@@ -104,7 +105,7 @@ fun VisualizationScreen(
                     }
                 }
 
-                is VisualizationScreenState.Invalid -> ErrorScreen(state.error)
+                is VisualizationScreenState.Invalid -> ErrorScreen(error = state.error)
                 VisualizationScreenState.Loading -> CircularProgressIndicator()
             }
         }

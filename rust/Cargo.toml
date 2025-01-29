@@ -10,27 +10,22 @@ resolver = "2"
 members = [
   "xtask",
   "backend/daemon",
-  "backend/ebpf",
-  "backend/common",
   "shared",
   "client",
   "playground/sendmsg-demo",
+  "playground/ebpf-types",
+  "playground/ebpf-test-refactored",
+  "playground/ebpf-relocation-helpers",
+  "playground/ebpf-refactored",
   "uniffi-bindgen", 
-  "backend/ebpf-test",
   "runner",
   "garbage-collection",
 ]
 default-members = [
   "xtask",
   "backend/daemon",
-  "backend/common",
   "shared",
   "client",
-]
-exclude = [
-  "playground/ebpf-refactored",
-  "playground/ebpf-test-refactored",
-  "playground/ebpf-types",
 ]
 
 [workspace.package]
@@ -66,9 +61,7 @@ uniffi = { version = "0.28.3" }
 thiserror = "2.0.6"
 shared = { path = "./shared" }
 xtask = { path = "./xtask" }
-backend-common = { path = "./backend/common" }
 backend-daemon = { path = "./backend/daemon" }
-backend-ebpf = { path = "./backend/ebpf" }
 runner = { path = "./runner" }
 garbage-collection = { path = "./garbage-collection" }
 tracing = { version = "0.1.41" }
@@ -98,6 +91,14 @@ tower = { version = "0.5.2" }
 hyper-util = { version = "0.1.10", features = ["tokio"] }
 clang = "2.0.0"
 clang-sys = "1.8.1"
+test-log = { version = "0.2.17", default-features = false, features = ["color", "log", "trace"] }
+ebpf-types = { path = "./playground/ebpf-types" }
+ebpf-relocation-helpers = { path = "./playground/ebpf-relocation-helpers" }
+paste = "1.0.15"
+bindgen = "0.71.1"
+cc = "1.2.10"
+syscall-numbers = "4.0.1"
+
 
 [profile.release.package.backend-ebpf]
 debug = 2

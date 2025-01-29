@@ -43,6 +43,22 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
             .mapNotNull { it as? Event.SysSigquit }
             .filter { it.pid.isGlobalRequestedOrPidConfigured(pids) }
 
+    override fun gcEvents(pids: List<UInt>?): Flow<Event.Gc> =
+        dataFlow
+            .mapNotNull { it as? Event.Gc }
+            .filter {
+                it.pid.isGlobalRequestedOrPidConfigured(pids) ||
+                    it.tid.isGlobalRequestedOrPidConfigured(pids)
+            }
+
+    override fun fileDescriptorTrackingEvents(pids: List<UInt>?): Flow<Event.SysFdTracking> =
+        dataFlow
+            .mapNotNull { it as? Event.SysFdTracking }
+            .filter {
+                it.pid.isGlobalRequestedOrPidConfigured(pids) ||
+                    it.tid.isGlobalRequestedOrPidConfigured(pids)
+            }
+
     private fun UInt.isGlobalRequestedOrPidConfigured(pids: List<UInt>?) =
         pids?.contains(this) ?: true
 }

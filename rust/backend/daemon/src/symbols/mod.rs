@@ -4,23 +4,28 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::constants::OATDUMP_PATH;
-use object::{Object, ObjectSymbol, ReadCache};
-use procfs::process::{MMapPath, Process};
-use procfs::ProcError;
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io;
-use std::path::{Path, PathBuf};
-use thiserror::Error;
-use tokio::io::AsyncBufReadExt;
-use tokio::process::Command;
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    io,
+    path::{Path, PathBuf},
+};
 
-pub mod walking;
-pub mod symbolizer;
+use object::{Object, ObjectSymbol, ReadCache};
+use procfs::{
+    process::{MMapPath, Process},
+    ProcError,
+};
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use tokio::{io::AsyncBufReadExt, process::Command};
+
+use crate::constants::OATDUMP_PATH;
+
 pub mod actors;
 pub mod index;
+pub mod symbolizer;
+pub mod walking;
 
 #[derive(Debug, Error)]
 pub enum SymbolError {
@@ -99,7 +104,11 @@ impl SymbolHandler {
         // TODO: Remove old/long unused paths from cache
     }
 
-    pub fn get_paths(&mut self, pid: u32, extension: &str) -> Result<&HashSet<PathBuf>, SymbolError> {
+    pub fn get_paths(
+        &mut self,
+        pid: u32,
+        extension: &str,
+    ) -> Result<&HashSet<PathBuf>, SymbolError> {
         self.load_map_paths(pid, extension)?;
 
         self.files

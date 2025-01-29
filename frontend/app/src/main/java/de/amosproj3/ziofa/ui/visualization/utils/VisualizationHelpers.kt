@@ -42,15 +42,25 @@ fun List<RunningComponent>.toUIOptions() =
         }
         .toImmutableList()
 
+/** Assert that the selection is valid (not-null) and has the correct subclasses */
 @OptIn(ExperimentalContracts::class)
-fun isValidSelection(selectedMetric: DropdownOption?, selectedTimeframe: DropdownOption?): Boolean {
+fun isValidSelection(
+    selectedComponent: DropdownOption?,
+    selectedMetric: DropdownOption?,
+    selectedTimeframe: DropdownOption?,
+): Boolean {
     contract {
         returns(true) implies
-            (selectedMetric is DropdownOption.Metric &&
+            ((selectedComponent is DropdownOption.Process ||
+                selectedComponent is DropdownOption.App) &&
+                selectedComponent != null &&
+                selectedMetric is DropdownOption.Metric &&
                 selectedTimeframe is DropdownOption.Timeframe)
     }
 
-    return selectedMetric != null &&
+    return selectedComponent != null &&
+        (selectedComponent is DropdownOption.App || selectedComponent is DropdownOption.Process) &&
+        selectedMetric != null &&
         selectedMetric is DropdownOption.Metric &&
         selectedTimeframe != null &&
         selectedTimeframe is DropdownOption.Timeframe

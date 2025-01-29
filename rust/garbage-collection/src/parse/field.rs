@@ -6,11 +6,10 @@ use clang::Entity;
 
 use super::ty::Type;
 
-
 #[derive(Debug)]
 pub struct Field {
     offset: Option<usize>,
-    ty : Option<Type>,
+    ty: Option<Type>,
 }
 
 impl Field {
@@ -22,21 +21,17 @@ impl Field {
             .get_declaration();
         let ty = declaration.map(Type::parse);
 
-
-        Self {
-            offset,
-            ty
-        }
+        Self { offset, ty }
     }
-    
+
     pub fn try_get_offset(&self) -> Option<usize> {
         self.offset
     }
-    
+
     pub fn try_get_type(&self) -> Option<&Type> {
         self.ty.as_ref()
     }
-    
+
     pub fn get_offset(&self) -> usize {
         self.try_get_offset().expect("field has no offset")
     }
