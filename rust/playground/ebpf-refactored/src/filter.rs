@@ -71,14 +71,24 @@ macro_rules! filter_matches {
             $filter.matches($key, $kind),
             $missing_behavior.map(|m| m.missing_behavior),
         ) {
-            (_, None) => return false,
-            (Match::Accept, _) => return false,
-            (Match::Reject, _) | (Match::NotSpecified, Some(MissingBehavior::NotMatch)) => {
-                return true
+            (_, None) => ShouldFilter::AlwaysAccept,
+            (Match::Accept, _) => ShouldFilter::AlwaysAccept,
+            (Match::Reject, _) => ShouldFilter::AlwaysReject,
+            (Match::NotSpecified, Some(MissingBehavior::NotMatch)) => {
+                ShouldFilter::RejectIfNothingElse
             }
-            (Match::NotSpecified, Some(MissingBehavior::Match)) => (),
+            (Match::NotSpecified, Some(MissingBehavior::Match)) => {
+                ShouldFilter::AcceptIfNothingElse
+            }
         }
     };
+}
+
+enum ShouldFilter {
+    AlwaysAccept,
+    AlwaysReject,
+    AcceptIfNothingElse,
+    RejectIfNothingElse,
 }
 
 impl FilterConfigs {
@@ -104,12 +114,13 @@ impl FilterConfigs {
         &self,
         entry: &FilterEntry,
         filter_config: &FilterConfig,
-    ) -> bool {
+    ) -> ShouldFilter {
         match entry {
             FilterEntry::OwnPid(pid) => {
                 if Some(*pid) == self.host_pid.get(0) {
-                    return true;
+                    return ShouldFilter::AlwaysReject;
                 }
+                ShouldFilter::AcceptIfNothingElse
             }
             FilterEntry::Pid(pid) => filter_matches!(
                 self.pid_filter,
@@ -142,8 +153,6 @@ impl FilterConfigs {
                 filter_config.cmdline_filter
             ),
         }
-
-        false
     }
 
     pub fn filter_one<T: EventData>(&self, entry: &FilterEntry) -> bool {
@@ -151,24 +160,31 @@ impl FilterConfigs {
             return true;
         };
 
-        self.filter_one_inner::<T>(entry, filter_config)
+        match self.filter_one_inner::<T>(entry, filter_config) {
+            ShouldFilter::AlwaysAccept => false,
+            ShouldFilter::AlwaysReject => true,
+            ShouldFilter::AcceptIfNothingElse => true,
+            ShouldFilter::RejectIfNothingElse => false,
+        }
     }
 
     /// true if the event should be filtered
     /// false if it should be sent to userspace
     pub fn filter_many<T: EventData>(&self, entries: &[FilterEntry]) -> bool {
-        // do not track ourselves
-
         let Some(filter_config) = self.config.get(T::EVENT_KIND as u32) else {
             return true;
         };
 
+        let mut any_true = false;
         for entry in entries {
-            if self.filter_one_inner::<T>(entry, filter_config) {
-                return true;
+            match self.filter_one_inner::<T>(entry, filter_config) {
+                ShouldFilter::AlwaysAccept => return false,
+                ShouldFilter::AlwaysReject => return true,
+                ShouldFilter::AcceptIfNothingElse => {}
+                ShouldFilter::RejectIfNothingElse => any_true = true,
             }
         }
 
-        false
+        any_true
     }
 }
