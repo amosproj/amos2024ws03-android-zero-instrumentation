@@ -15,3 +15,4 @@ pub mod pipeline;
 pub mod scratch;
 pub mod syscalls;
 pub mod task_ext;
+pub mod event_local;

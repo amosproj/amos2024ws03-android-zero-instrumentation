@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
 use aya_ebpf::{
     macros::map,
     maps::{Array, HashMap, LruHashMap, PerCpuArray, RingBuf},
@@ -6,10 +10,7 @@ use ebpf_relocation_helpers::TaskStruct;
 use ebpf_types::{Equality, EventData, EventKind, FilterConfig, ProcessContext, TaskContext};
 
 use crate::{
-    cache::{Cache, TryWithCache},
-    filter::{FilterConfigs, FilterEntry},
-    pipeline::RawEventData,
-    scratch::{ScratchSpace, ScratchValue},
+    event_local::Args, cache::{Cache, TryWithCache}, filter::{FilterConfigs, FilterEntry}, pipeline::RawEventData, scratch::{ScratchSpace, ScratchValue}
 };
 
 #[map]
@@ -31,10 +32,7 @@ static FILTER_CONFIG: Array<FilterConfig> = Array::with_max_entries(EventKind::M
 static CONFIG: Array<u32> = Array::with_max_entries(1, 0);
 
 #[map]
-pub static EVENT_BUFFER: PerCpuArray<RawEventData> = PerCpuArray::with_max_entries(1, 0);
-
-#[map]
-pub static EVENT_BRIDGE: HashMap<u64, RawEventData> = HashMap::with_max_entries(10240, 0);
+static ARG_BUFFER: HashMap<u64, Args<[u8; 1024]>> = HashMap::with_max_entries(10240, 0); 
 
 #[map]
 pub static EVENTS: RingBuf = RingBuf::with_byte_size(8192 * 1024, 0);

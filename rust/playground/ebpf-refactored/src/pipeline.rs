@@ -4,7 +4,7 @@
 
 use core::{
     marker::PhantomData,
-    ops::{Deref, DerefMut},
+    ops::{Deref, DerefMut}, ptr::null_mut,
 };
 
 use aya_ebpf::{
@@ -30,7 +30,7 @@ use crate::{
     },
     filter::FilterEntry,
     maps::{
-        EventFilter, ProcessInfoCache, TaskInfoCache, EVENTS, EVENT_BRIDGE, EVENT_BUFFER,
+        EventFilter, ProcessInfoCache, TaskInfoCache, EVENTS,
         GLOBAL_BLOCKING_THRESHOLD,
     },
 };
@@ -163,6 +163,7 @@ unsafe fn program_info_base<T: EventData>(
 
 unsafe fn program_info<T: EventData>(task: TaskStruct) -> Option<ProgramInfo<'static, T>> {
     let key = event_bridge_key::<T>(task)?;
+    /* 
     let raw_event_data = match EVENT_BRIDGE.get_ptr_mut(&key) {
         Some(bridge) => bridge,
         None => {
@@ -171,6 +172,8 @@ unsafe fn program_info<T: EventData>(task: TaskStruct) -> Option<ProgramInfo<'st
             EVENT_BRIDGE.get_ptr_mut(&key)?
         }
     };
+    */
+    let raw_event_data = null_mut();
     let program_info = program_info_base::<T>(task, raw_event_data)?;
     program_info.event_info.set_initialized(false);
     Some(program_info)
@@ -180,7 +183,8 @@ unsafe fn program_info_intermediate<T: EventData>(
     task: TaskStruct,
 ) -> Option<ProgramInfo<'static, T>> {
     let key = event_bridge_key::<T>(task)?;
-    let raw_event_data = EVENT_BRIDGE.get_ptr_mut(&key)?;
+    //let raw_event_data = EVENT_BRIDGE.get_ptr_mut(&key)?;
+    let raw_event_data = null_mut();
     let program_info = program_info_base::<T>(task, raw_event_data)?;
     if !program_info.event_info.get_initialized() {
         return None;

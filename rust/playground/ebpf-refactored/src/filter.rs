@@ -1,10 +1,15 @@
+// SPDX-FileCopyrightText: 2025 Felix Hilgers <felix.hilgers@fau.de>
+//
+// SPDX-License-Identifier: MIT
 
 use aya_ebpf::maps::{Array, HashMap};
 use ebpf_types::{
     Equality, EventData, EventKind, FilterConfig, MissingBehavior,
 };
 
+#[repr(transparent)]
 pub struct Filter<K: 'static, V: Matcher + 'static>(&'static HashMap<K, V>);
+
 pub struct FilterConfigs {
     config: &'static Array<FilterConfig>,
     host_pid: &'static Array<u32>,

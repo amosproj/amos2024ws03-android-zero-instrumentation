@@ -8,9 +8,8 @@ use clap::Parser;
 use clap::Subcommand;
 use client::Client;
 use client::ClientError;
-use shared::config::GcConfig;
 use shared::config::SysFdTrackingConfig;
-use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, JniReferencesConfig, SysSigquitConfig};
+use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, SysSigquitConfig};
 use std::collections::HashMap;
 use tokio_stream::StreamExt;
 
