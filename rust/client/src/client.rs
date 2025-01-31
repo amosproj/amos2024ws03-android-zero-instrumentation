@@ -4,23 +4,18 @@
 // SPDX-License-Identifier: MIT
 
 use shared::{
-    ziofa::{SearchSymbolsRequest, GetSymbolOffsetRequest},
     config::Configuration,
-    counter::{counter_client::CounterClient, IfaceMessage},
-    ziofa::{
-        ziofa_client::ZiofaClient, GetSymbolsRequest, PidMessage, Process, StringResponse, Symbol,
-    },
     events::Event,
+    ziofa::{
+        ziofa_client::ZiofaClient, GetSymbolOffsetRequest, GetSymbolsRequest, PidMessage, Process,
+        SearchSymbolsRequest, StringResponse, Symbol,
+    },
 };
 use tokio_stream::{Stream, StreamExt};
-use tonic::{
-    transport::{Channel, Endpoint},
-    Request,
-};
+use tonic::transport::{Channel, Endpoint};
 
 #[derive(Clone, Debug)]
 pub struct Client {
-    counter: CounterClient<Channel>,
     ziofa: ZiofaClient<Channel>,
 }
 
@@ -38,55 +33,9 @@ pub enum ClientError {
 impl Client {
     pub async fn connect(url: String) -> Result<Self> {
         let conn = Endpoint::new(url)?.connect().await?;
-        let counter = CounterClient::new(conn.clone());
         let ziofa = ZiofaClient::new(conn);
 
-        Ok(Self { counter, ziofa })
-    }
-
-    pub async fn load(&mut self) -> Result<()> {
-        self.counter.load(Request::new(())).await?;
-        Ok(())
-    }
-
-    pub async fn unload(&mut self) -> Result<()> {
-        self.counter.unload(Request::new(())).await?;
-        Ok(())
-    }
-
-    pub async fn attach(&mut self, iface: String) -> Result<()> {
-        self.counter
-            .attach(Request::new(IfaceMessage { iface }))
-            .await?;
-        Ok(())
-    }
-
-    pub async fn detach(&mut self, iface: String) -> Result<()> {
-        self.counter
-            .detach(Request::new(IfaceMessage { iface }))
-            .await?;
-        Ok(())
-    }
-
-    pub async fn start_collecting(&mut self) -> Result<()> {
-        self.counter.start_collecting(Request::new(())).await?;
-        Ok(())
-    }
-
-    pub async fn stop_collecting(&mut self) -> Result<()> {
-        self.counter.stop_collecting(Request::new(())).await?;
-        Ok(())
-    }
-
-    pub async fn server_count(&mut self) -> Result<impl Stream<Item = Result<u32>>> {
-        let stream = self
-            .counter
-            .server_count(())
-            .await?
-            .into_inner()
-            .map(|s| Ok(s.map(|c| c.count)?));
-
-        Ok(stream)
+        Ok(Self { ziofa })
     }
 
     pub async fn list_processes(&mut self) -> Result<Vec<Process>> {
@@ -146,20 +95,19 @@ impl Client {
             .into_inner()
             .map(|s| Ok(s?)))
     }
-    
-    pub async fn index_symbols(
-        &mut self,
-    ) -> Result<()> {
+
+    pub async fn index_symbols(&mut self) -> Result<()> {
         self.ziofa.index_symbols(()).await?;
         Ok(())
     }
-    
-    pub async fn search_symbols(
-        &mut self,
-        query: String,
-        limit: u64,
-    ) -> Result<Vec<Symbol>> {
-        Ok(self.ziofa.search_symbols(SearchSymbolsRequest { query, limit }).await?.into_inner().symbols)
+
+    pub async fn search_symbols(&mut self, query: String, limit: u64) -> Result<Vec<Symbol>> {
+        Ok(self
+            .ziofa
+            .search_symbols(SearchSymbolsRequest { query, limit })
+            .await?
+            .into_inner()
+            .symbols)
     }
 
     pub async fn get_symbol_offset(
@@ -167,6 +115,14 @@ impl Client {
         symbol_name: String,
         library_path: String,
     ) -> Result<Option<u64>> {
-        Ok(self.ziofa.get_symbol_offset(GetSymbolOffsetRequest { symbol_name, library_path }).await?.into_inner().offset)
+        Ok(self
+            .ziofa
+            .get_symbol_offset(GetSymbolOffsetRequest {
+                symbol_name,
+                library_path,
+            })
+            .await?
+            .into_inner()
+            .offset)
     }
 }

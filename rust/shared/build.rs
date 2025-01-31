@@ -78,7 +78,6 @@ fn main() {
     builder
         .compile_protos(
             &[
-                "./proto/counter.proto",
                 "./proto/ziofa.proto",
                 "./proto/config.proto",
                 "./proto/events.proto",

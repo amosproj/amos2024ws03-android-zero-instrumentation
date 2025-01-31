@@ -170,21 +170,6 @@ private fun uniffi.shared.StringResponse.into() = StringResponse(name)
 private fun uniffi.shared.Symbol.into() = Symbol(method, offset)
 
 class RustClient(private val inner: uniffi.client.Client) : Client {
-
-    override suspend fun serverCount(): Flow<UInt> = inner.serverCountFlow()
-
-    override suspend fun load() = inner.load()
-
-    override suspend fun attach(iface: String) = inner.attach(iface)
-
-    override suspend fun unload() = inner.unload()
-
-    override suspend fun detach(iface: String) = inner.detach(iface)
-
-    override suspend fun startCollecting() = inner.startCollecting()
-
-    override suspend fun stopCollecting() = inner.stopCollecting()
-
     override suspend fun listProcesses(): List<Process> = inner.listProcesses().map { it.into() }
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
@@ -226,14 +211,6 @@ class RustClientFactory(val url: String) : ClientFactory {
             val c = RustClient(uniffi.client.Client.connect(url))
             client = c
             return c
-        }
-    }
-}
-
-fun uniffi.client.Client.serverCountFlow() = flow {
-    serverCount().use { stream ->
-        while (true) {
-            stream.next()?.also { count -> emit(count) } ?: break
         }
     }
 }

@@ -111,20 +111,6 @@ sealed class Command {
 }
 
 interface Client {
-    suspend fun serverCount(): Flow<UInt>
-
-    suspend fun load()
-
-    suspend fun attach(iface: String)
-
-    suspend fun unload()
-
-    suspend fun detach(iface: String)
-
-    suspend fun startCollecting()
-
-    suspend fun stopCollecting()
-
     suspend fun listProcesses(): List<Process>
 
     suspend fun getConfiguration(): Configuration
