@@ -158,7 +158,7 @@ impl Actor for Aggregator {
                 }
 
                 //convert type for sending
-                //ziofa::time_series_event::TimeSeries
+                //events::time_series_event::TimeSeries
 
                 let time_series = ZioTimeSeriesEvent {
                     event_type_enum: state.event_type.into(),

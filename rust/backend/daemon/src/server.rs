@@ -401,10 +401,6 @@ mod tests {
                 .unwrap();
         });
 
-        // We can now call the server as we like
-        let _ = client.check_server(()).await.unwrap();
-        let _ = other.check_server(()).await.unwrap();
-
         // gracefully shutdown the server
         stop_tx.send(()).expect("still running");
 

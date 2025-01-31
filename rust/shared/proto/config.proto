@@ -1,50 +1,103 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 syntax = "proto3";
-
 package config;
 
-message UprobeConfig {
-  string fn_name = 1;
-  uint64 offset = 2;                      // offset of the aya attach function
-  string target = 3;                      // target of the aya attach function
-  optional uint32 pid = 4;                 // pid of the aya attach function
-}
-
+/**
+  * Here the sub-configs for all features live. The configs are set globally.
+  * Each seperate sub-config can be omitted in which case the associated
+  * feature will be disabled. In the case of a given sub-config the feature
+  * will be enabled in compliance with it.
+  *
+  * vfs_write?:       VFS Write Analysis (sys_vfswrite) config
+  * sys_sendmsg?:     Unix Domain Socket (sys_sendmsg) config
+  * jni_references?:  Indirect JNI References config
+  * sys_sigquit?:     SIQUIT config
+  * uprobes[]:        U-Probe configs
+  * gc?:              Garbage Collection Analysis config
+  * sys_fd_tracking?: Open File Descriptors config
+  */
 message Configuration {
   optional VfsWriteConfig vfs_write = 1;
   optional SysSendmsgConfig sys_sendmsg = 2;
-  optional JniReferencesConfig jniReferences = 3;
+  optional JniReferencesConfig jni_references = 3;
   optional SysSigquitConfig sys_sigquit = 4;
   repeated UprobeConfig uprobes = 5;
   optional GcConfig gc = 6;
   optional SysFdTrackingConfig sys_fd_tracking = 7;
 }
 
+/**
+  * Enables the VFS   Write Analysis (sys_vfswrite) feature
+  *
+  * entries.key:      PID to activate the feature for
+  * entries.value:    Threshold [ns] of the write duration above which an event
+  *                   will get sent
+  */
 message VfsWriteConfig {
   map<uint32, uint64> entries = 1;
 }
 
+/**
+  * Enables the Unix Domain Socket (sys_sendmsg) feature
+  *
+  * entries.key:      PID to activate the feature for
+  * entries.value:    Threshold [ns] of the send duration above which an event
+  *                   will get sent
+  */
 message SysSendmsgConfig {
   map<uint32, uint64> entries = 1;
 }
 
+/**
+  * Enables the Indirect JNI References feature
+  *
+  * pids[]:           PID's to activate the feature for
+  */
 message JniReferencesConfig {
   repeated uint32 pids = 1;
 }
 
+/**
+  * Enables the SIQUIT feature
+  *
+  * pids[]:           PID's to activate the feature for
+  */
 message SysSigquitConfig {
   repeated uint32 pids = 1;
 }
 
+/**
+  * Sets one U-Probe
+  *
+  * fn_name:          Function name
+  * offset:           Offset of the aya attach function
+  * target:           Target of the aya attach function
+  * pid?:             PID of the aya attach function
+  */
+message UprobeConfig {
+  string fn_name = 1;
+  uint64 offset = 2;
+  string target = 3;
+  optional uint32 pid = 4;
+}
+
+/**
+  * Enables the Garbage Collection Analysis feature
+  */
 message GcConfig { }
 
+/**
+  * Enables the Open File Descriptors feature
+  *
+  * pids[]:           PID's to activate the feature for
+  */
 message SysFdTrackingConfig {
   repeated uint32 pids = 1;
 }
