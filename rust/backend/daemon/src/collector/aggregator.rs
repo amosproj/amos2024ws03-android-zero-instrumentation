@@ -129,6 +129,7 @@ impl Actor for Aggregator {
                     Some(EventData::JniReferences(item)) => item.pid,
                     Some(EventData::SysSigquit(item)) => item.pid,
                     Some(EventData::Gc(item)) => item.pid,
+                    Some(EventData::SysFdTracking(item)) => item.pid,
                     _ => {
                         panic!("unexpected event type");
                     }
