@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
-use crate::ziofa::event::EventType;
-use crate::ziofa::log_event::EventData;
-use crate::ziofa::time_series_event::EventTypeEnum;
-use crate::ziofa::{Event, LogEvent};
+use crate::events::event::EventType;
+use crate::events::log_event::EventData;
+use crate::events::time_series_event::EventTypeEnum;
+use crate::events::{Event, LogEvent};
 
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
@@ -22,6 +23,10 @@ pub mod ziofa {
 
 pub mod config {
     tonic::include_proto!("config");
+}
+
+pub mod events {
+    tonic::include_proto!("events");
 }
 
 impl TryInto<EventTypeEnum> for Event {

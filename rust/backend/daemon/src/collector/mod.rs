@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -10,7 +10,7 @@ use ebpf_types::{
     Blocking, Event as EbpfEvent, EventKind, FileDescriptorChange, FileDescriptorOp,
     GarbageCollect, Jni, Signal, Write,
 };
-use shared::ziofa::{
+use shared::events::{
     event::EventType, jni_references_event::JniMethodName, log_event::EventData,
     sys_fd_tracking_event::SysFdAction, Event, GcEvent, JniReferencesEvent, LogEvent,
     SysFdTrackingEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent,

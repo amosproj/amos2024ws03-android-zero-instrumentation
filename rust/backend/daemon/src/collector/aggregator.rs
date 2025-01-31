@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -9,7 +10,7 @@ use ractor::{
     concurrency::{Duration, JoinHandle},
     Actor, ActorProcessingErr, ActorRef,
 };
-use shared::ziofa::{
+use shared::events::{
     event::EventType,
     log_event::EventData,
     time_series_event::{EventTypeEnum, TimeSeriesType},

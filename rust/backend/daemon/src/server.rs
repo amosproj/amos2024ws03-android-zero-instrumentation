@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -13,10 +13,11 @@ use shared::{
     config::Configuration,
     ziofa::{
         ziofa_server::{Ziofa, ZiofaServer},
-        CheckServerResponse, Event, GetSymbolOffsetRequest, GetSymbolOffsetResponse,
+        CheckServerResponse, GetSymbolOffsetRequest, GetSymbolOffsetResponse,
         GetSymbolsRequest, PidMessage, ProcessList, SearchSymbolsRequest, SearchSymbolsResponse,
         StringResponse, Symbol,
     },
+    events::Event,
 };
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;

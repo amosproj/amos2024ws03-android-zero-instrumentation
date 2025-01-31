@@ -1,15 +1,16 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
-use shared::ziofa::{Event, SearchSymbolsRequest, GetSymbolOffsetRequest};
 use shared::{
+    ziofa::{SearchSymbolsRequest, GetSymbolOffsetRequest},
     config::Configuration,
     counter::{counter_client::CounterClient, IfaceMessage},
     ziofa::{
         ziofa_client::ZiofaClient, GetSymbolsRequest, PidMessage, Process, StringResponse, Symbol,
     },
+    events::Event,
 };
 use tokio_stream::{Stream, StreamExt};
 use tonic::{

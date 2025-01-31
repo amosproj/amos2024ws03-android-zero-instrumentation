@@ -1,0 +1,109 @@
+// SPDX-FileCopyrightText: 2025 Robin Seidl <68117355+Mr-Kanister@users.noreply.github.com>
+//
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+
+package events;
+
+message Event {
+    oneof event_type {
+        TimeSeriesEvent time_series = 1;
+        LogEvent log = 2;
+    }
+}
+
+message LogEvent {
+    oneof event_data {
+        VfsWriteEvent vfs_write = 1;
+        SysSendmsgEvent sys_sendmsg = 2;
+        JniReferencesEvent jni_references = 3;
+        SysSigquitEvent sys_sigquit = 4;
+        GcEvent gc = 5;
+        SysFdTrackingEvent sys_fd_tracking = 6;
+    }
+}
+
+message VfsWriteEvent {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 begin_time_stamp = 3;
+    uint64 fp = 4;
+    uint64 bytes_written = 5;
+}
+
+message SysSendmsgEvent {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 begin_time_stamp = 3;
+    uint64 fd = 4;
+    uint64 duration_nano_sec = 5;
+}
+
+message JniReferencesEvent {
+    enum JniMethodName {
+        Undefined = 0;
+        AddLocalRef = 1;
+        DeleteLocalRef = 2;
+        AddGlobalRef = 3;
+        DeleteGlobalRef = 4;
+    }
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 begin_time_stamp = 3;
+    JniMethodName jni_method_name = 4;
+}
+
+message SysSigquitEvent {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 time_stamp = 3;
+    uint64 target_pid = 4;
+}
+
+message TimeSeriesEvent {
+  enum EventTypeEnum{
+    VfsWriteEvent = 0;
+    SysSendmsgEvent = 1;
+    JniReferencesEvent = 2;
+    SysSigquitEvent = 3;
+    GcEvent = 4;
+    SysFdTrackingEvent =5;
+  }
+  EventTypeEnum event_type_enum = 1;
+  uint32 timeframe_ms = 2;
+
+  message TimeSeriesType{
+      repeated uint64 list = 1;
+  }
+
+  map<uint32, TimeSeriesType>time_series_map = 3;
+}
+
+
+message GcEvent {
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 target_footprint = 3;
+    uint64 num_bytes_allocated = 4;
+    uint32 gcs_completed = 5;
+    uint32 gc_cause = 6;
+    uint64 duration_ns = 7;
+    uint64 freed_objects = 8;
+    int64 freed_bytes = 9;
+    uint64 freed_los_objects = 10;
+    int64 freed_los_bytes = 11;
+    repeated uint64 pause_times = 12;
+}
+
+message SysFdTrackingEvent {
+    enum SysFdAction {
+        Undefined = 0;
+        Created = 1;
+        Destroyed = 2;
+    }
+    uint32 pid = 1;
+    uint32 tid = 2;
+    uint64 time_stamp = 3;
+    SysFdAction fd_action = 4;
+}
