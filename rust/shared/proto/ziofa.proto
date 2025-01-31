@@ -6,28 +6,71 @@
 // SPDX-License-Identifier: MIT
 
 syntax = "proto3";
+package ziofa;
 
 import "google/protobuf/empty.proto";
 import "config.proto";
 import "events.proto";
 
-package ziofa;
-
+/**
+  * These are the service endpoints on which ziofa serves.
+  */
 service Ziofa {
-    rpc ListProcesses(google.protobuf.Empty) returns (ProcessList) {}
-
-    rpc GetConfiguration(google.protobuf.Empty) returns (config.Configuration) {}
-    rpc SetConfiguration(config.Configuration) returns (google.protobuf.Empty) {}
-
     // all Responses genereated by the ebpf-programms are send via this stream
+    
+    /**
+    * Initialize the stream over which all following collected events will be
+    * sent. If this gets called multiple times or by different clients, all
+    * streams will receive the same data.
+    */
     rpc InitStream(google.protobuf.Empty) returns (stream events.Event) {}
 
-    rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
-    rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
-    rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
+    /**
+    * List all processes currently running.
+    */
+    rpc ListProcesses(google.protobuf.Empty) returns (ProcessList) {}
+    
+    /**
+    * Get the currently set configuration.
+    */
+    rpc GetConfiguration(google.protobuf.Empty) returns (config.Configuration) {}
 
+    /**
+    * Set a new configuration. The old one will be replaced without merging.
+    */
+    rpc SetConfiguration(config.Configuration) returns (google.protobuf.Empty) {}
+
+    /**
+    * Get all .odex files mmap'ed to the process with the specified PID.
+    */
+    rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
+
+    /**
+    * Get all .so files mmap'ed to the process with the specified PID.
+    */
+    rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
+
+    /**
+    * Get all symbols out of the specified file name.
+    */
+    rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
+    
+    /**
+    * Index all symbols on the whole device into the database. This has to be
+    * called once upon startup and every time a package of interest is
+    * (re-)installed/updated.
+    */
     rpc IndexSymbols(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    
+    /**
+    * Search all symbols for the specified query. Requires an indexing run
+    * beforehand.
+    */
     rpc SearchSymbols(SearchSymbolsRequest) returns (SearchSymbolsResponse) {}
+
+    /**
+    * Get the offset of the specified symbol.
+    */
     rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
 }
 
