@@ -34,9 +34,6 @@ enum Commands {
         pid: u32,
     },
 
-    /// Send and receive an empty request/response to/from the server
-    Check,
-
     /// Get the current config
     GetConfig,
 
@@ -262,10 +259,6 @@ pub async fn main() -> anyhow::Result<()> {
     let mut client = Client::connect(args.addr.to_owned()).await?;
 
     match args.cmd {
-        Commands::Check => {
-            client.check_server().await?;
-            println!("Success");
-        }
         Commands::Sendmsg { pid } => {
             sendmsg(&mut client, pid).await?;
         }

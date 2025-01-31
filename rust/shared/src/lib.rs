@@ -5,10 +5,9 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::events::event::EventType;
-use crate::events::log_event::EventData;
-use crate::events::time_series_event::EventTypeEnum;
-use crate::events::{Event, LogEvent};
+use crate::events::{
+    event::EventType, log_event::EventData, time_series_event::EventTypeEnum, Event, LogEvent,
+};
 
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
@@ -51,23 +50,24 @@ impl TryInto<EventTypeEnum> for Event {
                     Some(EventType::Log(LogEvent {
                         event_data: Some(EventData::JniReferences(_)),
                     })),
-            } => Ok(EventTypeEnum::JniReferencesEvent),Event {
+            } => Ok(EventTypeEnum::JniReferencesEvent),
+            Event {
                 event_type:
                     Some(EventType::Log(LogEvent {
                         event_data: Some(EventData::SysSigquit(_)),
                     })),
             } => Ok(EventTypeEnum::SysSigquitEvent),
-            Event{
+            Event {
                 event_type:
-                Some(EventType::Log(LogEvent {
-                    event_data: Some(EventData::Gc(_)),
-                                    }))
+                    Some(EventType::Log(LogEvent {
+                        event_data: Some(EventData::Gc(_)),
+                    })),
             } => Ok(EventTypeEnum::GcEvent),
-            Event{
+            Event {
                 event_type:
-                Some(EventType::Log(LogEvent {
-                    event_data: Some(EventData::SysFdTracking(_)),
-                                    }))
+                    Some(EventType::Log(LogEvent {
+                        event_data: Some(EventData::SysFdTracking(_)),
+                    })),
             } => Ok(EventTypeEnum::SysFdTrackingEvent),
             _ => Err(()),
         }
@@ -75,7 +75,6 @@ impl TryInto<EventTypeEnum> for Event {
 }
 
 impl From<LogEvent> for EventTypeEnum {
-
     fn from(value: LogEvent) -> Self {
         match value {
             LogEvent {
@@ -87,7 +86,7 @@ impl From<LogEvent> for EventTypeEnum {
             LogEvent {
                 event_data: Some(EventData::JniReferences(_)),
             } => EventTypeEnum::JniReferencesEvent,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 }

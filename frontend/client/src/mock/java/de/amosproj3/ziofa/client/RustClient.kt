@@ -55,10 +55,6 @@ object RustClient : Client {
         // NOP
     }
 
-    override suspend fun checkServer() {
-        // NOP
-    }
-
     override suspend fun indexSymbols() {
         // NOP
         delay(2000)

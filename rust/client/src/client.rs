@@ -89,11 +89,6 @@ impl Client {
         Ok(stream)
     }
 
-    pub async fn check_server(&mut self) -> Result<()> {
-        self.ziofa.check_server(()).await?;
-        Ok(())
-    }
-
     pub async fn list_processes(&mut self) -> Result<Vec<Process>> {
         Ok(self.ziofa.list_processes(()).await?.into_inner().processes)
     }

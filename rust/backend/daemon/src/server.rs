@@ -11,22 +11,35 @@ use async_broadcast::{broadcast, Receiver, Sender};
 use ractor::{call, Actor, ActorRef};
 use shared::{
     config::Configuration,
+    events::Event,
     ziofa::{
         ziofa_server::{Ziofa, ZiofaServer},
-        CheckServerResponse, GetSymbolOffsetRequest, GetSymbolOffsetResponse,
-        GetSymbolsRequest, PidMessage, ProcessList, SearchSymbolsRequest, SearchSymbolsResponse,
-        StringResponse, Symbol,
+        GetSymbolOffsetRequest, GetSymbolOffsetResponse, GetSymbolsRequest, PidMessage,
+        ProcessList, SearchSymbolsRequest, SearchSymbolsResponse, StringResponse, Symbol,
     },
-    events::Event,
 };
 use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-use crate::{collector::{CollectorSupervisor, CollectorSupervisorArguments}, constants, ebpf_utils::EbpfErrorWrapper, features::Features, filesystem::{ConfigurationStorage, NormalConfigurationStorage}, procfs_utils::{list_processes, ProcErrorWrapper}, registry, symbols::{actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg}, SymbolHandler}};
+use crate::{
+    collector::{CollectorSupervisor, CollectorSupervisorArguments},
+    constants,
+    ebpf_utils::EbpfErrorWrapper,
+    features::Features,
+    filesystem::{ConfigurationStorage, NormalConfigurationStorage},
+    procfs_utils::{list_processes, ProcErrorWrapper},
+    registry,
+    symbols::{
+        actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg},
+        SymbolHandler,
+    },
+};
 
 pub struct ZiofaImpl<C>
-where C: ConfigurationStorage {
+where
+    C: ConfigurationStorage,
+{
     features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
     symbol_handler: Arc<Mutex<SymbolHandler>>,
@@ -70,13 +83,9 @@ impl Channel {
 
 #[tonic::async_trait]
 impl<C> Ziofa for ZiofaImpl<C>
-where C: ConfigurationStorage {
-    async fn check_server(&self, _: Request<()>) -> Result<Response<CheckServerResponse>, Status> {
-        // dummy data
-        let response = CheckServerResponse {};
-        Ok(Response::new(response))
-    }
-
+where
+    C: ConfigurationStorage,
+{
     async fn list_processes(&self, _: Request<()>) -> Result<Response<ProcessList>, Status> {
         let processes = list_processes().map_err(ProcErrorWrapper::from)?;
         Ok(Response::new(processes))
@@ -84,7 +93,10 @@ where C: ConfigurationStorage {
 
     async fn get_configuration(&self, _: Request<()>) -> Result<Response<Configuration>, Status> {
         //TODO: if ? fails needs valid return value for the function so that the server doesn't crash.
-        let res = self.configuration_storage.load(constants::DEV_DEFAULT_FILE_PATH).await;
+        let res = self
+            .configuration_storage
+            .load(constants::DEV_DEFAULT_FILE_PATH)
+            .await;
         let config = res?;
         Ok(Response::new(config))
     }
@@ -95,7 +107,9 @@ where C: ConfigurationStorage {
     ) -> Result<Response<()>, Status> {
         let config = request.into_inner();
 
-        self.configuration_storage.save(&config, constants::DEV_DEFAULT_FILE_PATH).await?;
+        self.configuration_storage
+            .save(&config, constants::DEV_DEFAULT_FILE_PATH)
+            .await?;
 
         let mut features_guard = self.features.lock().await;
 
@@ -275,8 +289,10 @@ where C: ConfigurationStorage {
     }
 }
 
-
-async fn setup() -> (ActorRef<()>, ZiofaServer<ZiofaImpl<NormalConfigurationStorage>>) {
+async fn setup() -> (
+    ActorRef<()>,
+    ZiofaServer<ZiofaImpl<NormalConfigurationStorage>>,
+) {
     let registry = registry::load_and_pin().unwrap();
 
     let symbol_actor_ref = SymbolActor::spawn().await.unwrap();

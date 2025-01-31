@@ -81,6 +81,7 @@ fn main() {
                 "./proto/counter.proto",
                 "./proto/ziofa.proto",
                 "./proto/config.proto",
+                "./proto/events.proto",
             ],
             &["./proto"],
         )

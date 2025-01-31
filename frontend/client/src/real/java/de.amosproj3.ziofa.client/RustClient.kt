@@ -185,8 +185,6 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
 
     override suspend fun stopCollecting() = inner.stopCollecting()
 
-    override suspend fun checkServer() = inner.checkServer()
-
     override suspend fun listProcesses(): List<Process> = inner.listProcesses().map { it.into() }
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()

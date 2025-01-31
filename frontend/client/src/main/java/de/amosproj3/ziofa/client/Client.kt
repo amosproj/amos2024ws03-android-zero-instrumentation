@@ -125,8 +125,6 @@ interface Client {
 
     suspend fun stopCollecting()
 
-    suspend fun checkServer()
-
     suspend fun listProcesses(): List<Process>
 
     suspend fun getConfiguration(): Configuration
