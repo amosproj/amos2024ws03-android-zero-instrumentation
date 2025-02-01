@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -40,9 +41,9 @@ impl TimeSeries {
     }
 }
 
-impl From<TimeSeries> for shared::ziofa::time_series_event::TimeSeriesType {
+impl From<TimeSeries> for shared::events::time_series_event::TimeSeriesType {
     fn from(series: TimeSeries) -> Self {
-        shared::ziofa::time_series_event::TimeSeriesType {
+        shared::events::time_series_event::TimeSeriesType {
             list: series.as_array(),
         }
     }

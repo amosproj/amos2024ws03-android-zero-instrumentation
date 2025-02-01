@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -9,7 +10,7 @@ use ractor::{
     concurrency::{Duration, JoinHandle},
     Actor, ActorProcessingErr, ActorRef,
 };
-use shared::ziofa::{
+use shared::events::{
     event::EventType,
     log_event::EventData,
     time_series_event::{EventTypeEnum, TimeSeriesType},
@@ -128,6 +129,7 @@ impl Actor for Aggregator {
                     Some(EventData::JniReferences(item)) => item.pid,
                     Some(EventData::SysSigquit(item)) => item.pid,
                     Some(EventData::Gc(item)) => item.pid,
+                    Some(EventData::SysFdTracking(item)) => item.pid,
                     _ => {
                         panic!("unexpected event type");
                     }
@@ -156,7 +158,7 @@ impl Actor for Aggregator {
                 }
 
                 //convert type for sending
-                //ziofa::time_series_event::TimeSeries
+                //events::time_series_event::TimeSeries
 
                 let time_series = ZioTimeSeriesEvent {
                     event_type_enum: state.event_type.into(),

@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -11,7 +12,6 @@ pub fn sock_addr() -> SocketAddr {
     "[::1]:50051".parse().expect("is valid address")
 }
 
-pub const OATDUMP_PATH: &str = "/data/local/tmp/dump.json";
 pub const ZIOFA_EBPF_PATH: &str = "/sys/fs/bpf/ziofa";
 
 pub const _DEFAULT_TIMEFRAME: time::Duration = time::Duration::from_secs(1);

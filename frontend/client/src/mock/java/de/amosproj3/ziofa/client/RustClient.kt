@@ -12,7 +12,6 @@ import kotlin.random.nextULong
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.merge
 
 var gcPids = setOf<UInt>()
@@ -28,36 +27,6 @@ object RustClient : Client {
             gc = null,
             sysFdTracking = null,
         )
-
-    override suspend fun serverCount(): Flow<UInt> = flowOf()
-
-    override suspend fun load() {
-        // NOP
-    }
-
-    override suspend fun attach(iface: String) {
-        // NOP
-    }
-
-    override suspend fun unload() {
-        // NOP
-    }
-
-    override suspend fun detach(iface: String) {
-        // NOP
-    }
-
-    override suspend fun startCollecting() {
-        // NOP
-    }
-
-    override suspend fun stopCollecting() {
-        // NOP
-    }
-
-    override suspend fun checkServer() {
-        // NOP
-    }
 
     override suspend fun indexSymbols() {
         // NOP
@@ -208,12 +177,6 @@ object RustClient : Client {
             delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
     }
-
-    override suspend fun getOdexFiles(pid: UInt): Flow<String> = mockOdexFileFlow
-
-    override suspend fun getSoFiles(pid: UInt): Flow<String> = mockSoFileFlow
-
-    override suspend fun getSymbols(filePath: String): Flow<Symbol> = mockSymbolFlow
 }
 
 class RustClientFactory(val url: String) : ClientFactory {

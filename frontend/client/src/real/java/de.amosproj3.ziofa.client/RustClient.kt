@@ -165,28 +165,9 @@ private fun Configuration.into() =
         sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
     )
 
-private fun uniffi.shared.StringResponse.into() = StringResponse(name)
-
 private fun uniffi.shared.Symbol.into() = Symbol(method, offset)
 
 class RustClient(private val inner: uniffi.client.Client) : Client {
-
-    override suspend fun serverCount(): Flow<UInt> = inner.serverCountFlow()
-
-    override suspend fun load() = inner.load()
-
-    override suspend fun attach(iface: String) = inner.attach(iface)
-
-    override suspend fun unload() = inner.unload()
-
-    override suspend fun detach(iface: String) = inner.detach(iface)
-
-    override suspend fun startCollecting() = inner.startCollecting()
-
-    override suspend fun stopCollecting() = inner.stopCollecting()
-
-    override suspend fun checkServer() = inner.checkServer()
-
     override suspend fun listProcesses(): List<Process> = inner.listProcesses().map { it.into() }
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
@@ -194,15 +175,6 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
     // TODO remove the workarounds
     override suspend fun setConfiguration(configuration: Configuration) =
         inner.setConfiguration(configuration.into())
-
-    override suspend fun getOdexFiles(pid: UInt): Flow<String> =
-        inner.getOdexFilesFlow(pid).mapNotNull { it.into().name }
-
-    override suspend fun getSoFiles(pid: UInt): Flow<String> =
-        inner.getSoFilesFlow(pid).mapNotNull { it.into().name }
-
-    override suspend fun getSymbols(filePath: String): Flow<Symbol> =
-        inner.getSymbolFlow(filePath).mapNotNull { it.into() }
 
     override suspend fun indexSymbols() {
         inner.indexSymbols()
@@ -232,42 +204,10 @@ class RustClientFactory(val url: String) : ClientFactory {
     }
 }
 
-fun uniffi.client.Client.serverCountFlow() = flow {
-    serverCount().use { stream ->
-        while (true) {
-            stream.next()?.also { count -> emit(count) } ?: break
-        }
-    }
-}
-
 fun uniffi.client.Client.initStreamFlow() = flow {
     initStream().use { stream ->
         while (true) {
             stream.next()?.also { event -> emit(event) } ?: break
-        }
-    }
-}
-
-fun uniffi.client.Client.getOdexFilesFlow(pid: UInt) = flow {
-    getOdexFiles(pid).use { stream ->
-        while (true) {
-            stream.next()?.also { file -> emit(file) } ?: break
-        }
-    }
-}
-
-fun uniffi.client.Client.getSoFilesFlow(pid: UInt) = flow {
-    getOdexFiles(pid).use { stream ->
-        while (true) {
-            stream.next()?.also { file -> emit(file) } ?: break
-        }
-    }
-}
-
-fun uniffi.client.Client.getSymbolFlow(filePath: String) = flow {
-    getSymbols(filePath).use { stream ->
-        while (true) {
-            stream.next()?.also { symbol -> emit(symbol) } ?: break
         }
     }
 }

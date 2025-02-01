@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Luca Bretting <luca.bretting@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
@@ -12,31 +12,42 @@ use tonic_build::Builder;
 
 static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     if cfg!(feature = "uniffi") {
+        /*
+         * List here all protobuf messages to be exported. Enums will be
+         * exported as int32. Oneofs ,ist be specified below.
+         */
         vec![
+            // ziofa.proto
+            "ProcessList",
             "Process",
             "CmdlineData",
+            "SearchSymbolsRequest",
+            "SearchSymbolsResponse",
+            "Symbol",
+            "GetSymbolOffsetRequest",
+            "GetSymbolOffsetResponse",
+
+            // config.proto
             "Configuration",
-            "EbpfEntry",
+            "VfsWriteConfig",
+            "SysSendmsgConfig",
+            "JniReferencesConfig",
+            "SysSigquitConfig",
             "UprobeConfig",
+            "GcConfig",
+            "SysFdTrackingConfig",
+            
+            // events.proto
             "Event",
             "TimeSeriesEvent",
+            "TimeSeriesType",
             "LogEvent",
             "VfsWriteEvent",
             "SysSendmsgEvent",
             "JniReferencesEvent",
             "SysSigquitEvent",
-            "VfsWriteConfig",
-            "SysSendmsgConfig",
-            "JniReferencesConfig",
-            "StringResponse",
-            "Symbol",
-            "SetConfigurationResponse",
-            "SysSigquitConfig",
-            "GcConfig",
             "GcEvent",
-            "SysFdTrackingConfig",
             "SysFdTrackingEvent",
-            "TimeSeriesType"
         ]
     } else {
         vec![]
@@ -45,7 +56,17 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
 static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
     if cfg!(feature = "uniffi") {
-        vec!["Process.cmd", "Event.event_data", "JniReferencesEvent.JniMethodName", "Event.event_type", "LogEvent.event_data", "SysFdTrackingEvent.SysFdAction"]
+        /*
+         * List here all protobuf oneofs to be exported.
+         */
+        vec![
+            "Process.cmd",
+            "Event.event_data",
+            "JniReferencesEvent.JniMethodName",
+            "Event.event_type",
+            "LogEvent.event_data",
+            "SysFdTrackingEvent.SysFdAction",
+            ]
     } else {
         vec![]
     }
@@ -77,10 +98,15 @@ fn main() {
 
     builder
         .compile_protos(
+            /*
+             * List all proto files here.
+             */
             &[
-                "./proto/counter.proto",
                 "./proto/ziofa.proto",
                 "./proto/config.proto",
+                "./proto/events.proto",
+                "./proto/processes.proto",
+                "./proto/symbols.proto",
             ],
             &["./proto"],
         )

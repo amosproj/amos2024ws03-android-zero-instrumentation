@@ -1,9 +1,12 @@
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 use procfs::{process::all_processes, ProcError};
-use shared::ziofa::{self, process::Cmd, CmdlineData, ProcessList};
+use shared::processes::{
+    process::{Cmd, CmdlineData},
+    Process, ProcessList,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -28,14 +31,14 @@ pub fn list_processes() -> Result<ProcessList, ProcError> {
                 let stat = process.stat().ok()?;
                 let cmdline = process.cmdline();
                 match cmdline {
-                    Ok(c) if !c.is_empty() => Some(ziofa::Process {
+                    Ok(c) if !c.is_empty() => Some(Process {
                         pid: u32::try_from(stat.pid).unwrap(),
                         ppid: u32::try_from(stat.ppid).unwrap(),
                         cmd: Some(Cmd::Cmdline(CmdlineData { args: c })),
                         state: stat.state.to_string(),
                     }),
                     // fallback to stat.comm if cmdline is empty
-                    _ => Some(ziofa::Process {
+                    _ => Some(Process {
                         pid: u32::try_from(stat.pid).unwrap(),
                         ppid: u32::try_from(stat.ppid).unwrap(),
                         cmd: Some(Cmd::Comm(stat.comm)),

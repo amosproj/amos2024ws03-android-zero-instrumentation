@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 use ractor::{Actor, ActorCell, ActorProcessingErr, ActorRef, SupervisionEvent};
-use shared::ziofa::Event;
+use shared::events::Event;
 use tonic::Status;
 use tracing::error;
 

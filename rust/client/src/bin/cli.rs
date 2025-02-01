@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 //
 // SPDX-License-Identifier: MIT
@@ -27,15 +27,11 @@ struct Args {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Set a config and subscribe to the event stream
     Sendmsg {
         /// Pid for which to track sendmsg calls
         #[arg(short, long)]
         pid: u32,
     },
-
-    /// Send and receive an empty request/response to/from the server
-    Check,
 
     /// Get the current config
     GetConfig,
@@ -50,39 +46,6 @@ enum Commands {
         silent: bool,
     },
 
-    /// Get the paths of all .odex files
-    Odex {
-        /// Pid for which to get the .odex files
-        #[arg(short, long)]
-        pid: u32,
-
-        /// Only output number of odex files
-        #[arg(short, long)]
-        silent: bool,
-    },
-
-    /// Get the paths of all .so files
-    So {
-        /// Pid for which to get the .odex files
-        #[arg(short, long)]
-        pid: u32,
-
-        /// Only output number of odex files
-        #[arg(short, long)]
-        silent: bool,
-    },
-
-    /// Get all symbols with their offsets
-    Symbols {
-        /// Path to the .odex file which should be crawled
-        #[arg(short, long)]
-        file: String,
-
-        /// Only output number of symbols
-        #[arg(short, long)]
-        silent: bool,
-    },
-    
     /// Create an Index for all Symbols on the System
     IndexSymbols,
 
@@ -165,63 +128,6 @@ async fn list_processes(client: &mut Client, silent: bool) -> Result<()> {
     Ok(())
 }
 
-async fn get_odex_files(client: &mut Client, pid: u32, silent: bool) -> Result<()> {
-    let mut stream = client.get_odex_files(pid).await?;
-    let mut count: u32 = 0;
-
-    while let Some(Ok(next)) = stream.next().await {
-        if !silent {
-            println!("{}", next.name);
-        } else {
-            count += 1;
-        }
-    }
-
-    if silent {
-        println!("Number of .odex files: {}", count);
-    }
-
-    Ok(())
-}
-
-async fn get_so_files(client: &mut Client, pid: u32, silent: bool) -> Result<()> {
-    let mut stream = client.get_so_files(pid).await?;
-    let mut count: u32 = 0;
-
-    while let Some(Ok(next)) = stream.next().await {
-        if !silent {
-            println!("{}", next.name);
-        } else {
-            count += 1;
-        }
-    }
-
-    if silent {
-        println!("Number of .so files: {}", count);
-    }
-
-    Ok(())
-}
-
-async fn get_symbols(client: &mut Client, file: String, silent: bool) -> Result<()> {
-    let mut stream = client.get_symbols(file).await?;
-    let mut count: u32 = 0;
-
-    while let Some(Ok(next)) = stream.next().await {
-        if !silent {
-            println!("method: {} | offset: {}", next.method, next.offset);
-        } else {
-            count += 1;
-        }
-    }
-
-    if silent {
-        println!("Number of symbols: {}", count);
-    }
-
-    Ok(())
-}
-
 async fn index_symbols(client: &mut Client) -> Result<()> {
     println!("Indexing Symbols, this can take a while...");
     client.index_symbols().await?;
@@ -262,10 +168,6 @@ pub async fn main() -> anyhow::Result<()> {
     let mut client = Client::connect(args.addr.to_owned()).await?;
 
     match args.cmd {
-        Commands::Check => {
-            client.check_server().await?;
-            println!("Success");
-        }
         Commands::Sendmsg { pid } => {
             sendmsg(&mut client, pid).await?;
         }
@@ -277,15 +179,6 @@ pub async fn main() -> anyhow::Result<()> {
         }
         Commands::Processes { silent } => {
             list_processes(&mut client, silent).await?;
-        }
-        Commands::Odex { pid, silent } => {
-            get_odex_files(&mut client, pid, silent).await?;
-        }
-        Commands::Symbols { file, silent } => {
-            get_symbols(&mut client, file, silent).await?;
-        }
-        Commands::So { pid, silent } => {
-            get_so_files(&mut client, pid, silent).await?;
         }
         Commands::IndexSymbols => {
             index_symbols(&mut client).await?;

@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
 //
 // SPDX-License-Identifier: MIT
 
 use client::Client;
 use shared::config::{Configuration, GcConfig, SysFdTrackingConfig, SysSendmsgConfig, SysSigquitConfig, VfsWriteConfig};
-use shared::ziofa::process::Cmd;
+use shared::processes::process::Cmd;
 
 // client tests assume daemon is running!
 async fn setup() -> Client {
@@ -33,12 +33,6 @@ async fn list_processes() {
     });
 
     assert!(server_process.is_some());
-}
-
-#[tokio::test]
-async fn check_server() {
-    let mut client = setup().await;
-    client.check_server().await.expect("should work");
 }
 
 #[tokio::test]

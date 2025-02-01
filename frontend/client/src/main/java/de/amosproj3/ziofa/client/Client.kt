@@ -111,33 +111,11 @@ sealed class Command {
 }
 
 interface Client {
-    suspend fun serverCount(): Flow<UInt>
-
-    suspend fun load()
-
-    suspend fun attach(iface: String)
-
-    suspend fun unload()
-
-    suspend fun detach(iface: String)
-
-    suspend fun startCollecting()
-
-    suspend fun stopCollecting()
-
-    suspend fun checkServer()
-
     suspend fun listProcesses(): List<Process>
 
     suspend fun getConfiguration(): Configuration
 
     suspend fun setConfiguration(configuration: Configuration)
-
-    suspend fun getOdexFiles(pid: UInt): Flow<String>
-
-    suspend fun getSoFiles(pid: UInt): Flow<String>
-
-    suspend fun getSymbols(filePath: String): Flow<Symbol>
 
     suspend fun initStream(): Flow<Event>
 
