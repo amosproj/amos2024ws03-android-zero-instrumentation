@@ -29,13 +29,16 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
             // config.proto
             "Configuration",
-            "VfsWriteConfig",
-            "SysSendmsgConfig",
+            "WriteConfig",
+            "BlockingConfig",
             "JniReferencesConfig",
-            "SysSigquitConfig",
+            "SignalConfig",
             "UprobeConfig",
-            "GcConfig",
-            "SysFdTrackingConfig",
+            "GarbageCollectConfig",
+            "FileDescriptorChangeConfig",
+            "StringFilter",
+            "UInt32Filter",
+            "Filter",
             
             // events.proto
             "Event",
@@ -66,6 +69,7 @@ static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             "Event.event_type",
             "LogEvent.event_data",
             "SysFdTrackingEvent.SysFdAction",
+            "MissingBehavior",
             ]
     } else {
         vec![]

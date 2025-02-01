@@ -14,43 +14,40 @@ package config;
 // sub-config the feature will be enabled in compliance with it.
 message Configuration {
   // VFS Write Analysis (sys_vfswrite) config
-  optional VfsWriteConfig vfs_write = 1;
+  optional WriteConfig write_config = 1;
   // Unix Domain Socket (sys_sendmsg) config
-  optional SysSendmsgConfig sys_sendmsg = 2;
+  optional BlockingConfig blocking_config = 2;
   // Indirect JNI References config
-  optional JniReferencesConfig jni_references = 3;
+  optional JniReferencesConfig jni_references_config = 3;
   // SIQUIT config
-  optional SysSigquitConfig sys_sigquit = 4;
+  optional SignalConfig signal_config = 4;
   // U-Probe configs
-  repeated UprobeConfig uprobes = 5;
+  repeated UprobeConfig uprobe_configs = 5;
   // Garbage Collection Analysis config
-  optional GcConfig gc = 6;
+  optional GarbageCollectConfig garbage_collect_config = 6;
   // Open File Descriptors config
-  optional SysFdTrackingConfig sys_fd_tracking = 7;
+  optional FileDescriptorChangeConfig file_descriptor_change_config = 7;
 }
 
 // VFS Write Analysis (sys_vfswrite) config
-message VfsWriteConfig {
-  // A map from PIDs to a threshold for the event duration in nanoseconds for an event to be sent.
-  map<uint32, uint64> entries = 1;
+message WriteConfig {
+  Filter filter = 1;
 }
 
 // Unix Domain Socket (sys_sendmsg) config
-message SysSendmsgConfig {
-  // A map from PIDs to a threshold for the event duration in nanoseconds for an event to be sent.
-  map<uint32, uint64> entries = 1;
+message BlockingConfig {
+  Filter filter = 1;
+  optional uint64 threshold = 2;
 }
 
 // Indirect JNI References config
 message JniReferencesConfig {
-  // PID's to activate the feature for
-  repeated uint32 pids = 1;
+  Filter filter = 1;
 }
 
 // SIQUIT config
-message SysSigquitConfig {
-  // PIDs to activate the feature for
-  repeated uint32 pids = 1;
+message SignalConfig {
+  Filter filter = 1;
 }
 
 // U-Probe config
@@ -63,13 +60,41 @@ message UprobeConfig {
   string target = 3;
   // PID of the aya attach function
   optional uint32 pid = 4;
+  // Filter
+  Filter filter = 5;
 }
 
 // Garbage Collection Analysis config
-message GcConfig {}
+message GarbageCollectConfig {
+  Filter filter = 1;
+}
 
 // Open File Descriptors config
-message SysFdTrackingConfig {
-  // PIDs to activate the feature for
-  repeated uint32 pids = 1;
+message FileDescriptorChangeConfig {
+  Filter filter = 1;
+}
+
+message Filter {
+  StringFilter comm_filter = 1;
+  StringFilter exe_path_filter = 2;
+  StringFilter cmdline_filter = 3;
+  UInt32Filter pid_filter = 4;
+}
+
+message StringFilter {
+  MissingBehavior missing_behavior = 1;
+  repeated string match = 2;
+  repeated string not_match = 3;
+}
+
+message UInt32Filter {
+  MissingBehavior missing_behavior = 1;
+  repeated uint32 match = 2;
+  repeated uint32 not_match = 3;
+}
+
+enum MissingBehavior {
+  MISSING_BEHAVIOR_UNSPECIFIED = 0;
+  MISSING_BEHAVIOR_MATCH = 1;
+  MISSING_BEHAVIOR_NOT_MATCH = 2;
 }
