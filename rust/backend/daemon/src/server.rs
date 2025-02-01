@@ -254,8 +254,8 @@ mod tests {
             .unwrap();
 
         // We can create multiple clients
-        let mut client = ZiofaClient::new(channel.clone());
-        let mut other = ZiofaClient::new(channel);
+        let mut _client = ZiofaClient::new(channel.clone());
+        let mut _other = ZiofaClient::new(channel);
 
         // stop condition
         let (stop_tx, stop_rx) = tokio::sync::oneshot::channel();

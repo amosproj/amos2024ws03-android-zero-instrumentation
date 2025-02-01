@@ -291,7 +291,7 @@ pub struct SearchReq {
     pub query: String,
     pub limit: u64,
 }
-pub type SearchRes = Result<Vec<shared::ziofa::search_symbols_response::Symbol>, io::Error>;
+pub type SearchRes = Result<Vec<shared::symbols::search_symbols_response::Symbol>, io::Error>;
 
 pub struct GetOffsetRequest {
     pub symbol_name: String,
@@ -373,7 +373,7 @@ impl Actor for SymbolActor {
                             .and_then(|x| x.as_u64())
                             .ok_or_else(|| io::Error::other("expected u64"))?;
 
-                        Ok::<_, io::Error>(shared::ziofa::search_symbols_response::Symbol {
+                        Ok::<_, io::Error>(shared::symbols::search_symbols_response::Symbol {
                             method: name.to_owned(),
                             offset,
                             path: path.to_owned(),

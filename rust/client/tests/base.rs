@@ -36,12 +36,6 @@ async fn list_processes() {
 }
 
 #[tokio::test]
-async fn check_server() {
-    let mut client = setup().await;
-    client.check_server().await.expect("should work");
-}
-
-#[tokio::test]
 async fn set_get_empty_config() {
     let mut client = setup().await;
 
