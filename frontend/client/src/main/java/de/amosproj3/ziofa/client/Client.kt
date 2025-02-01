@@ -17,7 +17,7 @@ data class Configuration(
     val sysFdTracking: SysFdTrackingConfig?,
 )
 
-data class VfsWriteConfig(val entries: Map<UInt, ULong>)
+data class VfsWriteConfig(val pids: List<UInt>)
 
 data class SysSendmsgConfig(val entries: Map<UInt, ULong>)
 

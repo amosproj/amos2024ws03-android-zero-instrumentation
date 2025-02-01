@@ -60,8 +60,6 @@ message UprobeConfig {
   string target = 3;
   // PID of the aya attach function
   optional uint32 pid = 4;
-  // Filter
-  Filter filter = 5;
 }
 
 // Garbage Collection Analysis config

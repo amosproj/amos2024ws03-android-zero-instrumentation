@@ -13,8 +13,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
 
-var gcPids = setOf<UInt>()
-
 object RustClient : Client {
     private var configuration: Configuration =
         Configuration(
@@ -58,7 +56,7 @@ object RustClient : Client {
 
     private fun vfsWriteMockEvents(emissionDelayBoundMillis: Int) = flow {
         while (true) {
-            configuration.vfsWrite?.entries?.keys?.forEach {
+            configuration.vfsWrite?.pids?.forEach {
                 emit(
                     Event.VfsWrite(
                         pid = it,

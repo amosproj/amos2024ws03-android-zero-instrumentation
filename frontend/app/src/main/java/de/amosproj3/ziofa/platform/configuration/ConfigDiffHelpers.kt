@@ -28,12 +28,8 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
             this.copy(
                 vfsWrite =
                     this.vfsWrite.updatePIDs(
-                        pidsToAdd =
-                            if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
-                            else setOf(),
-                        pidsToRemove =
-                            if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries
-                            else setOf(),
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
                     )
             )
 
@@ -110,16 +106,11 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
 }
 
 fun VfsWriteConfig?.updatePIDs(
-    pidsToAdd: Set<Map.Entry<UInt, ULong>> = setOf(),
-    pidsToRemove: Set<Map.Entry<UInt, ULong>> = setOf(),
+    pidsToAdd: Set<UInt> = setOf(),
+    pidsToRemove: Set<UInt> = setOf(),
 ): VfsWriteConfig {
-    val config = this ?: VfsWriteConfig(mapOf())
-    return config.copy(
-        entries =
-            config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-                it.key to it.value
-            }
-    )
+    val config = this ?: VfsWriteConfig(listOf())
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
 }
 
 fun SysSendmsgConfig?.updatePIDs(
