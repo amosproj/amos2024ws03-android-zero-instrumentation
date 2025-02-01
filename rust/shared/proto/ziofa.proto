@@ -16,8 +16,6 @@ import "events.proto";
   * These are the service endpoints on which ziofa serves.
   */
 service Ziofa {
-    // all Responses genereated by the ebpf-programms are send via this stream
-    
     /**
     * Initialize the stream over which all following collected events will be
     * sent. If this gets called multiple times or by different clients, all
@@ -59,10 +57,22 @@ service Ziofa {
     rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
 }
 
+/**
+  * List of processes
+  */
 message ProcessList {
     repeated Process processes = 1;
 }
 
+/**
+  * Process
+  *
+  * pid:            PID of the process
+  * ppid:           Parent PID of the process
+  * cmd:            If available the whole cmdline, else only comm (truncated
+  *                 cmdline)
+  * state:          The state of the process
+  */
 message Process {
     message CmdlineData {
         repeated string args = 1;
@@ -74,14 +84,26 @@ message Process {
         string comm = 4;
     }
     string state = 5;
-
 }
 
+/**
+  * Request object for the SearchSymbols() endpoint
+  *
+  * query:          Query to search for
+  * limit:          Maximum number of symbols to get
+  */
 message SearchSymbolsRequest {
     string query = 1;
     uint64 limit = 2;
 }
 
+/**
+  * Response object for the SearchSymbols() endpoint
+  *
+  * symbols[]:      A list of symbols matching the specified query and limit.
+  *                 Each symbol consists of the method it represents, the
+  *                 filepath it was found in and it's offset inside that file.
+  */
 message SearchSymbolsResponse {
     message Symbol {
         string method = 1;
@@ -91,11 +113,22 @@ message SearchSymbolsResponse {
     repeated Symbol symbols = 1;
 }
 
+/**
+  * Request object for the GetSymbolOffset() endpoint
+  *
+  * symbol_name:    The whole symbol name of which to get the offset
+  * library_path:   The filepath in which the symbol resides
+  */
 message GetSymbolOffsetRequest {
     string symbol_name = 1;
     string library_path = 2;
 }
 
+/**
+  * Response object for the GetSymbolOffset() endpoint
+  *
+  * offset?:        If the symbol is available, it's offset
+  */
 message GetSymbolOffsetResponse {
     optional uint64 offset = 1;
 }
