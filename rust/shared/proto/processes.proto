@@ -5,16 +5,12 @@
 syntax = "proto3";
 package processes;
 
-/**
- * List of processes
- */
+// List of processes
 message ProcessList {
   repeated Process processes = 1;
 }
 
-/**
- * Process
- */
+// Process
 message Process {
   message CmdlineData {
     repeated string args = 1;

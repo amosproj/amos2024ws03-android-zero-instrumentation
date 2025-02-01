@@ -5,10 +5,8 @@
 syntax = "proto3";
 package events;
 
-/**
- * A single event. There are two types of events: normal events which can be
- * used for logging and aggregated time series events.
- */
+// A single event. There are two types of events: normal events which can be
+// used for logging and aggregated time series events.
 message Event {
   oneof event_type {
     // Time series event
@@ -18,11 +16,9 @@ message Event {
   }
 }
 
-/**
- * A single time series event. It consists of an event type, the timeframe in
- * milliseconds over which data was aggregated and a map, which maps a PID to
- * a list of the unaggregated single event time stamps in nanoseconds.
- */
+// A single time series event. It consists of an event type, the timeframe in
+// milliseconds over which data was aggregated and a map, which maps a PID to
+// a list of the unaggregated single event time stamps in nanoseconds.
 message TimeSeriesEvent {
   message TimeSeriesType {
     // A list of the unaggregated single event time stamps in nanoseconds
@@ -40,16 +36,12 @@ message TimeSeriesEvent {
   EventTypeEnum event_type_enum = 1;
   // The timeframe in milliseconds over which data was aggregated
   uint32 timeframe_ms = 2;
-  /**
-   * Map, which maps a PID to a list of the unaggregated single event time
-   * stamps in nanoseconds
-   */
+  // Map, which maps a PID to a list of the unaggregated single event time
+  // stamps in nanoseconds
   map<uint32, TimeSeriesType> time_series_map = 3;
 }
 
-/**
- * A single unaggregated event which contains one of the sub-events.
- */
+// A single unaggregated event which contains one of the sub-events.
 message LogEvent {
   oneof event_data {
     VfsWriteEvent vfs_write = 1;
@@ -61,9 +53,7 @@ message LogEvent {
   }
 }
 
-/**
- * A VFS Write (sys_vfswrite) event.
- */
+// A VFS Write (sys_vfswrite) event.
 message VfsWriteEvent {
   // The PID by which the syscall was used
   uint32 pid = 1;
@@ -77,9 +67,7 @@ message VfsWriteEvent {
   uint64 bytes_written = 5;
 }
 
-/**
- * A Unix Domain Socket (sys_sendmsg) event.
- */
+// A Unix Domain Socket (sys_sendmsg) event.
 message SysSendmsgEvent {
   // The PID by which the syscall was used
   uint32 pid = 1;
@@ -93,9 +81,7 @@ message SysSendmsgEvent {
   uint64 duration_nano_sec = 5;
 }
 
-/**
- * Indirect JNI References event.
- */
+// Indirect JNI References event.
 message JniReferencesEvent {
   enum JniMethodName {
     Undefined = 0;
@@ -114,9 +100,7 @@ message JniReferencesEvent {
   JniMethodName jni_method_name = 4;
 }
 
-/**
- * SIQUIT event.
- */
+// SIQUIT event.
 message SysSigquitEvent {
   // The PID by which the event was dispatched
   uint32 pid = 1;
@@ -128,9 +112,7 @@ message SysSigquitEvent {
   uint64 target_pid = 4;
 }
 
-/**
- * Garbage Collection Analysis event.
- */
+// Garbage Collection Analysis event.
 message GcEvent {
   // The PID by which the event was dispatched
   uint32 pid = 1;
@@ -158,9 +140,7 @@ message GcEvent {
   repeated uint64 pause_times = 12;
 }
 
-/**
- * Open File Descriptors event.
- */
+// Open File Descriptors event.
 message SysFdTrackingEvent {
   enum SysFdAction {
     Undefined = 0;

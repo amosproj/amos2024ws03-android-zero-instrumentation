@@ -14,47 +14,31 @@ import "google/protobuf/empty.proto";
 import "processes.proto";
 import "symbols.proto";
 
-/**
- * These are the service endpoints on which ziofa serves.
- */
+// These are the service endpoints on which ziofa serves.
 service Ziofa {
-  /**
-   * Initialize the stream over which all following collected events will be
-   * sent. If this gets called multiple times or by different clients, all
-   * streams will receive the same data.
-   */
+  // Initialize the stream over which all following collected events will be
+  // sent. If this gets called multiple times or by different clients, all
+  // streams will receive the same data.
   rpc InitStream(google.protobuf.Empty) returns (stream events.Event) {}
 
-  /**
-   * List all processes currently running.
-   */
+  // List all processes currently running.
   rpc ListProcesses(google.protobuf.Empty) returns (processes.ProcessList) {}
 
-  /**
-   * Get the currently set configuration.
-   */
+  // Get the currently set configuration.
   rpc GetConfiguration(google.protobuf.Empty) returns (config.Configuration) {}
 
-  /**
-   * Set a new configuration. The old one will be replaced without merging.
-   */
+  // Set a new configuration. The old one will be replaced without merging.
   rpc SetConfiguration(config.Configuration) returns (google.protobuf.Empty) {}
 
-  /**
-   * Index all symbols on the whole device into the database. This has to be
-   * called once upon startup and every time a package of interest is
-   * (re-)installed/updated.
-   */
+  // Index all symbols on the whole device into the database. This has to be
+  // called once upon startup and every time a package of interest is
+  // (re-)installed/updated.
   rpc IndexSymbols(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
-  /**
-   * Search all symbols for the specified query. Requires an indexing run
-   * beforehand.
-   */
+  // Search all symbols for the specified query. Requires an indexing run
+  // beforehand.
   rpc SearchSymbols(symbols.SearchSymbolsRequest) returns (symbols.SearchSymbolsResponse) {}
 
-  /**
-   * Get the offset of the specified symbol.
-   */
+  // Get the offset of the specified symbol.
   rpc GetSymbolOffset(symbols.GetSymbolOffsetRequest) returns (symbols.GetSymbolOffsetResponse) {}
 }

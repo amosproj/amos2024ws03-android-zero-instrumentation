@@ -9,12 +9,9 @@
 syntax = "proto3";
 package config;
 
-/**
- * Here the sub-configs for all features live. The configs are set globally.
- * Each seperate sub-config can be omitted in which case the associated
- * feature will be disabled. In the case of a given sub-config the feature
- * will be enabled in compliance with it.
- */
+// The configs are set globally. Each seperate sub-config can be omitted in
+// which case the associated feature will be disabled. In the case of a given
+// sub-config the feature will be enabled in compliance with it.
 message Configuration {
   // VFS Write Analysis (sys_vfswrite) config
   optional VfsWriteConfig vfs_write = 1;
@@ -32,41 +29,31 @@ message Configuration {
   optional SysFdTrackingConfig sys_fd_tracking = 7;
 }
 
-/**
- * VFS Write Analysis (sys_vfswrite) config
- */
+// VFS Write Analysis (sys_vfswrite) config
 message VfsWriteConfig {
   // A map from PIDs to a threshold for the event duration in nanoseconds for an event to be sent.
   map<uint32, uint64> entries = 1;
 }
 
-/**
- * Unix Domain Socket (sys_sendmsg) config
- */
+// Unix Domain Socket (sys_sendmsg) config
 message SysSendmsgConfig {
   // A map from PIDs to a threshold for the event duration in nanoseconds for an event to be sent.
   map<uint32, uint64> entries = 1;
 }
 
-/**
- * Indirect JNI References config
- */
+// Indirect JNI References config
 message JniReferencesConfig {
   // PID's to activate the feature for
   repeated uint32 pids = 1;
 }
 
-/**
- * SIQUIT config
- */
+// SIQUIT config
 message SysSigquitConfig {
   // PIDs to activate the feature for
   repeated uint32 pids = 1;
 }
 
-/**
- * U-Probe config
- */
+// U-Probe config
 message UprobeConfig {
   // Function name
   string fn_name = 1;
@@ -78,14 +65,10 @@ message UprobeConfig {
   optional uint32 pid = 4;
 }
 
-/**
- * Garbage Collection Analysis config
- */
+// Garbage Collection Analysis config
 message GcConfig {}
 
-/**
- * Open File Descriptors config
- */
+// Open File Descriptors config
 message SysFdTrackingConfig {
   // PIDs to activate the feature for
   repeated uint32 pids = 1;
