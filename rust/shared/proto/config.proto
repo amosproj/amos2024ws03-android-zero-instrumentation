@@ -10,94 +10,83 @@ syntax = "proto3";
 package config;
 
 /**
-  * Here the sub-configs for all features live. The configs are set globally.
-  * Each seperate sub-config can be omitted in which case the associated
-  * feature will be disabled. In the case of a given sub-config the feature
-  * will be enabled in compliance with it.
-  *
-  * vfs_write?:       VFS Write Analysis (sys_vfswrite) config
-  * sys_sendmsg?:     Unix Domain Socket (sys_sendmsg) config
-  * jni_references?:  Indirect JNI References config
-  * sys_sigquit?:     SIQUIT config
-  * uprobes[]:        U-Probe configs
-  * gc?:              Garbage Collection Analysis config
-  * sys_fd_tracking?: Open File Descriptors config
-  */
+ * Here the sub-configs for all features live. The configs are set globally.
+ * Each seperate sub-config can be omitted in which case the associated
+ * feature will be disabled. In the case of a given sub-config the feature
+ * will be enabled in compliance with it.
+ */
 message Configuration {
+  // VFS Write Analysis (sys_vfswrite) config
   optional VfsWriteConfig vfs_write = 1;
+  // Unix Domain Socket (sys_sendmsg) config
   optional SysSendmsgConfig sys_sendmsg = 2;
+  // Indirect JNI References config
   optional JniReferencesConfig jni_references = 3;
+  // SIQUIT config
   optional SysSigquitConfig sys_sigquit = 4;
+  // U-Probe configs
   repeated UprobeConfig uprobes = 5;
+  // Garbage Collection Analysis config
   optional GcConfig gc = 6;
+  // Open File Descriptors config
   optional SysFdTrackingConfig sys_fd_tracking = 7;
 }
 
 /**
-  * VFS Write Analysis (sys_vfswrite) config
-  *
-  * entries.key:      PID to activate the feature for
-  * entries.value:    Threshold [ns] of the write duration above which an event
-  *                   will get sent
-  */
+ * VFS Write Analysis (sys_vfswrite) config
+ */
 message VfsWriteConfig {
+  // A map from PIDs to a threshold for the event duration in nanoseconds for an event to be sent.
   map<uint32, uint64> entries = 1;
 }
 
 /**
-  * Unix Domain Socket (sys_sendmsg) config
-  *
-  * entries.key:      PID to activate the feature for
-  * entries.value:    Threshold [ns] of the send duration above which an event
-  *                   will get sent
-  */
+ * Unix Domain Socket (sys_sendmsg) config
+ */
 message SysSendmsgConfig {
+  // A map from PIDs to a threshold for the event duration in nanoseconds for an event to be sent.
   map<uint32, uint64> entries = 1;
 }
 
 /**
-  * Indirect JNI References config
-  *
-  * pids[]:           PID's to activate the feature for
-  */
+ * Indirect JNI References config
+ */
 message JniReferencesConfig {
+  // PID's to activate the feature for
   repeated uint32 pids = 1;
 }
 
 /**
-  * SIQUIT config
-  *
-  * pids[]:           PID's to activate the feature for
-  */
+ * SIQUIT config
+ */
 message SysSigquitConfig {
+  // PIDs to activate the feature for
   repeated uint32 pids = 1;
 }
 
 /**
-  * U-Probe config
-  *
-  * fn_name:          Function name
-  * offset:           Offset of the aya attach function
-  * target:           Target of the aya attach function
-  * pid?:             PID of the aya attach function
-  */
+ * U-Probe config
+ */
 message UprobeConfig {
+  // Function name
   string fn_name = 1;
+  // Offset of the aya attach function
   uint64 offset = 2;
+  // Target of the aya attach function
   string target = 3;
+  // PID of the aya attach function
   optional uint32 pid = 4;
 }
 
 /**
-  * Garbage Collection Analysis config
-  */
-message GcConfig { }
+ * Garbage Collection Analysis config
+ */
+message GcConfig {}
 
 /**
-  * Open File Descriptors config
-  *
-  * pids[]:           PID's to activate the feature for
-  */
+ * Open File Descriptors config
+ */
 message SysFdTrackingConfig {
+  // PIDs to activate the feature for
   repeated uint32 pids = 1;
 }

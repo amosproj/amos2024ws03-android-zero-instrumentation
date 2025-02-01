@@ -6,48 +6,45 @@ syntax = "proto3";
 package symbols;
 
 /**
-  * Request object for the SearchSymbols() endpoint
-  *
-  * query:          Query to search for
-  * limit:          Maximum number of symbols to get
-  */
-  message SearchSymbolsRequest {
-    string query = 1;
-    uint64 limit = 2;
+ * Request object for the SearchSymbols() endpoint
+ */
+message SearchSymbolsRequest {
+  // Query to search for
+  string query = 1;
+  // Maximum number of symbols to get
+  uint64 limit = 2;
 }
 
 /**
-  * Response object for the SearchSymbols() endpoint
-  *
-  * symbols[]:      A list of symbols matching the specified query and limit.
-  *                 Each symbol consists of the method it represents, the
-  *                 filepath it was found in and it's offset inside that file.
-  */
+ * Response object for the SearchSymbols() endpoint
+ */
 message SearchSymbolsResponse {
-    message Symbol {
-        string method = 1;
-        string path = 2;
-        uint64 offset = 3;
-    }
-    repeated Symbol symbols = 1;
+  message Symbol {
+    // The method it represents
+    string method = 1;
+    // The filepath it was found in
+    string path = 2;
+    // Its offset inside that file
+    uint64 offset = 3;
+  }
+  // A list of symbols matching the specified query and limit.
+  repeated Symbol symbols = 1;
 }
 
 /**
-  * Request object for the GetSymbolOffset() endpoint
-  *
-  * symbol_name:    The whole symbol name of which to get the offset
-  * library_path:   The filepath in which the symbol resides
-  */
+ * Request object for the GetSymbolOffset() endpoint
+ */
 message GetSymbolOffsetRequest {
-    string symbol_name = 1;
-    string library_path = 2;
+  // The whole symbol name of which to get the offset
+  string symbol_name = 1;
+  // The filepath in which the symbol resides
+  string library_path = 2;
 }
 
 /**
-  * Response object for the GetSymbolOffset() endpoint
-  *
-  * offset?:        If the symbol is available, it's offset
-  */
+ * Response object for the GetSymbolOffset() endpoint
+ */
 message GetSymbolOffsetResponse {
-    optional uint64 offset = 1;
+  // If the symbol is available, its offset
+  optional uint64 offset = 1;
 }

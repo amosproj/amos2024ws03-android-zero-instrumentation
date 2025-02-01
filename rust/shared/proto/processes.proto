@@ -6,30 +6,28 @@ syntax = "proto3";
 package processes;
 
 /**
-  * List of processes
-  */
+ * List of processes
+ */
 message ProcessList {
-    repeated Process processes = 1;
+  repeated Process processes = 1;
 }
 
 /**
-  * Process
-  *
-  * pid:            PID of the process
-  * ppid:           Parent PID of the process
-  * cmd:            If available the whole cmdline, else only comm (truncated
-  *                 cmdline)
-  * state:          The state of the process
-  */
+ * Process
+ */
 message Process {
-    message CmdlineData {
-        repeated string args = 1;
-    }
-    uint32 pid = 1;
-    uint32 ppid = 2;
-    oneof cmd {
-        CmdlineData cmdline = 3;
-        string comm = 4;
-    }
-    string state = 5;
+  message CmdlineData {
+    repeated string args = 1;
+  }
+  // PID of the process
+  uint32 pid = 1;
+  // Parent PID of the process
+  uint32 ppid = 2;
+  // If available the whole cmdline, else only comm (truncated cmdline)
+  oneof cmd {
+    CmdlineData cmdline = 3;
+    string comm = 4;
+  }
+  // The state of the process
+  string state = 5;
 }
