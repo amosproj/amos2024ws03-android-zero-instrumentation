@@ -1,9 +1,13 @@
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 use procfs::{process::all_processes, ProcError};
-use shared::ziofa::{self, process::Cmd, CmdlineData, ProcessList};
+use shared::ziofa::{
+    self,
+    process::{Cmd, CmdlineData},
+    ProcessList,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]

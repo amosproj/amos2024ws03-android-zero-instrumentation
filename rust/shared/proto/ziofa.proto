@@ -41,21 +41,6 @@ service Ziofa {
     rpc SetConfiguration(config.Configuration) returns (google.protobuf.Empty) {}
 
     /**
-    * Get all .odex files mmap'ed to the process with the specified PID.
-    */
-    rpc GetOdexFiles(PidMessage) returns (stream StringResponse) {}
-
-    /**
-    * Get all .so files mmap'ed to the process with the specified PID.
-    */
-    rpc GetSoFiles(PidMessage) returns (stream StringResponse) {}
-
-    /**
-    * Get all symbols out of the specified file name.
-    */
-    rpc GetSymbols(GetSymbolsRequest) returns (stream Symbol) {}
-    
-    /**
     * Index all symbols on the whole device into the database. This has to be
     * called once upon startup and every time a package of interest is
     * (re-)installed/updated.
@@ -74,47 +59,14 @@ service Ziofa {
     rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
 }
 
-message StringResponse {
-    string name = 1;
-}
-
-message GetSymbolsRequest {
-    string file_path = 2;
-}
-
-message SearchSymbolsRequest {
-    string query = 1;
-    uint64 limit = 2;
-}
-
-message SearchSymbolsResponse {
-    repeated Symbol symbols = 1;
-}
-
-message GetSymbolOffsetRequest {
-    string symbol_name = 1;
-    string library_path = 2;
-}
-
-message GetSymbolOffsetResponse {
-    optional uint64 offset = 1;
-}
-
-message Symbol {
-    string method = 1;
-    string path = 2;
-    uint64 offset = 3;
-}
-
-message PidMessage{
-    uint32 pid = 1;
-}
-
 message ProcessList {
     repeated Process processes = 1;
 }
 
 message Process {
+    message CmdlineData {
+        repeated string args = 1;
+    }
     uint32 pid = 1;
     uint32 ppid = 2;
     oneof cmd {
@@ -125,6 +77,25 @@ message Process {
 
 }
 
-message CmdlineData {
-    repeated string args = 1;
+message SearchSymbolsRequest {
+    string query = 1;
+    uint64 limit = 2;
+}
+
+message SearchSymbolsResponse {
+    message Symbol {
+        string method = 1;
+        string path = 2;
+        uint64 offset = 3;
+    }
+    repeated Symbol symbols = 1;
+}
+
+message GetSymbolOffsetRequest {
+    string symbol_name = 1;
+    string library_path = 2;
+}
+
+message GetSymbolOffsetResponse {
+    optional uint64 offset = 1;
 }

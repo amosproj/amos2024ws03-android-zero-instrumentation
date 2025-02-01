@@ -12,14 +12,15 @@ use crate::events::{
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
 
+/*
+ * List all proto files here.
+ */
 pub mod ziofa {
     tonic::include_proto!("ziofa");
 }
-
 pub mod config {
     tonic::include_proto!("config");
 }
-
 pub mod events {
     tonic::include_proto!("events");
 }

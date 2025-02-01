@@ -7,8 +7,8 @@ use shared::{
     config::Configuration,
     events::Event,
     ziofa::{
-        ziofa_client::ZiofaClient, GetSymbolOffsetRequest, GetSymbolsRequest, PidMessage, Process,
-        SearchSymbolsRequest, StringResponse, Symbol,
+        ziofa_client::ZiofaClient, GetSymbolOffsetRequest, Process,
+        SearchSymbolsRequest, search_symbols_response::Symbol,
     },
 };
 use tokio_stream::{Stream, StreamExt};
@@ -55,42 +55,6 @@ impl Client {
         Ok(self
             .ziofa
             .init_stream(())
-            .await?
-            .into_inner()
-            .map(|s| Ok(s?)))
-    }
-
-    pub async fn get_odex_files(
-        &mut self,
-        pid: u32,
-    ) -> Result<impl Stream<Item = Result<StringResponse>>> {
-        Ok(self
-            .ziofa
-            .get_odex_files(PidMessage { pid })
-            .await?
-            .into_inner()
-            .map(|s| Ok(s?)))
-    }
-
-    pub async fn get_so_files(
-        &mut self,
-        pid: u32,
-    ) -> Result<impl Stream<Item = Result<StringResponse>>> {
-        Ok(self
-            .ziofa
-            .get_so_files(PidMessage { pid })
-            .await?
-            .into_inner()
-            .map(|s| Ok(s?)))
-    }
-
-    pub async fn get_symbols(
-        &mut self,
-        file_path: String,
-    ) -> Result<impl Stream<Item = Result<Symbol>>> {
-        Ok(self
-            .ziofa
-            .get_symbols(GetSymbolsRequest { file_path })
             .await?
             .into_inner()
             .map(|s| Ok(s?)))

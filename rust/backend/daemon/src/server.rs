@@ -5,7 +5,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use async_broadcast::{broadcast, Receiver, Sender};
 use ractor::{call, Actor, ActorRef};
@@ -14,12 +14,11 @@ use shared::{
     events::Event,
     ziofa::{
         ziofa_server::{Ziofa, ZiofaServer},
-        GetSymbolOffsetRequest, GetSymbolOffsetResponse, GetSymbolsRequest, PidMessage,
-        ProcessList, SearchSymbolsRequest, SearchSymbolsResponse, StringResponse, Symbol,
+        GetSymbolOffsetRequest, GetSymbolOffsetResponse, ProcessList, SearchSymbolsRequest,
+        SearchSymbolsResponse,
     },
 };
-use tokio::sync::{mpsc, Mutex};
-use tokio_stream::wrappers::ReceiverStream;
+use tokio::sync::Mutex;
 use tonic::{transport::Server, Request, Response, Status};
 
 use crate::{
@@ -30,10 +29,7 @@ use crate::{
     filesystem::{ConfigurationStorage, NormalConfigurationStorage},
     procfs_utils::{list_processes, ProcErrorWrapper},
     registry,
-    symbols::{
-        actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg},
-        SymbolHandler,
-    },
+    symbols::actors::{GetOffsetRequest, SearchReq, SymbolActor, SymbolActorMsg},
 };
 
 pub struct ZiofaImpl<C>
@@ -42,7 +38,6 @@ where
 {
     features: Arc<Mutex<Features>>,
     channel: Arc<Channel>,
-    symbol_handler: Arc<Mutex<SymbolHandler>>,
     configuration_storage: C,
     symbol_actor_ref: ActorRef<SymbolActorMsg>,
 }
@@ -54,14 +49,12 @@ where
     pub fn new(
         features: Arc<Mutex<Features>>,
         channel: Arc<Channel>,
-        symbol_handler: Arc<Mutex<SymbolHandler>>,
         configuration_storage: C,
         symbol_actor_ref: ActorRef<SymbolActorMsg>,
     ) -> ZiofaImpl<C> {
         ZiofaImpl {
             features,
             channel,
-            symbol_handler,
             configuration_storage,
             symbol_actor_ref,
         }
@@ -131,121 +124,6 @@ where
         Ok(Response::new(self.channel.rx.clone()))
     }
 
-    type GetOdexFilesStream = ReceiverStream<Result<StringResponse, Status>>;
-
-    // TODO: What is this function for?
-    async fn get_odex_files(
-        &self,
-        request: Request<PidMessage>,
-    ) -> Result<Response<Self::GetOdexFilesStream>, Status> {
-        let pid = request.into_inner().pid;
-
-        let (tx, rx) = mpsc::channel(4);
-
-        let symbol_handler = self.symbol_handler.clone();
-
-        tokio::spawn(async move {
-            let mut symbol_handler_guard = symbol_handler.lock().await;
-            // TODO Error Handling
-            let odex_paths = match symbol_handler_guard.get_paths(pid, ".odex") {
-                Ok(paths) => paths,
-                Err(e) => {
-                    tx.send(Err(Status::from(e)))
-                        .await
-                        .expect("Error sending Error to client ._.");
-                    return;
-                }
-            };
-
-            for path in odex_paths {
-                tx.send(Ok(StringResponse {
-                    name: path.to_str().unwrap().to_string(),
-                }))
-                .await
-                .expect("Error sending odex file to client");
-            }
-        });
-
-        Ok(Response::new(ReceiverStream::new(rx)))
-    }
-
-    type GetSoFilesStream = ReceiverStream<Result<StringResponse, Status>>;
-
-    async fn get_so_files(
-        &self,
-        request: Request<PidMessage>,
-    ) -> Result<Response<Self::GetSoFilesStream>, Status> {
-        let pid = request.into_inner().pid;
-
-        let (tx, rx) = mpsc::channel(4);
-
-        let symbol_handler = self.symbol_handler.clone();
-
-        tokio::spawn(async move {
-            let mut symbol_handler_guard = symbol_handler.lock().await;
-            // TODO Error Handling
-            let odex_paths = match symbol_handler_guard.get_paths(pid, ".so") {
-                Ok(paths) => paths,
-                Err(e) => {
-                    tx.send(Err(Status::from(e)))
-                        .await
-                        .expect("Error sending Error to client ._.");
-                    return;
-                }
-            };
-
-            for path in odex_paths {
-                tx.send(Ok(StringResponse {
-                    name: path.to_str().unwrap().to_string(),
-                }))
-                .await
-                .expect("Error sending odex file to client");
-            }
-        });
-
-        Ok(Response::new(ReceiverStream::new(rx)))
-    }
-
-    type GetSymbolsStream = ReceiverStream<Result<Symbol, Status>>;
-
-    async fn get_symbols(
-        &self,
-        request: Request<GetSymbolsRequest>,
-    ) -> Result<Response<Self::GetSymbolsStream>, Status> {
-        let process_request = request.into_inner();
-        let file_path_string = process_request.file_path;
-        let file_path = PathBuf::from(file_path_string);
-
-        let (tx, rx) = mpsc::channel(4);
-
-        let symbol_handler = self.symbol_handler.clone();
-
-        tokio::spawn(async move {
-            let mut symbol_handler_guard = symbol_handler.lock().await;
-
-            let symbol = match symbol_handler_guard.get_symbols(&file_path).await {
-                Ok(symbol) => symbol,
-                Err(e) => {
-                    tx.send(Err(Status::from(e)))
-                        .await
-                        .expect("Error sending Error to client ._.");
-                    return;
-                }
-            };
-            for (symbol, offset) in symbol.iter() {
-                tx.send(Ok(Symbol {
-                    method: symbol.to_string(),
-                    offset: *offset,
-                    path: file_path.to_string_lossy().into_owned(),
-                }))
-                .await
-                .expect("Error sending odex file to client");
-            }
-        });
-
-        Ok(Response::new(ReceiverStream::new(rx)))
-    }
-
     async fn index_symbols(&self, _: Request<()>) -> Result<Response<()>, Status> {
         call!(self.symbol_actor_ref, SymbolActorMsg::ReIndex)
             .map_err(|e| Status::from_error(Box::new(e)))?;
@@ -309,8 +187,6 @@ async fn setup() -> (
 
     let features = Features::init_all_features(&registry, symbol_actor_ref.clone());
 
-    let symbol_handler = Arc::new(Mutex::new(SymbolHandler::new()));
-
     let features = Arc::new(Mutex::new(features));
 
     let filesystem = NormalConfigurationStorage;
@@ -318,7 +194,6 @@ async fn setup() -> (
     let ziofa_server = ZiofaServer::new(ZiofaImpl::new(
         features,
         channel,
-        symbol_handler,
         filesystem,
         symbol_actor_ref,
     ));

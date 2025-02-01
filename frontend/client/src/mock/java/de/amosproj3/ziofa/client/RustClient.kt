@@ -177,12 +177,6 @@ object RustClient : Client {
             delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
     }
-
-    override suspend fun getOdexFiles(pid: UInt): Flow<String> = mockOdexFileFlow
-
-    override suspend fun getSoFiles(pid: UInt): Flow<String> = mockSoFileFlow
-
-    override suspend fun getSymbols(filePath: String): Flow<Symbol> = mockSymbolFlow
 }
 
 class RustClientFactory(val url: String) : ClientFactory {

@@ -13,6 +13,23 @@ message Event {
     }
 }
 
+message TimeSeriesEvent {
+    message TimeSeriesType{
+        repeated uint64 list = 1;
+    }
+  enum EventTypeEnum{
+    VfsWriteEvent = 0;
+    SysSendmsgEvent = 1;
+    JniReferencesEvent = 2;
+    SysSigquitEvent = 3;
+    GcEvent = 4;
+    SysFdTrackingEvent =5;
+  }
+  EventTypeEnum event_type_enum = 1;
+  uint32 timeframe_ms = 2;
+  map<uint32, TimeSeriesType>time_series_map = 3;
+}
+
 message LogEvent {
     oneof event_data {
         VfsWriteEvent vfs_write = 1;
@@ -60,26 +77,6 @@ message SysSigquitEvent {
     uint64 time_stamp = 3;
     uint64 target_pid = 4;
 }
-
-message TimeSeriesEvent {
-  enum EventTypeEnum{
-    VfsWriteEvent = 0;
-    SysSendmsgEvent = 1;
-    JniReferencesEvent = 2;
-    SysSigquitEvent = 3;
-    GcEvent = 4;
-    SysFdTrackingEvent =5;
-  }
-  EventTypeEnum event_type_enum = 1;
-  uint32 timeframe_ms = 2;
-
-  message TimeSeriesType{
-      repeated uint64 list = 1;
-  }
-
-  map<uint32, TimeSeriesType>time_series_map = 3;
-}
-
 
 message GcEvent {
     uint32 pid = 1;

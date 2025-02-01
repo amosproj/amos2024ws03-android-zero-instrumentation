@@ -117,12 +117,6 @@ interface Client {
 
     suspend fun setConfiguration(configuration: Configuration)
 
-    suspend fun getOdexFiles(pid: UInt): Flow<String>
-
-    suspend fun getSoFiles(pid: UInt): Flow<String>
-
-    suspend fun getSymbols(filePath: String): Flow<Symbol>
-
     suspend fun initStream(): Flow<Event>
 
     suspend fun indexSymbols()
