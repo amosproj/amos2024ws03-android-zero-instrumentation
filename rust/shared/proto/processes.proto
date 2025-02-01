@@ -1,0 +1,35 @@
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
+//
+// SPDX-License-Identifier: MIT
+
+syntax = "proto3";
+package processes;
+
+/**
+  * List of processes
+  */
+  message ProcessList {
+    repeated Process processes = 1;
+}
+
+/**
+  * Process
+  *
+  * pid:            PID of the process
+  * ppid:           Parent PID of the process
+  * cmd:            If available the whole cmdline, else only comm (truncated
+  *                 cmdline)
+  * state:          The state of the process
+  */
+message Process {
+    message CmdlineData {
+        repeated string args = 1;
+    }
+    uint32 pid = 1;
+    uint32 ppid = 2;
+    oneof cmd {
+        CmdlineData cmdline = 3;
+        string comm = 4;
+    }
+    string state = 5;
+}

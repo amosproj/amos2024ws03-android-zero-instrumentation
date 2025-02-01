@@ -6,10 +6,9 @@
 use shared::{
     config::Configuration,
     events::Event,
-    ziofa::{
-        ziofa_client::ZiofaClient, GetSymbolOffsetRequest, Process,
-        SearchSymbolsRequest, search_symbols_response::Symbol,
-    },
+    processes::Process,
+    symbols::{search_symbols_response::Symbol, GetSymbolOffsetRequest, SearchSymbolsRequest},
+    ziofa::ziofa_client::ZiofaClient,
 };
 use tokio_stream::{Stream, StreamExt};
 use tonic::transport::{Channel, Endpoint};

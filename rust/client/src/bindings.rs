@@ -8,7 +8,8 @@ use std::{pin::Pin, sync::Arc};
 use shared::{
     config::Configuration,
     events::{jni_references_event::JniMethodName, sys_fd_tracking_event::SysFdAction, Event},
-    ziofa::{search_symbols_response::Symbol, Process},
+    symbols::search_symbols_response::Symbol, 
+    processes::Process,
 };
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};

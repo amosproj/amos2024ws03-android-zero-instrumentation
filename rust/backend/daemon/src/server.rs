@@ -12,11 +12,12 @@ use ractor::{call, Actor, ActorRef};
 use shared::{
     config::Configuration,
     events::Event,
-    ziofa::{
-        ziofa_server::{Ziofa, ZiofaServer},
-        GetSymbolOffsetRequest, GetSymbolOffsetResponse, ProcessList, SearchSymbolsRequest,
+    processes::ProcessList,
+    symbols::{
+        GetSymbolOffsetRequest, GetSymbolOffsetResponse, SearchSymbolsRequest,
         SearchSymbolsResponse,
     },
+    ziofa::ziofa_server::{Ziofa, ZiofaServer},
 };
 use tokio::sync::Mutex;
 use tonic::{transport::Server, Request, Response, Status};

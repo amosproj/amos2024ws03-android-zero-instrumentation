@@ -11,6 +11,8 @@ package ziofa;
 import "google/protobuf/empty.proto";
 import "config.proto";
 import "events.proto";
+import "processes.proto";
+import "symbols.proto";
 
 /**
   * These are the service endpoints on which ziofa serves.
@@ -26,7 +28,7 @@ service Ziofa {
     /**
     * List all processes currently running.
     */
-    rpc ListProcesses(google.protobuf.Empty) returns (ProcessList) {}
+    rpc ListProcesses(google.protobuf.Empty) returns (processes.ProcessList) {}
     
     /**
     * Get the currently set configuration.
@@ -49,86 +51,10 @@ service Ziofa {
     * Search all symbols for the specified query. Requires an indexing run
     * beforehand.
     */
-    rpc SearchSymbols(SearchSymbolsRequest) returns (SearchSymbolsResponse) {}
+    rpc SearchSymbols(symbols.SearchSymbolsRequest) returns (symbols.SearchSymbolsResponse) {}
 
     /**
     * Get the offset of the specified symbol.
     */
-    rpc GetSymbolOffset(GetSymbolOffsetRequest) returns (GetSymbolOffsetResponse) {}
-}
-
-/**
-  * List of processes
-  */
-message ProcessList {
-    repeated Process processes = 1;
-}
-
-/**
-  * Process
-  *
-  * pid:            PID of the process
-  * ppid:           Parent PID of the process
-  * cmd:            If available the whole cmdline, else only comm (truncated
-  *                 cmdline)
-  * state:          The state of the process
-  */
-message Process {
-    message CmdlineData {
-        repeated string args = 1;
-    }
-    uint32 pid = 1;
-    uint32 ppid = 2;
-    oneof cmd {
-        CmdlineData cmdline = 3;
-        string comm = 4;
-    }
-    string state = 5;
-}
-
-/**
-  * Request object for the SearchSymbols() endpoint
-  *
-  * query:          Query to search for
-  * limit:          Maximum number of symbols to get
-  */
-message SearchSymbolsRequest {
-    string query = 1;
-    uint64 limit = 2;
-}
-
-/**
-  * Response object for the SearchSymbols() endpoint
-  *
-  * symbols[]:      A list of symbols matching the specified query and limit.
-  *                 Each symbol consists of the method it represents, the
-  *                 filepath it was found in and it's offset inside that file.
-  */
-message SearchSymbolsResponse {
-    message Symbol {
-        string method = 1;
-        string path = 2;
-        uint64 offset = 3;
-    }
-    repeated Symbol symbols = 1;
-}
-
-/**
-  * Request object for the GetSymbolOffset() endpoint
-  *
-  * symbol_name:    The whole symbol name of which to get the offset
-  * library_path:   The filepath in which the symbol resides
-  */
-message GetSymbolOffsetRequest {
-    string symbol_name = 1;
-    string library_path = 2;
-}
-
-/**
-  * Response object for the GetSymbolOffset() endpoint
-  *
-  * offset?:        If the symbol is available, it's offset
-  */
-message GetSymbolOffsetResponse {
-    optional uint64 offset = 1;
+    rpc GetSymbolOffset(symbols.GetSymbolOffsetRequest) returns (symbols.GetSymbolOffsetResponse) {}
 }

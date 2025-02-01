@@ -24,6 +24,12 @@ pub mod config {
 pub mod events {
     tonic::include_proto!("events");
 }
+pub mod processes {
+    tonic::include_proto!("processes");
+}
+pub mod symbols {
+    tonic::include_proto!("symbols");
+}
 
 impl TryInto<EventTypeEnum> for Event {
     type Error = ();

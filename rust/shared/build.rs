@@ -105,6 +105,8 @@ fn main() {
                 "./proto/ziofa.proto",
                 "./proto/config.proto",
                 "./proto/events.proto",
+                "./proto/processes.proto",
+                "./proto/symbols.proto",
             ],
             &["./proto"],
         )
