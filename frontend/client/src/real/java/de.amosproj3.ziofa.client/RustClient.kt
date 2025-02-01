@@ -165,8 +165,6 @@ private fun Configuration.into() =
         sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
     )
 
-private fun uniffi.shared.StringResponse.into() = StringResponse(name)
-
 private fun uniffi.shared.Symbol.into() = Symbol(method, offset)
 
 class RustClient(private val inner: uniffi.client.Client) : Client {
