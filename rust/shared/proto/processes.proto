@@ -8,7 +8,7 @@ package processes;
 /**
   * List of processes
   */
-  message ProcessList {
+message ProcessList {
     repeated Process processes = 1;
 }
 
