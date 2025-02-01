@@ -34,7 +34,7 @@ message Configuration {
 }
 
 /**
-  * Enables the VFS   Write Analysis (sys_vfswrite) feature
+  * VFS Write Analysis (sys_vfswrite) config
   *
   * entries.key:      PID to activate the feature for
   * entries.value:    Threshold [ns] of the write duration above which an event
@@ -45,7 +45,7 @@ message VfsWriteConfig {
 }
 
 /**
-  * Enables the Unix Domain Socket (sys_sendmsg) feature
+  * Unix Domain Socket (sys_sendmsg) config
   *
   * entries.key:      PID to activate the feature for
   * entries.value:    Threshold [ns] of the send duration above which an event
@@ -56,7 +56,7 @@ message SysSendmsgConfig {
 }
 
 /**
-  * Enables the Indirect JNI References feature
+  * Indirect JNI References config
   *
   * pids[]:           PID's to activate the feature for
   */
@@ -65,7 +65,7 @@ message JniReferencesConfig {
 }
 
 /**
-  * Enables the SIQUIT feature
+  * SIQUIT config
   *
   * pids[]:           PID's to activate the feature for
   */
@@ -74,7 +74,7 @@ message SysSigquitConfig {
 }
 
 /**
-  * Sets one U-Probe
+  * U-Probe config
   *
   * fn_name:          Function name
   * offset:           Offset of the aya attach function
@@ -89,12 +89,12 @@ message UprobeConfig {
 }
 
 /**
-  * Enables the Garbage Collection Analysis feature
+  * Garbage Collection Analysis config
   */
 message GcConfig { }
 
 /**
-  * Enables the Open File Descriptors feature
+  * Open File Descriptors config
   *
   * pids[]:           PID's to activate the feature for
   */

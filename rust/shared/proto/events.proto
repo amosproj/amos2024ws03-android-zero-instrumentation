@@ -3,9 +3,15 @@
 // SPDX-License-Identifier: MIT
 
 syntax = "proto3";
-
 package events;
 
+/**
+  * A single event. There are two types of events: normal events which can be
+  * used for logging and aggregated time series events.
+  *
+  * event_type.time_series: A time series event
+  * event_type.log:         A normal logging event
+  */
 message Event {
     oneof event_type {
         TimeSeriesEvent time_series = 1;
@@ -13,23 +19,36 @@ message Event {
     }
 }
 
+/**
+  * A single time series event. It consists of an event type, the
+  * timeframe [ms] over which data was aggregated and a map, which maps a PID
+  * to a list of the unaggregated single event time stamps [ns].
+  *
+  * event_type_enum:        The type of the aggregated events
+  * timeframe_ms:           The timeframe [ms] over which data was aggregated
+  * time_series_map.key:    PID
+  * time_series_map.value:  A list of the unaggregated single event time stamps [ns]
+  */
 message TimeSeriesEvent {
-    message TimeSeriesType{
+    message TimeSeriesType {
         repeated uint64 list = 1;
     }
-  enum EventTypeEnum{
-    VfsWriteEvent = 0;
-    SysSendmsgEvent = 1;
-    JniReferencesEvent = 2;
-    SysSigquitEvent = 3;
-    GcEvent = 4;
-    SysFdTrackingEvent =5;
-  }
-  EventTypeEnum event_type_enum = 1;
-  uint32 timeframe_ms = 2;
-  map<uint32, TimeSeriesType>time_series_map = 3;
+    enum EventTypeEnum {
+        VfsWriteEvent = 0;
+        SysSendmsgEvent = 1;
+        JniReferencesEvent = 2;
+        SysSigquitEvent = 3;
+        GcEvent = 4;
+        SysFdTrackingEvent =5;
+    }
+    EventTypeEnum event_type_enum = 1;
+    uint32 timeframe_ms = 2;
+    map<uint32, TimeSeriesType>time_series_map = 3;
 }
 
+/**
+  * A single unaggregated event which contains one of the sub-events.
+  */
 message LogEvent {
     oneof event_data {
         VfsWriteEvent vfs_write = 1;
@@ -41,6 +60,15 @@ message LogEvent {
     }
 }
 
+/**
+  * A VFS Write (sys_vfswrite) event.
+  *
+  * pid:                The PID by which the syscall was used
+  * tid:                The TID by which the syscall was used
+  * begin_time_stamp:   The beginning time stamp [ns] of the event
+  * fp:                 The file descriptor on which the syscall was used
+  * bytes_written:      How many bytes were written by the syscall
+  */
 message VfsWriteEvent {
     uint32 pid = 1;
     uint32 tid = 2;
@@ -49,6 +77,15 @@ message VfsWriteEvent {
     uint64 bytes_written = 5;
 }
 
+/**
+  * A Unix Domain Socket (sys_sendmsg) event.
+  *
+  * pid:                The PID by which the syscall was used
+  * tid:                The TID by which the syscall was used
+  * begin_time_stamp:   The beginning time stamp [ns] of the event
+  * fd:                 The file descriptor on which the syscall was used
+  * duration_nano_sec:  The blocking duration [ns] of the syscall
+  */
 message SysSendmsgEvent {
     uint32 pid = 1;
     uint32 tid = 2;
@@ -57,6 +94,14 @@ message SysSendmsgEvent {
     uint64 duration_nano_sec = 5;
 }
 
+/**
+  * Indirect JNI References event.
+  *
+  * pid:                The PID by which the event was dispatched
+  * tid:                The TID by which the event was dispatched
+  * begin_time_stamp:   The beginning time stamp [ns] of the event
+  * jni_method_name:    The type of the event
+  */
 message JniReferencesEvent {
     enum JniMethodName {
         Undefined = 0;
@@ -71,6 +116,14 @@ message JniReferencesEvent {
     JniMethodName jni_method_name = 4;
 }
 
+/**
+  * SIQUIT event.
+  *
+  * pid:                The PID by which the event was dispatched
+  * tid:                The TID by which the event was dispatched
+  * time_stamp:         The time stamp [ns] of the event
+  * target_pid:         The target PID of the SIGQUIT signal
+  */
 message SysSigquitEvent {
     uint32 pid = 1;
     uint32 tid = 2;
@@ -78,6 +131,22 @@ message SysSigquitEvent {
     uint64 target_pid = 4;
 }
 
+/**
+  * Garbage Collection Analysis event.
+  *
+  * pid:                    The PID by which the event was dispatched
+  * tid:                    The TID by which the event was dispatched
+  * target_footprint:       Target size (as in maximum allocatable bytes) for the heap
+  * num_bytes_allocated:    Number of bytes currently allocated and not yet reclaimed
+  * gcs_completed:          Number of completed garbage collections
+  * gc_cause:               Cause of the gc invocation
+  * duration_ns:            The duration of the garbage collection [ns]
+  * freed_objects:          How many objects were collected
+  * freed_bytes:            How much space of objects was freed [B]
+  * freed_los_objects:      How many large objects were collected
+  * freed_los_bytes:        How much space of large objects was freed [B]
+  * pause_times[]:          How long the gc blocked the process
+  */
 message GcEvent {
     uint32 pid = 1;
     uint32 tid = 2;
@@ -93,6 +162,14 @@ message GcEvent {
     repeated uint64 pause_times = 12;
 }
 
+/**
+  * Open File Descriptors event.
+  *
+  * pid:            The PID by which the event was dispatched
+  * tid:            The TID by which the event was dispatched
+  * time_stamp:     The time stamp [ns] of the event
+  * fd_action:      If a fd was created or destroyed
+  */
 message SysFdTrackingEvent {
     enum SysFdAction {
         Undefined = 0;
