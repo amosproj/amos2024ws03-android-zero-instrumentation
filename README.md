@@ -5,7 +5,7 @@ SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 SPDX-License-Identifier: MIT
 -->
 
-# Zero Instrumentation Observability for Android™[^1] (AMOS WS 2024)
+# Zero Instrumentation Observability for Android™[^1] (AMOS WS 2024/25)
 
 ![Kotlin Version](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Famosproj%2Famos2024ws03-android-zero-instrumentation%2Fmaster%2Ffrontend%2Fgradle%2Flibs.versions.toml&query=%24.versions.kotlin&style=for-the-badge&label=Kotlin&color=pink)
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
@@ -14,19 +14,19 @@ SPDX-License-Identifier: MIT
 [![REUSE status](https://api.reuse.software/badge/github.com/amosproj/amos2024ws03-android-zero-instrumentation)](https://api.reuse.software/info/github.com/amosproj/amos2024ws03-android-zero-instrumentation)
 [![forthebadge](https://forthebadge.com/images/badges/works-on-my-machine.svg)](https://forthebadge.com)
 
-<img src="Deliverables/sprint-01/team-logo.svg" width="224">
+<p align="center">
+  <img src="Deliverables/sprint-01/team-logo.svg" width="224">
+</p>
 
 ## Product Mission
 
 **ZIOFA** (Zero Instrumentation Observability for Android) aims to implement observability use cases relevant to performance specified by our industry partner using eBPF. Examples include tracing long-running blocking calls, leaking JNI indirect references or signals like SIGKILL sent to processes, all without instrumenting the observed application itself.  
 The eBPF programs are loaded and unloaded using a **backend daemon** running as root that will collect metrics and send them to a client.  For displaying these metrics to the user, we are implementing an **on-device UI** that can display visualizations for these use cases and allow for configuration of the enabled use cases, but **using a decoupled Client SDK** so that future work may easily make the data accessible the external processing.
 
-## Building
+## Prerequisites
 
-### [Nix](https://nixos.org/download/)
-
-The easiest way to get all dependencies is to use the provided development shell in `flake.nix`.
-You can use a tool like [`direnv`](https://github.com/direnv/direnv) to automatically load the environment for this repository.
+The easiest way to get all dependencies is to use the provided development shell in `flake.nix`. For that you will need [Nix](https://nixos.org/download/).
+Additionally you can use a tool like [`direnv`](https://github.com/direnv/direnv) to automatically load the environment for this repository.
 
 The shell will setup:
 
@@ -36,21 +36,8 @@ The shell will setup:
 - The [`cargo-ndk`](https://github.com/bbqsrc/cargo-ndk) package for compiling for rust for android
 - The [`protobuf`](https://protobuf.dev/) programs for generating grpc server and client code
 
-### [OCI Container](https://opencontainers.org/)
-
-We use the same input that go into the development shell for building a layered docker image.
-This image is used for the ci, so it supports building the project as well, however you graphical applications like the android emulator require custom setups depending on your OS.
-
-The container image is built via nix and can be automatically uploaded to the registry via `nix run .#dockerBuilder.copyToRegistry`.
-It is currently hosted in the github registry under `ghcr.io/fhilgers/ziofa-builder`.
-
-For a working emulator inside the docker image, you will need some form of X11 forwarding.
-Installing nix and using the development shell is the recommended approach for development.
-
-[^1]: Android is a trademark of Google LLC. The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.
-
-
-## Emulator Setup
+## Build & Deploy
+### Emulator Setup
 
 As we need a modified version of Android, we cannot use the standard system images that come with the default Android SDK.
 To make development easier, a custom Android SDK is loaded into your environment using the nix development shell.
@@ -70,13 +57,79 @@ avdmanager create avd -n YOUR_AVD_NAME  -k 'system-images;android-VanillaIceCrea
 
 This can be started with the `emulator` tool like this:
 
-
 ```
 emulator @YOUR_AVD_NAME
 ```
 
-## Build & Deploy
-For information on the build and deploy process, visit our [Wiki](https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/wiki/Build-&-Deploy).
+### Frontend
+The simplest way to build and test everything is the following command inside of `frontend/` (this will take a while):
+```
+./gradlew build
+```
+
+The apks for each build configuration are located in `frontend/app/build/outputs/apk/`.
+
+To install the application using the real backend on your device or emulator, run either `./gradlew installRealDebug` or `adb install path/to/real/app.apk`
+
+There are other flavors available, for example `installMockDebug`, for a frontend using fake data instead of the real backend.
+This is mainly interesting for development purposes.
+
+In order to view the full list of tasks configured in gradle, run
+```
+./gradlew tasks
+```
+
+### Backend
+#### All in one deploy
+If you'd like to build and run the daemon all in one command, you can use
+```
+cargo xtask daemon
+```
+
+This will ask you for root privileges to run the built executable.
+
+By running
+```
+cargo xtask daemon --android
+```
+the executable won't start on your device but instead on an adb reachable android device or emulator by pushing it to `/data/local/tmp/backend-daemon` on the device and running it with root there.
+
+#### Do it youself deploy
+To just build the daemon, run the following command inside of `rust/` for your desired architecture:
+```
+AYA_BUILD_EBPF=true cargo ndk -t x86_64 build --package backend-daemon
+AYA_BUILD_EBPF=true cargo ndk -t arm64-v8a build --package backend-daemon
+```
+You can then proceed to copy the executable (`rust/target/debug/backend-daemon`) to wherever you like and run it. You need root privileges in order to run it.
+
+## Usage
+The app can be used like any other android app. Just open it from the device launcher.
+
+### Demo video
+<video width="1600" controls>
+  <source src="./Deliverables/sprint-13/demo-video.mp4" type="video/mp4">
+</video>
+
+### Visualize
+
+This screen offers visualizations for different kinds of events. 
+You can select the package you want to inspect, the kind of metric that interests you and time intervals.
+
+![Visualization](https://github.com/user-attachments/assets/f81a3513-cf5b-483a-9c68-0af355159144)
+
+
+### Configuration
+
+The configuration screen allows you to select options per process.
+
+![image](https://github.com/user-attachments/assets/75909616-3819-447f-bb50-52f25de9b99c)
+
+### Reset
+
+This empties the configuration and allows for a clean restart.
+
+## Technical Design
+To view more information on our technical design, please check our [Wiki](https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/wiki/Technical-Design)
 
 ## Documentation
 
@@ -98,3 +151,5 @@ You should prefer the MIT license if possible.
 The easiest way to set the license and copyright is to execute `reuse annotate --copyright="YOUR NAME <YOUR EMAIL>" --license "MIT" FILE`.
 
 To check whether you have done everything correctly, execute `reuse lint` in the project root directory.
+
+[^1]: Android is a trademark of Google LLC. The Android robot is reproduced or modified from work created and shared by Google and used according to terms described in the Creative Commons 3.0 Attribution License.
