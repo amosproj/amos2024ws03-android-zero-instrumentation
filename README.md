@@ -1,5 +1,6 @@
 <!--
 SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 
 SPDX-License-Identifier: MIT
 -->
@@ -74,6 +75,8 @@ This can be started with the `emulator` tool like this:
 emulator @YOUR_AVD_NAME
 ```
 
+## Build & Deploy
+For information on the build and deploy process, visit our [Wiki](https://github.com/amosproj/amos2024ws03-android-zero-instrumentation/wiki/Build-&-Deploy).
 
 ## Documentation
 
