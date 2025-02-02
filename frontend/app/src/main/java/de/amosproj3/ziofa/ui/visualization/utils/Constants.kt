@@ -13,10 +13,10 @@ import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import kotlin.time.DurationUnit
 import kotlinx.collections.immutable.persistentListOf
 
+/** The options displayed on the time*/
 @Suppress("MagicNumber") // these are constants already
 val DEFAULT_TIMEFRAME_OPTIONS =
     persistentListOf(
-        DropdownOption.Timeframe(500, DurationUnit.MILLISECONDS),
         DropdownOption.Timeframe(1, DurationUnit.SECONDS),
         DropdownOption.Timeframe(2, DurationUnit.SECONDS),
         DropdownOption.Timeframe(5, DurationUnit.SECONDS),
@@ -25,9 +25,13 @@ val DEFAULT_TIMEFRAME_OPTIONS =
         DropdownOption.Timeframe(30, DurationUnit.SECONDS),
     )
 
-val DEFAULT_TIMESERIES_DATA = persistentListOf(-1f to -1f) // TODO replace with reasonable defaults
-val DEFAULT_GRAPHED_DATA = GraphedData.EMPTY // TODO replace with reasonable defaults
+/** The time series data to show if there is no data yet*/
+val DEFAULT_TIMESERIES_DATA = persistentListOf(-1f to -1f)
 
+/** Graphed data to show if there is no data yet */
+val DEFAULT_GRAPHED_DATA = GraphedData.EMPTY
+
+/** Selection data before there is any selection made */
 val DEFAULT_SELECTION_DATA =
     SelectionData(
         componentOptions = persistentListOf(),
@@ -38,13 +42,18 @@ val DEFAULT_SELECTION_DATA =
         selectedTimeframe = null,
     )
 
-val DEFAULT_CHART_METADATA = // TODO replace with reasonable defaults
+/** Chart metadata to show if there are no labels mapped for a graph */
+val DEFAULT_CHART_METADATA =
     ChartMetadata(xLabel = "x", yLabel = "y")
 
+/** Event list labels to show if there are no labels mapped for a graph */
 val DEFAULT_EVENT_LIST_METADATA = EventListMetadata("unknown", "unknown", "unknown", "unknown")
 
+/** RGB Hex value for light purple */
 const val LIGHT_PURPLE = 0xffa485e0
+
+/** RGB Hex value for light yellow */
 const val LIGHT_YELLOW = 0xFFFFED
 
+/** The color of the primary line in the visualization */
 val VICO_LINE_COLOR = Color(LIGHT_PURPLE)
-val VICO_LINE_COLOR_2 = Color(LIGHT_YELLOW)

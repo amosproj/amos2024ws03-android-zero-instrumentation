@@ -24,7 +24,13 @@ import timber.log.Timber
 private val INITIAL_OVERLAY_SETTINGS = OverlaySettings()
 val INITIAL_OVERLAY_STATE = OverlayState.Disabled(INITIAL_OVERLAY_SETTINGS)
 
-/** Communication layer between service and UI */
+/** Communication layer between service and app UI.
+ * This state machine switches between [OverlayState.Disabled] and [OverlayState.Enabled] based on
+ * the [OverlayAction] that is received. In both states, the overlay settings can be changed.
+ * The transitions between the states start or stop the overlay service, which displays and
+ * manages the data displayed in the overlay. In order to change the data displayed in the overlay,
+ * the overlay has to be disabled and enabled again. This is not the case for (some) overlay settings.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OverlayManager(private val context: Context) :
     FlowReduxStateMachine<OverlayState, OverlayAction>(initialState = INITIAL_OVERLAY_STATE),
@@ -32,7 +38,7 @@ class OverlayManager(private val context: Context) :
 
     override val overlayState = MutableStateFlow<OverlayState>(INITIAL_OVERLAY_STATE)
 
-    override fun dispatchAction(action: OverlayAction) {
+    override fun performAction(action: OverlayAction) {
         CoroutineScope(Dispatchers.IO).launch { this@OverlayManager.dispatch(action) }
     }
 

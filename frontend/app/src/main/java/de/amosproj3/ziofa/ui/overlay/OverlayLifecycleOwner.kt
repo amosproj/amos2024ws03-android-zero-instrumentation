@@ -16,13 +16,6 @@ internal class OverlayLifecycleOwner : SavedStateRegistryOwner {
     override val savedStateRegistry = savedStateRegistryController.savedStateRegistry
     override val lifecycle: Lifecycle = lifecycleRegistry
 
-    val isInitialized: Boolean
-        get() = true
-
-    fun setCurrentState(state: Lifecycle.State) {
-        lifecycleRegistry.currentState = state
-    }
-
     fun attach() {
         savedStateRegistryController.performAttach()
     }
@@ -35,7 +28,4 @@ internal class OverlayLifecycleOwner : SavedStateRegistryOwner {
         savedStateRegistryController.performRestore(savedState)
     }
 
-    fun performSave(outBundle: Bundle) {
-        savedStateRegistryController.performSave(outBundle)
-    }
 }

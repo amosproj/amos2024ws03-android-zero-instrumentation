@@ -13,10 +13,15 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
+/** Currently unused as there is no "uprobe event".
+ * -> There is no point in setting uprobes from the UI.
+ * */
 class UProbeManager(private val clientFactory: ClientFactory) : SymbolsAccess {
 
-    /** We should do this on the backend in the future. */
-    @OptIn(ExperimentalCoroutinesApi::class)
+
+    /** Currently unused as there is no "uprobe event".
+     * -> There is no point in setting uprobes from the UI.
+     * */
     override fun searchSymbols(
         pids: List<UInt>,
         searchQuery: String,

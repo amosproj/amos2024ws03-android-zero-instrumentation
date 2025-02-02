@@ -40,8 +40,8 @@ private const val WELCOME_TO_FONT_SIZE = 30f
 private const val APP_TITLE_FONT_SIZE = 50f
 
 /**
- * Screen displayed on startup. The loading screen could be displayed while indexing symbols in the
- * future.
+ * Screen displayed on startup.
+ * The loading screen could be displayed while indexing symbols in the future.
  */
 @Composable
 fun InitScreen(
