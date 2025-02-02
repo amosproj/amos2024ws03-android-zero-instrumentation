@@ -4,11 +4,13 @@
 //
 // SPDX-License-Identifier: MIT
 
+use core::str;
+
 use aya::maps::ring_buf::RingBufItem;
 use bytemuck::checked;
 use ebpf_types::{
     Blocking, Event as EbpfEvent, EventKind, FileDescriptorChange, FileDescriptorOp,
-    GarbageCollect, Jni, Signal, Write,
+    GarbageCollect, JniReferences, Signal, Write,
 };
 use shared::events::{
     event::EventType, jni_references_event::JniMethodName, log_event::EventData,
@@ -41,7 +43,9 @@ impl IntoEvent for RingBufItem<'_> {
             EventKind::FileDescriptorChange => {
                 checked::from_bytes::<EbpfEvent<FileDescriptorChange>>(&self).into_event()
             }
-            EventKind::Jni => checked::from_bytes::<EbpfEvent<Jni>>(&self).into_event(),
+            EventKind::JniReferences => {
+                checked::from_bytes::<EbpfEvent<JniReferences>>(&self).into_event()
+            }
             _ => todo!(),
         }
     }
@@ -121,7 +125,7 @@ impl IntoEvent for EbpfEvent<FileDescriptorChange> {
     }
 }
 
-impl IntoEvent for EbpfEvent<Jni> {
+impl IntoEvent for EbpfEvent<JniReferences> {
     fn into_event(self) -> Event {
         Event {
             event_type: Some(EventType::Log(LogEvent {
@@ -130,10 +134,10 @@ impl IntoEvent for EbpfEvent<Jni> {
                     tid: self.context.task.tid,
                     begin_time_stamp: self.context.timestamp,
                     jni_method_name: match self.data {
-                        Jni::AddLocalRef => JniMethodName::AddLocalRef,
-                        Jni::DeleteLocalRef => JniMethodName::DeleteLocalRef,
-                        Jni::AddGlobalRef => JniMethodName::AddGlobalRef,
-                        Jni::DeleteGlobalRef => JniMethodName::DeleteGlobalRef,
+                        JniReferences::AddLocalRef => JniMethodName::AddLocalRef,
+                        JniReferences::DeleteLocalRef => JniMethodName::DeleteLocalRef,
+                        JniReferences::AddGlobalRef => JniMethodName::AddGlobalRef,
+                        JniReferences::DeleteGlobalRef => JniMethodName::DeleteGlobalRef,
                     }
                     .into(),
                 })),

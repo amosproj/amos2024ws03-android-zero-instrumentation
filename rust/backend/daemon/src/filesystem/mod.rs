@@ -2,21 +2,23 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::io;
-use std::future::Future;
+use std::{future::Future, io};
 
 use shared::config::Configuration;
 
 mod memory;
 mod normal;
 
-pub use normal::NormalConfigurationStorage;
-
 #[allow(unused_imports)]
 pub use memory::MemoryConfigurationStorage;
+pub use normal::NormalConfigurationStorage;
 
 pub trait ConfigurationStorage: Send + Sync + 'static {
-    fn load(&self, path: &str) -> impl Future<Output = io::Result<Configuration>> + Send ;
+    fn load(&self, path: &str) -> impl Future<Output = io::Result<Configuration>> + Send;
 
-    fn save(&self, config: &Configuration, path: &str) -> impl Future<Output = io::Result<()>> + Send ;
+    fn save(
+        &self,
+        config: &Configuration,
+        path: &str,
+    ) -> impl Future<Output = io::Result<()>> + Send;
 }

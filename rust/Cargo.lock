@@ -578,6 +578,7 @@ dependencies = [
  "hyper-util",
  "libc",
  "object",
+ "paste",
  "procfs",
  "ractor",
  "serde",

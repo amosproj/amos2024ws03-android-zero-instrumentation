@@ -7,7 +7,7 @@ use aya::{
     EbpfError,
 };
 use ractor::ActorRef;
-use shared::config::SysSigquitConfig;
+use shared::config::SignalConfig;
 
 use crate::{
     features::Feature,
@@ -15,7 +15,7 @@ use crate::{
     symbols::actors::SymbolActorMsg,
 };
 
-pub struct SysSigquitFeature {
+pub struct SignalFeature {
     sys_enter_signal: RegistryGuard<RawTracePoint>,
     sys_exit_signal: RegistryGuard<RawTracePoint>,
 
@@ -23,7 +23,7 @@ pub struct SysSigquitFeature {
     sys_exit_signal_link: Option<RawTracePointLink>,
 }
 
-impl SysSigquitFeature {
+impl SignalFeature {
     fn create(registry: &EbpfRegistry) -> Self {
         Self {
             sys_enter_signal: registry.program.sys_enter_signal.take(),
@@ -53,10 +53,10 @@ impl SysSigquitFeature {
     }
 }
 
-impl Feature for SysSigquitFeature {
-    type Config = SysSigquitConfig;
+impl Feature for SignalFeature {
+    type Config = SignalConfig;
     fn init(registry: &EbpfRegistry, _: Option<ActorRef<SymbolActorMsg>>) -> Self {
-        SysSigquitFeature::create(registry)
+        SignalFeature::create(registry)
     }
 
     async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {
