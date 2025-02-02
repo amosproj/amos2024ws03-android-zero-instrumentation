@@ -106,9 +106,7 @@ You can then proceed to copy the executable (`rust/target/debug/backend-daemon`)
 The app can be used like any other android app. Just open it from the device launcher.
 
 ### Demo video
-<video width="1600" controls>
-  <source src="./Deliverables/sprint-13/demo-video.mp4" type="video/mp4">
-</video>
+[20250128-2116-demo-video.mp4](https://github.com/user-attachments/assets/61f5fd46-1878-4e9c-9112-542d884e0976)
 
 ### Visualize
 
