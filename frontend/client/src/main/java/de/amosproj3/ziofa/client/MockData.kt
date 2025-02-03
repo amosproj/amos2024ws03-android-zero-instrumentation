@@ -1035,6 +1035,18 @@ val processesList =
             state = "S",
             cmd = Cmdline(listOf("de.amosproj3.ziofa")),
         ),
+        Process(
+            pid = 14920u,
+            ppid = 390u,
+            state = "S",
+            cmd = Cmdline(listOf("/vendor/bin/navigationd")),
+        ),
+        Process(
+            pid = 14930u,
+            ppid = 390u,
+            state = "S",
+            cmd = Cmdline(listOf("/vendor/bin/rearviewcamerad")),
+        ),
         Process(pid = 14714u, ppid = 2u, state = "I", cmd = Comm(name = "kworker/0:1-events")),
     )
 

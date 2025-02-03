@@ -8,7 +8,6 @@ package de.amosproj3.ziofa.client
 
 import android.os.SystemClock
 import kotlin.random.Random
-import kotlin.random.nextULong
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -49,11 +48,11 @@ object RustClient : Client {
 
     override suspend fun initStream(): Flow<Event> =
         merge(
-            vfsWriteMockEvents(500),
+            vfsWriteMockEvents(1000),
             sendMsgMockEvents(500),
             jniReferencesMockEvents(700),
             sysSigQuitMockEvents(5000),
-            sysFdTrackingMockEvents(2500),
+            sysFdTrackingMockEvents(1000),
             gcMockEvents(4000),
         )
 
@@ -64,8 +63,8 @@ object RustClient : Client {
                     Event.VfsWrite(
                         pid = it,
                         tid = it + 1u,
-                        fp = listOf(0uL, 1uL, 2uL, 3uL, 0uL, 0uL, 0uL).random(),
-                        bytesWritten = listOf(8uL, 16uL, 32uL, 64uL).random(),
+                        fp = listOf(1uL, 2uL, 3uL).random(),
+                        bytesWritten = listOf(10uL, 12uL, 8uL, 8uL).random(),
                         beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
                     )
                 )
@@ -75,17 +74,27 @@ object RustClient : Client {
     }
 
     private fun sendMsgMockEvents(emissionDelayBoundMillis: Int) = flow {
+        var ctr = 0
+        var multiplier = 1.3
+
         while (true) {
+
+            val next = (Random.nextLong(40_000_000) * multiplier).toULong()
+
             configuration.sysSendmsg?.entries?.keys?.forEach {
                 emit(
                     Event.SysSendmsg(
                         pid = it,
                         tid = it + 1u,
                         fd = listOf(3uL, 4uL, 5uL, 6uL, 6uL, 6uL).random(),
-                        durationNanoSecs = 10_000_000u + Random.nextULong(40_000_000u),
+                        durationNanoSecs = 10_000_000u + next,
                         beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
                     )
                 )
+            }
+            ctr++
+            if (ctr % 15 == 0) {
+                multiplier *= 1.3
             }
             delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
@@ -129,21 +138,42 @@ object RustClient : Client {
 
     private fun sysFdTrackingMockEvents(emissionDelayBoundMillis: Int) = flow {
         while (true) {
-            configuration.sysFdTracking?.pids?.forEach {
-                val rnd = Random.nextFloat()
-                val syFdMethod =
-                    if (rnd > 0.33f) Event.SysFdTracking.SysFdAction.Created
-                    else Event.SysFdTracking.SysFdAction.Destroyed
-                emit(
-                    Event.SysFdTracking(
-                        pid = it,
-                        tid = it + 1u,
-                        timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
-                        fdAction = syFdMethod,
+
+            val rnd1 = Random.nextFloat()
+
+            if (rnd1 >= 0.3f) {
+                configuration.sysFdTracking?.pids?.forEach {
+                    val rnd = Random.nextFloat()
+                    val syFdMethod =
+                        if (rnd > 0.20f) Event.SysFdTracking.SysFdAction.Created
+                        else Event.SysFdTracking.SysFdAction.Destroyed
+                    emit(
+                        Event.SysFdTracking(
+                            pid = it,
+                            tid = it + 1u,
+                            timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                            fdAction = syFdMethod,
+                        )
                     )
-                )
+                }
+                delay((Random.nextFloat() * (emissionDelayBoundMillis / 5)).toLong())
+            } else {
+                configuration.sysFdTracking?.pids?.forEach {
+                    val rnd = Random.nextFloat()
+                    val syFdMethod =
+                        if (rnd > 0.40f) Event.SysFdTracking.SysFdAction.Created
+                        else Event.SysFdTracking.SysFdAction.Destroyed
+                    emit(
+                        Event.SysFdTracking(
+                            pid = it,
+                            tid = it + 1u,
+                            timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                            fdAction = syFdMethod,
+                        )
+                    )
+                }
+                delay((Random.nextFloat() * (emissionDelayBoundMillis)).toLong())
             }
-            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
     }
 
