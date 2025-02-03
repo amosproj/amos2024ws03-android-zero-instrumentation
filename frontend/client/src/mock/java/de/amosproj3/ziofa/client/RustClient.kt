@@ -49,11 +49,11 @@ object RustClient : Client {
 
     override suspend fun initStream(): Flow<Event> =
         merge(
-            vfsWriteMockEvents(500),
+            vfsWriteMockEvents(1000),
             sendMsgMockEvents(500),
             jniReferencesMockEvents(700),
             sysSigQuitMockEvents(5000),
-            sysFdTrackingMockEvents(2500),
+            sysFdTrackingMockEvents(1000),
             gcMockEvents(4000),
         )
 
@@ -64,8 +64,8 @@ object RustClient : Client {
                     Event.VfsWrite(
                         pid = it,
                         tid = it + 1u,
-                        fp = listOf(0uL, 1uL, 2uL, 3uL, 0uL, 0uL, 0uL).random(),
-                        bytesWritten = listOf(8uL, 16uL, 32uL, 64uL).random(),
+                        fp = listOf(1uL, 2uL, 3uL).random(),
+                        bytesWritten = listOf(10uL, 12uL, 8uL, 8uL).random(),
                         beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
                     )
                 )
@@ -128,11 +128,13 @@ object RustClient : Client {
     }
 
     private fun sysFdTrackingMockEvents(emissionDelayBoundMillis: Int) = flow {
+        val i = 1;
         while (true) {
+            
             configuration.sysFdTracking?.pids?.forEach {
                 val rnd = Random.nextFloat()
                 val syFdMethod =
-                    if (rnd > 0.33f) Event.SysFdTracking.SysFdAction.Created
+                    if (rnd > 0.70f) Event.SysFdTracking.SysFdAction.Created
                     else Event.SysFdTracking.SysFdAction.Destroyed
                 emit(
                     Event.SysFdTracking(
