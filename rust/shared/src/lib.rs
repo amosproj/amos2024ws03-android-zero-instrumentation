@@ -5,9 +5,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::events::{
-    event::EventType, log_event::EventData, time_series_event::EventTypeEnum, Event, LogEvent,
-};
+use events::{event::EventData, log_event::LogEventData, time_series_event::EventKind, Event, LogEvent};
 
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
@@ -30,66 +28,35 @@ pub mod processes {
 pub mod symbols {
     tonic::include_proto!("symbols");
 }
-
-impl TryInto<EventTypeEnum> for Event {
-    type Error = ();
-
-    fn try_into(self) -> Result<EventTypeEnum, ()> {
-        match self {
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::VfsWrite(_)),
-                    })),
-            } => Ok(EventTypeEnum::VfsWriteEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::SysSendmsg(_)),
-                    })),
-            } => Ok(EventTypeEnum::SysSendmsgEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::JniReferences(_)),
-                    })),
-            } => Ok(EventTypeEnum::JniReferencesEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::SysSigquit(_)),
-                    })),
-            } => Ok(EventTypeEnum::SysSigquitEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::Gc(_)),
-                    })),
-            } => Ok(EventTypeEnum::GcEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::SysFdTracking(_)),
-                    })),
-            } => Ok(EventTypeEnum::SysFdTrackingEvent),
-            _ => Err(()),
-        }
+pub mod google {
+    pub mod protobuf {
+        tonic::include_proto!("google.protobuf");
     }
 }
 
-impl From<LogEvent> for EventTypeEnum {
-    fn from(value: LogEvent) -> Self {
-        match value {
-            LogEvent {
-                event_data: Some(EventData::VfsWrite(_)),
-            } => EventTypeEnum::VfsWriteEvent,
-            LogEvent {
-                event_data: Some(EventData::SysSendmsg(_)),
-            } => EventTypeEnum::SysSendmsgEvent,
-            LogEvent {
-                event_data: Some(EventData::JniReferences(_)),
-            } => EventTypeEnum::JniReferencesEvent,
-            _ => panic!(),
+impl<'a> From<&'a Event> for EventKind {
+    fn from(value: &'a Event) -> Self {
+        let Some(EventData::LogEvent(log_event)) = value.event_data.as_ref() else {
+            return EventKind::Undefined
+        };
+        
+        log_event.into()
+    }
+}
+
+impl<'a> From<&'a LogEvent> for EventKind {
+    fn from(value: &'a LogEvent) -> Self {
+        let Some(data) = value.log_event_data.as_ref() else {
+            return EventKind::Undefined
+        };
+        
+        match data {
+            LogEventData::WriteEvent(_) => EventKind::Write,
+            LogEventData::BlockingEvent(_) => EventKind::Blocking,
+            LogEventData::JniReferencesEvent(_) => EventKind::JniReferences,
+            LogEventData::SignalEvent(_) => EventKind::Signal,
+            LogEventData::GarbageCollectEvent(_) => EventKind::GarbageCollect,
+            LogEventData::FileDescriptorChangeEvent(_) => EventKind::FileDescriptorChange,
         }
     }
 }

@@ -5,14 +5,17 @@
 syntax = "proto3";
 package events;
 
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
 // A single event. There are two types of events: normal events which can be
 // used for logging and aggregated time series events.
 message Event {
-  oneof event_type {
+  oneof event_data {
     // Time series event
-    TimeSeriesEvent time_series = 1;
+    TimeSeriesEvent time_series_event = 1;
     // A normal logging event
-    LogEvent log = 2;
+    LogEvent log_event = 2;
   }
 }
 
@@ -20,139 +23,140 @@ message Event {
 // milliseconds over which data was aggregated and a map, which maps a PID to
 // a list of the unaggregated single event time stamps in nanoseconds.
 message TimeSeriesEvent {
-  message TimeSeriesType {
+  message TimeSeriesData {
     // A list of the unaggregated single event time stamps in nanoseconds
     repeated uint64 list = 1;
   }
-  enum EventTypeEnum {
-    VfsWriteEvent = 0;
-    SysSendmsgEvent = 1;
-    JniReferencesEvent = 2;
-    SysSigquitEvent = 3;
-    GcEvent = 4;
-    SysFdTrackingEvent = 5;
+  enum EventKind {
+    EVENT_KIND_UNDEFINED = 0;
+    EVENT_KIND_WRITE = 1;
+    EVENT_KIND_BLOCKING = 2;
+    EVENT_KIND_SIGNAL = 3;
+    EVENT_KIND_GARBAGE_COLLECT = 4;
+    EVENT_KIND_FILE_DESCRIPTOR_CHANGE = 5;
+    EVENT_KIND_JNI_REFERENCES = 6;
   }
   // The type of the aggregated events
-  EventTypeEnum event_type_enum = 1;
+  EventKind event_kind = 1;
   // The timeframe in milliseconds over which data was aggregated
   uint32 timeframe_ms = 2;
   // Map, which maps a PID to a list of the unaggregated single event time
   // stamps in nanoseconds
-  map<uint32, TimeSeriesType> time_series_map = 3;
+  map<uint32, TimeSeriesData> time_series_map = 3;
 }
 
 // A single unaggregated event which contains one of the sub-events.
 message LogEvent {
-  oneof event_data {
-    VfsWriteEvent vfs_write = 1;
-    SysSendmsgEvent sys_sendmsg = 2;
-    JniReferencesEvent jni_references = 3;
-    SysSigquitEvent sys_sigquit = 4;
-    GcEvent gc = 5;
-    SysFdTrackingEvent sys_fd_tracking = 6;
+  // The event context
+  EventContext log_event_context = 1;
+  // The event data
+  oneof log_event_data {
+    WriteEvent write_event = 2;
+    BlockingEvent blocking_event = 3;
+    JniReferencesEvent jni_references_event = 4;
+    SignalEvent signal_event = 5;
+    GarbageCollectEvent garbage_collect_event = 6;
+    FileDescriptorChangeEvent file_descriptor_change_event = 7;
   }
 }
 
-// A VFS Write (sys_vfswrite) event.
-message VfsWriteEvent {
-  // The PID by which the syscall was used
+message EventContext {
+  // The PID of the event source
   uint32 pid = 1;
-  // The TID by which the syscall was used
+  // The TID of the event source
   uint32 tid = 2;
-  // The beginning time stamp in nanoseconds of the event
-  uint64 begin_time_stamp = 3;
-  // The file descriptor on which the syscall was used
-  uint64 fp = 4;
+  // The timestamp of the event
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+// A Write event
+message WriteEvent {
+  // Different write syscalls
+  enum WriteSource {
+    WRITE_SOURCE_UNDEFINED = 0;
+    // Corresponds to `write` syscall
+    WRITE_SOURCE_WRITE = 1;
+    // Corresponds to `pwrite64` syscall
+    WRITE_SOURCE_WRITEV = 2;
+    // Corresponds to `pwritev2` syscall
+    WRITE_SOURCE_WRITE64 = 3;
+    // Corresponds to `pwritev` syscall
+    WRITE_SOURCE_WRITEV2 = 4;
+  }
+
+  // The file descriptor to which the write was performed
+  uint64 file_descriptor = 1;
   // How many bytes were written by the syscall
-  uint64 bytes_written = 5;
+  uint64 bytes_written = 2;
+  // The path of the file to which the write was performed
+  string file_path = 3;
+  // The source of the write
+  WriteSource source = 4;
 }
 
 // A Unix Domain Socket (sys_sendmsg) event.
-message SysSendmsgEvent {
-  // The PID by which the syscall was used
-  uint32 pid = 1;
-  // The TID by which the syscall was used
-  uint32 tid = 2;
-  // The beginning time stamp in nanoseconds of the event
-  uint64 begin_time_stamp = 3;
-  // The file descriptor on which the syscall was used
-  uint64 fd = 4;
-  // The blocking duration in nanoseconds of the syscall
-  uint64 duration_nano_sec = 5;
+message BlockingEvent {
+  // The duration of the blocking operation
+  google.protobuf.Duration duration = 1;
 }
 
 // Indirect JNI References event.
 message JniReferencesEvent {
+  // Different JNI method names
   enum JniMethodName {
-    Undefined = 0;
-    AddLocalRef = 1;
-    DeleteLocalRef = 2;
-    AddGlobalRef = 3;
-    DeleteGlobalRef = 4;
+    JNI_METHOD_NAME_UNDEFINED = 0;
+    JNI_METHOD_NAME_ADD_LOCAL_REF = 1;
+    JNI_METHOD_NAME_DELETE_LOCAL_REF = 2;
+    JNI_METHOD_NAME_ADD_GLOBAL_REF = 3;
+    JNI_METHOD_NAME_DELETE_GLOBAL_REF = 4;
   }
-  // The PID by which the event was dispatched
-  uint32 pid = 1;
-  // The TID by which the event was dispatched
-  uint32 tid = 2;
-  // The beginning time stamp in nanoseconds of the event
-  uint64 begin_time_stamp = 3;
-  // The type of the event
-  JniMethodName jni_method_name = 4;
+  // The event context
+  EventContext event_context = 1;
+  // The type of operation
+  JniMethodName jni_method_name = 2;
 }
 
-// SIQUIT event.
-message SysSigquitEvent {
-  // The PID by which the event was dispatched
-  uint32 pid = 1;
-  // The TID by which the event was dispatched
-  uint32 tid = 2;
-  // The time stamp in nanoseconds of the event
-  uint64 time_stamp = 3;
-  // The target PID of the SIGQUIT signal
-  uint64 target_pid = 4;
+// A signal event
+message SignalEvent {
+  // The target PID of the signal
+  int32 target_pid = 1;
+  // The signal number
+  uint32 signal = 2;
 }
 
 // Garbage Collection Analysis event.
-message GcEvent {
-  // The PID by which the event was dispatched
-  uint32 pid = 1;
-  // The TID by which the event was dispatched
-  uint32 tid = 2;
-  // Target size (as in maximum allocatable bytes) for the heap
-  uint64 target_footprint = 3;
+message GarbageCollectEvent {
+  uint64 target_footprint = 1;
   // Number of bytes currently allocated and not yet reclaimed
-  uint64 num_bytes_allocated = 4;
+  uint64 num_bytes_allocated = 2;
   // Number of completed garbage collections
-  uint32 gcs_completed = 5;
+  uint32 gcs_completed = 3;
   // Cause of the gc invocation
-  uint32 gc_cause = 6;
+  uint32 gc_cause = 4;
   // The duration of the garbage collection in nanoseconds
-  uint64 duration_ns = 7;
+  uint64 duration_ns = 5;
   // How many objects were collected
-  uint64 freed_objects = 8;
+  uint64 freed_objects = 6;
   // How much space of objects was freed in Bytes
-  int64 freed_bytes = 9;
+  int64 freed_bytes = 7;
   // How many large objects were collected
-  uint64 freed_los_objects = 10;
+  uint64 freed_los_objects = 8;
   // How much space of large objects was freed in Bytes
-  int64 freed_los_bytes = 11;
+  int64 freed_los_bytes = 9;
   // How long the gc blocked the process
-  repeated uint64 pause_times = 12;
+  repeated uint64 pause_times = 10;
 }
 
 // Open File Descriptors event.
-message SysFdTrackingEvent {
-  enum SysFdAction {
-    Undefined = 0;
-    Created = 1;
-    Destroyed = 2;
+message FileDescriptorChangeEvent {
+  // The operation performed on the file descriptor
+  enum FileDescriptorOp {
+    FILE_DESCRIPTOR_OP_UNDEFINED = 0;
+    // File descriptors were opened
+    FILE_DESCRIPTOR_OP_OPEN = 1;
+    // File descriptors were closed
+    FILE_DESCRIPTOR_OP_CLOSE = 2;
   }
-  // The PID by which the event was dispatched
-  uint32 pid = 1;
-  // The TID by which the event was dispatched
-  uint32 tid = 2;
-  // The time stamp in nanoseconds of the event
-  uint64 time_stamp = 3;
   // If a fd was created or destroyed
-  SysFdAction fd_action = 4;
+  FileDescriptorOp file_descriptor_op = 1;
 }
