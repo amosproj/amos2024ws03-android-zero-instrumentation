@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 use client::Client;
-use shared::config::{Configuration, GcConfig, SysFdTrackingConfig, SysSendmsgConfig, SysSigquitConfig, VfsWriteConfig};
+use shared::config::Configuration;
 use shared::processes::process::Cmd;
 
 // client tests assume daemon is running!
@@ -39,20 +39,7 @@ async fn list_processes() {
 async fn set_get_empty_config() {
     let mut client = setup().await;
 
-    let default_config = Configuration {
-        uprobes: vec![],
-        vfs_write: Some(VfsWriteConfig {
-            entries: std::collections::HashMap::new(),
-        }),
-        sys_sendmsg: Some(SysSendmsgConfig {
-            entries: std::collections::HashMap::new(),
-        }),
-        // jni_references: Some(JniReferencesConfig { pids: vec![] }),
-        jni_references: None,
-        sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-        gc: Some(GcConfig { }),
-        sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
-    };
+    let default_config = Configuration::default();
 
     client
         .set_configuration(default_config.clone())

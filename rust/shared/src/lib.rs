@@ -5,7 +5,10 @@
 //
 // SPDX-License-Identifier: MIT
 
+use std::time::Duration;
+
 use events::{event::EventData, log_event::LogEventData, time_series_event::EventKind, Event, LogEvent};
+
 
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
@@ -29,14 +32,48 @@ pub mod symbols {
     tonic::include_proto!("symbols");
 }
 pub mod google {
-    pub mod protobuf {
+    pub mod protobuf_internal {
         tonic::include_proto!("google.protobuf");
+    }
+    pub mod protobuf {
+        pub use super::protobuf_internal::{Duration, Timestamp};
+        pub type Empty = ();
+    }
+}
+
+impl From<Duration> for google::protobuf::Duration {
+    fn from(value: Duration) -> Self {
+        google::protobuf::Duration {
+            seconds: value.as_secs() as i64,
+            nanos: value.subsec_nanos() as i32,
+        }
+    }
+}
+
+impl From<google::protobuf::Duration> for Duration {
+    fn from(value: google::protobuf::Duration) -> Self {
+        Duration::from_secs(value.seconds as u64) + Duration::from_nanos(value.nanos as u64)
+    }
+}
+
+impl From<Duration> for google::protobuf::Timestamp {
+    fn from(value: Duration) -> Self {
+        google::protobuf::Timestamp {
+            seconds: value.as_secs() as i64,
+            nanos: value.subsec_nanos() as i32,
+        }
+    }
+}
+
+impl From<google::protobuf::Timestamp> for Duration {
+    fn from(value: google::protobuf::Timestamp) -> Self {
+        Duration::from_secs(value.seconds as u64) + Duration::from_nanos(value.nanos as u64)
     }
 }
 
 impl<'a> From<&'a Event> for EventKind {
     fn from(value: &'a Event) -> Self {
-        let Some(EventData::LogEvent(log_event)) = value.event_data.as_ref() else {
+        let Some(EventData::Log(log_event)) = value.event_data.as_ref() else {
             return EventKind::Undefined
         };
         
@@ -51,12 +88,12 @@ impl<'a> From<&'a LogEvent> for EventKind {
         };
         
         match data {
-            LogEventData::WriteEvent(_) => EventKind::Write,
-            LogEventData::BlockingEvent(_) => EventKind::Blocking,
-            LogEventData::JniReferencesEvent(_) => EventKind::JniReferences,
-            LogEventData::SignalEvent(_) => EventKind::Signal,
-            LogEventData::GarbageCollectEvent(_) => EventKind::GarbageCollect,
-            LogEventData::FileDescriptorChangeEvent(_) => EventKind::FileDescriptorChange,
+            LogEventData::JniReferences(_) => EventKind::JniReferences,
+            LogEventData::Signal(_) => EventKind::Signal,
+            LogEventData::GarbageCollect(_) => EventKind::GarbageCollect,
+            LogEventData::FileDescriptorChange(_) => EventKind::FileDescriptorChange,
+            LogEventData::Blocking(_) => EventKind::Blocking,
+            LogEventData::Write(_) => EventKind::Write,
         }
     }
 }

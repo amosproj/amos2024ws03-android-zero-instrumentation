@@ -41,9 +41,9 @@ impl TimeSeries {
     }
 }
 
-impl From<TimeSeries> for shared::events::time_series_event::TimeSeriesType {
+impl From<TimeSeries> for shared::events::time_series_event::TimeSeriesData {
     fn from(series: TimeSeries) -> Self {
-        shared::events::time_series_event::TimeSeriesType {
+        shared::events::time_series_event::TimeSeriesData {
             list: series.as_array(),
         }
     }

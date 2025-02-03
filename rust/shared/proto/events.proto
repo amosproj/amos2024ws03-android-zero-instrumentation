@@ -13,9 +13,9 @@ import "google/protobuf/timestamp.proto";
 message Event {
   oneof event_data {
     // Time series event
-    TimeSeriesEvent time_series_event = 1;
+    TimeSeriesEvent time_series = 1;
     // A normal logging event
-    LogEvent log_event = 2;
+    LogEvent log = 2;
   }
 }
 
@@ -48,15 +48,15 @@ message TimeSeriesEvent {
 // A single unaggregated event which contains one of the sub-events.
 message LogEvent {
   // The event context
-  EventContext log_event_context = 1;
+  EventContext context = 1;
   // The event data
   oneof log_event_data {
-    WriteEvent write_event = 2;
-    BlockingEvent blocking_event = 3;
-    JniReferencesEvent jni_references_event = 4;
-    SignalEvent signal_event = 5;
-    GarbageCollectEvent garbage_collect_event = 6;
-    FileDescriptorChangeEvent file_descriptor_change_event = 7;
+    WriteEvent write = 2;
+    BlockingEvent blocking = 3;
+    JniReferencesEvent jni_references = 4;
+    SignalEvent signal = 5;
+    GarbageCollectEvent garbage_collect = 6;
+    FileDescriptorChangeEvent file_descriptor_change = 7;
   }
 }
 
@@ -110,10 +110,8 @@ message JniReferencesEvent {
     JNI_METHOD_NAME_ADD_GLOBAL_REF = 3;
     JNI_METHOD_NAME_DELETE_GLOBAL_REF = 4;
   }
-  // The event context
-  EventContext event_context = 1;
   // The type of operation
-  JniMethodName jni_method_name = 2;
+  JniMethodName method_name = 1;
 }
 
 // A signal event
@@ -157,6 +155,8 @@ message FileDescriptorChangeEvent {
     // File descriptors were closed
     FILE_DESCRIPTOR_OP_CLOSE = 2;
   }
+  // The number of open file descriptors
+  uint64 open_file_descriptors = 1;
   // If a fd was created or destroyed
-  FileDescriptorOp file_descriptor_op = 1;
+  FileDescriptorOp operation = 2;
 }

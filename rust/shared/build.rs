@@ -42,15 +42,19 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
             
             // events.proto
             "Event",
+            "EventContext",
             "TimeSeriesEvent",
-            "TimeSeriesType",
+            "TimeSeriesData",
             "LogEvent",
-            "VfsWriteEvent",
-            "SysSendmsgEvent",
+            "WriteEvent",
+            "BlockingEvent",
             "JniReferencesEvent",
-            "SysSigquitEvent",
-            "GcEvent",
-            "SysFdTrackingEvent",
+            "SignalEvent",
+            "GarbageCollectEvent",
+            "FileDescriptorChangeEvent",
+            
+            "Duration",
+            "Timestamp",
         ]
     } else {
         vec![]
@@ -64,12 +68,11 @@ static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
          */
         vec![
             "Process.cmd",
-            "Event.event_data",
-            "JniReferencesEvent.JniMethodName",
-            "Event.event_type",
-            "LogEvent.event_data",
-            "SysFdTrackingEvent.SysFdAction",
             "MissingBehavior",
+            "Event.event_data",
+            "LogEvent.log_event_data",
+            "JniMethodName",
+            "FileDescriptorOp",
             ]
     } else {
         vec![]

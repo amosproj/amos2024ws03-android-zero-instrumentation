@@ -4,22 +4,15 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 use clap::Parser;
 use clap::Subcommand;
 use client::Client;
 use client::ClientError;
 use shared::config::BlockingConfig;
 use shared::config::Configuration;
-use shared::config::FileDescriptorChangeConfig;
 use shared::config::Filter;
-use shared::config::GarbageCollectConfig;
-use shared::config::JniReferencesConfig;
-use shared::config::MissingBehavior;
-use shared::config::SignalConfig;
 use shared::config::UInt32Filter;
-use shared::config::UprobeConfig;
-use shared::config::WriteConfig;
-use std::collections::HashMap;
 use tokio_stream::StreamExt;
 
 pub type Result<T> = core::result::Result<T, ClientError>;
@@ -50,7 +43,7 @@ enum Commands {
 
     /// List all running processes
     Processes {
-        /// Only output number of processes
+        /// Only output number of processe
         #[arg(short, long)]
         silent: bool,
     },
@@ -78,17 +71,21 @@ enum Commands {
 }
 
 async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
-//   client
-//       .set_configuration(Configuration {
-//           blocking_config: Some(BlockingConfig {threshold: None, filter: Some(Filter { pid_filter: Some(UInt32Filter { missing_behavior: MissingBehavior::NotMatch.into(), r#match: vec![pid], ..Default::default() }), ..Default::default() })}),
-//           file_descriptor_change_config: Some(FileDescriptorChangeConfig {filter: Some(Filter { pid_filter: Some(UInt32Filter { missing_behavior: MissingBehavior::NotMatch.into(), r#match: vec![pid], ..Default::default() }), ..Default::default() })}),
-//           garbage_collect_config: Some(GarbageCollectConfig { filter: Some(Filter { pid_filter: Some(UInt32Filter { missing_behavior: MissingBehavior::NotMatch.into(), r#match: vec![pid], ..Default::default() }), ..Default::default() })}),
-//           jni_references_config: Some(JniReferencesConfig {filter: Some(Filter { pid_filter: Some(UInt32Filter { missing_behavior: MissingBehavior::NotMatch.into(), r#match: vec![pid], ..Default::default() }), ..Default::default() })}),
-//           signal_config: Some(SignalConfig {filter: Some(Filter { pid_filter: Some(UInt32Filter { missing_behavior: MissingBehavior::NotMatch.into(), r#match: vec![pid], ..Default::default() }), ..Default::default() })}),
-//           uprobe_configs: vec![],
-//           write_config: Some(WriteConfig {filter: Some(Filter { pid_filter: Some(UInt32Filter { missing_behavior: MissingBehavior::NotMatch.into(), r#match: vec![pid], ..Default::default() }), ..Default::default() })})
-//       })
-//       .await?;
+    client
+        .set_configuration(Configuration {
+            blocking_config: Some(BlockingConfig {
+                filter: Some(Filter {
+                    pid_filter: Some(UInt32Filter {
+                        r#match: vec![pid],
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+                threshold: Some(32_000_000),
+            }),
+            ..Default::default()
+        })
+        .await?;
 
     let mut stream = client.init_stream().await?;
 
@@ -100,24 +97,9 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
 }
 
 async fn set_config(client: &mut Client) -> Result<()> {
+    client.set_configuration(Configuration::default()).await?;
+    println!("Success");
     Ok(())
-   //client
-   //    .set_configuration(Configuration {
-   //        uprobes: vec![],
-   //        vfs_write: Some(VfsWriteConfig {
-   //            entries: HashMap::new(),
-   //        }),
-   //        sys_sendmsg: Some(SysSendmsgConfig {
-   //            entries: HashMap::new(),
-   //        }),
-   //        jni_references: None,
-   //        sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-   //        gc: None,
-   //        sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
-   //    })
-   //    .await?;
-   //println!("Success");
-   //Ok(())
 }
 
 async fn list_processes(client: &mut Client, silent: bool) -> Result<()> {
