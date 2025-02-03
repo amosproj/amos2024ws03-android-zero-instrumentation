@@ -128,13 +128,12 @@ object RustClient : Client {
     }
 
     private fun sysFdTrackingMockEvents(emissionDelayBoundMillis: Int) = flow {
-        val i = 1;
         while (true) {
             
             configuration.sysFdTracking?.pids?.forEach {
                 val rnd = Random.nextFloat()
                 val syFdMethod =
-                    if (rnd > 0.70f) Event.SysFdTracking.SysFdAction.Created
+                    if (rnd > 0.20f) Event.SysFdTracking.SysFdAction.Created
                     else Event.SysFdTracking.SysFdAction.Destroyed
                 emit(
                     Event.SysFdTracking(
@@ -145,7 +144,7 @@ object RustClient : Client {
                     )
                 )
             }
-            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
+            delay((Random.nextFloat() * (emissionDelayBoundMillis/5)).toLong())
         }
     }
 
