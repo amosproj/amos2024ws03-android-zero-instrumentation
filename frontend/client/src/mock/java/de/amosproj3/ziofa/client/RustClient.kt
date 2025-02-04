@@ -8,7 +8,6 @@ package de.amosproj3.ziofa.client
 
 import android.os.SystemClock
 import kotlin.random.Random
-import kotlin.random.nextULong
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -75,17 +74,27 @@ object RustClient : Client {
     }
 
     private fun sendMsgMockEvents(emissionDelayBoundMillis: Int) = flow {
+        var ctr = 0
+        var multiplier = 1.3
+
         while (true) {
+
+            val next = (Random.nextLong(40_000_000) * multiplier).toULong()
+
             configuration.sysSendmsg?.entries?.keys?.forEach {
                 emit(
                     Event.SysSendmsg(
                         pid = it,
                         tid = it + 1u,
                         fd = listOf(3uL, 4uL, 5uL, 6uL, 6uL, 6uL).random(),
-                        durationNanoSecs = 10_000_000u + Random.nextULong(40_000_000u),
+                        durationNanoSecs = 10_000_000u + next,
                         beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
                     )
                 )
+            }
+            ctr++
+            if (ctr % 15 == 0) {
+                multiplier *= 1.3
             }
             delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
@@ -128,13 +137,9 @@ object RustClient : Client {
     }
 
     private fun sysFdTrackingMockEvents(emissionDelayBoundMillis: Int) = flow {
-
-        
-
-
         while (true) {
-            
-            val rnd1 = Random.nextFloat();
+
+            val rnd1 = Random.nextFloat()
 
             if (rnd1 >= 0.5f) {
                 configuration.sysFdTracking?.pids?.forEach {
@@ -151,7 +156,7 @@ object RustClient : Client {
                         )
                     )
                 }
-                delay((Random.nextFloat() * (emissionDelayBoundMillis/5)).toLong())
+                delay((Random.nextFloat() * (emissionDelayBoundMillis / 5)).toLong())
             } else {
                 configuration.sysFdTracking?.pids?.forEach {
                     val rnd = Random.nextFloat()
@@ -169,7 +174,6 @@ object RustClient : Client {
                 }
                 delay((Random.nextFloat() * (emissionDelayBoundMillis)).toLong())
             }
-            
         }
     }
 
