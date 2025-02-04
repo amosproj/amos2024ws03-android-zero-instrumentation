@@ -128,23 +128,48 @@ object RustClient : Client {
     }
 
     private fun sysFdTrackingMockEvents(emissionDelayBoundMillis: Int) = flow {
+
+        
+
+
         while (true) {
             
-            configuration.sysFdTracking?.pids?.forEach {
-                val rnd = Random.nextFloat()
-                val syFdMethod =
-                    if (rnd > 0.20f) Event.SysFdTracking.SysFdAction.Created
-                    else Event.SysFdTracking.SysFdAction.Destroyed
-                emit(
-                    Event.SysFdTracking(
-                        pid = it,
-                        tid = it + 1u,
-                        timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
-                        fdAction = syFdMethod,
+            val rnd1 = Random.nextFloat();
+
+            if (rnd1 >= 0.5f) {
+                configuration.sysFdTracking?.pids?.forEach {
+                    val rnd = Random.nextFloat()
+                    val syFdMethod =
+                        if (rnd > 0.20f) Event.SysFdTracking.SysFdAction.Created
+                        else Event.SysFdTracking.SysFdAction.Destroyed
+                    emit(
+                        Event.SysFdTracking(
+                            pid = it,
+                            tid = it + 1u,
+                            timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                            fdAction = syFdMethod,
+                        )
                     )
-                )
+                }
+                delay((Random.nextFloat() * (emissionDelayBoundMillis/5)).toLong())
+            } else {
+                configuration.sysFdTracking?.pids?.forEach {
+                    val rnd = Random.nextFloat()
+                    val syFdMethod =
+                        if (rnd > 0.40f) Event.SysFdTracking.SysFdAction.Created
+                        else Event.SysFdTracking.SysFdAction.Destroyed
+                    emit(
+                        Event.SysFdTracking(
+                            pid = it,
+                            tid = it + 1u,
+                            timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                            fdAction = syFdMethod,
+                        )
+                    )
+                }
+                delay((Random.nextFloat() * (emissionDelayBoundMillis)).toLong())
             }
-            delay((Random.nextFloat() * (emissionDelayBoundMillis/5)).toLong())
+            
         }
     }
 
