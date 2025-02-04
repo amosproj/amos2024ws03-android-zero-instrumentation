@@ -48,6 +48,8 @@ dependencies {
     testRealReleaseImplementation(project(":bindings", "desktopReleaseLibs"))
 
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.datetime)
+
     testImplementation(libs.junit)
 
     androidTestImplementation(libs.androidx.junit)

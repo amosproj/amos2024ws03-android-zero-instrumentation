@@ -16,7 +16,7 @@ import de.amosproj3.ziofa.api.configuration.ConfigurationState
 import de.amosproj3.ziofa.client.Client
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Configuration
-import de.amosproj3.ziofa.ui.configuration.utils.EMPTY_CONFIGURATION
+import de.amosproj3.ziofa.ui.shared.EMPTY_CONFIGURATION
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

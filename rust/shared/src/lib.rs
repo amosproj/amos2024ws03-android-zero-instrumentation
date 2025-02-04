@@ -5,9 +5,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-use crate::events::{
-    event::EventType, log_event::EventData, time_series_event::EventTypeEnum, Event, LogEvent,
-};
+use std::time::Duration;
+
+use events::{event::EventData, log_event::LogEventData, time_series_event::EventKind, Event, LogEvent};
+
 
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
@@ -30,66 +31,69 @@ pub mod processes {
 pub mod symbols {
     tonic::include_proto!("symbols");
 }
+pub mod google {
+    pub mod protobuf_internal {
+        tonic::include_proto!("google.protobuf");
+    }
+    pub mod protobuf {
+        pub use super::protobuf_internal::{Duration, Timestamp};
+        pub type Empty = ();
+    }
+}
 
-impl TryInto<EventTypeEnum> for Event {
-    type Error = ();
-
-    fn try_into(self) -> Result<EventTypeEnum, ()> {
-        match self {
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::VfsWrite(_)),
-                    })),
-            } => Ok(EventTypeEnum::VfsWriteEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::SysSendmsg(_)),
-                    })),
-            } => Ok(EventTypeEnum::SysSendmsgEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::JniReferences(_)),
-                    })),
-            } => Ok(EventTypeEnum::JniReferencesEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::SysSigquit(_)),
-                    })),
-            } => Ok(EventTypeEnum::SysSigquitEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::Gc(_)),
-                    })),
-            } => Ok(EventTypeEnum::GcEvent),
-            Event {
-                event_type:
-                    Some(EventType::Log(LogEvent {
-                        event_data: Some(EventData::SysFdTracking(_)),
-                    })),
-            } => Ok(EventTypeEnum::SysFdTrackingEvent),
-            _ => Err(()),
+impl From<Duration> for google::protobuf::Duration {
+    fn from(value: Duration) -> Self {
+        google::protobuf::Duration {
+            seconds: value.as_secs() as i64,
+            nanos: value.subsec_nanos() as i32,
         }
     }
 }
 
-impl From<LogEvent> for EventTypeEnum {
-    fn from(value: LogEvent) -> Self {
-        match value {
-            LogEvent {
-                event_data: Some(EventData::VfsWrite(_)),
-            } => EventTypeEnum::VfsWriteEvent,
-            LogEvent {
-                event_data: Some(EventData::SysSendmsg(_)),
-            } => EventTypeEnum::SysSendmsgEvent,
-            LogEvent {
-                event_data: Some(EventData::JniReferences(_)),
-            } => EventTypeEnum::JniReferencesEvent,
-            _ => panic!(),
+impl From<google::protobuf::Duration> for Duration {
+    fn from(value: google::protobuf::Duration) -> Self {
+        Duration::from_secs(value.seconds as u64) + Duration::from_nanos(value.nanos as u64)
+    }
+}
+
+impl From<Duration> for google::protobuf::Timestamp {
+    fn from(value: Duration) -> Self {
+        google::protobuf::Timestamp {
+            seconds: value.as_secs() as i64,
+            nanos: value.subsec_nanos() as i32,
+        }
+    }
+}
+
+impl From<google::protobuf::Timestamp> for Duration {
+    fn from(value: google::protobuf::Timestamp) -> Self {
+        Duration::from_secs(value.seconds as u64) + Duration::from_nanos(value.nanos as u64)
+    }
+}
+
+impl<'a> From<&'a Event> for EventKind {
+    fn from(value: &'a Event) -> Self {
+        let Some(EventData::Log(log_event)) = value.event_data.as_ref() else {
+            return EventKind::Undefined
+        };
+        
+        log_event.into()
+    }
+}
+
+impl<'a> From<&'a LogEvent> for EventKind {
+    fn from(value: &'a LogEvent) -> Self {
+        let Some(data) = value.log_event_data.as_ref() else {
+            return EventKind::Undefined
+        };
+        
+        match data {
+            LogEventData::JniReferences(_) => EventKind::JniReferences,
+            LogEventData::Signal(_) => EventKind::Signal,
+            LogEventData::GarbageCollect(_) => EventKind::GarbageCollect,
+            LogEventData::FileDescriptorChange(_) => EventKind::FileDescriptorChange,
+            LogEventData::Blocking(_) => EventKind::Blocking,
+            LogEventData::Write(_) => EventKind::Write,
         }
     }
 }

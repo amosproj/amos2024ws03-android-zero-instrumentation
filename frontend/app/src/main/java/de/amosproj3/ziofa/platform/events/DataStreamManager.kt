@@ -9,10 +9,13 @@ import de.amosproj3.ziofa.api.events.DataStreamProvider
 import de.amosproj3.ziofa.client.ClientFactory
 import de.amosproj3.ziofa.client.Event
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.shareIn
 
@@ -20,7 +23,8 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
     DataStreamProvider {
 
     private val dataFlow =
-        flow { clientFactory.connect().initStream().collect { emit(it) } }
+        flow { emitAll(clientFactory.connect().initStream()) }
+            .flowOn(Dispatchers.IO)
             .shareIn(coroutineScope, SharingStarted.Lazily)
 
     override fun vfsWriteEvents(pids: List<UInt>?): Flow<Event.VfsWrite> =

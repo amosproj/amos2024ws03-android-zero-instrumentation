@@ -577,7 +577,9 @@ dependencies = [
  "garbage-collection",
  "hyper-util",
  "libc",
+ "nix",
  "object",
+ "paste",
  "procfs",
  "ractor",
  "serde",
@@ -987,6 +989,7 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "prost",
  "shared",

@@ -13,6 +13,10 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlinx.collections.immutable.toImmutableList
 
+/**
+ * Get the PIDs from the given [DropdownOption], or null if it is impossible to derive a pid from
+ * the given option. (like Global)
+ */
 fun DropdownOption.getPIDsOrNull(): List<UInt>? {
     return when (this) {
         is DropdownOption.Global -> null
@@ -22,6 +26,7 @@ fun DropdownOption.getPIDsOrNull(): List<UInt>? {
     }
 }
 
+/** Data conversion between [RunningComponent] platform wrapper and DropdownOption (UI wrapper) */
 fun List<RunningComponent>.toUIOptions() =
     this.map { component ->
             when (component) {
@@ -42,7 +47,10 @@ fun List<RunningComponent>.toUIOptions() =
         }
         .toImmutableList()
 
-/** Assert that the selection is valid (not-null) and has the correct subclasses */
+/**
+ * Assert that the selection is valid (= can be used for selecting the correct chart data) and is
+ * complete. The contract allows this function to be used where type safety is required
+ */
 @OptIn(ExperimentalContracts::class)
 fun isValidSelection(
     selectedComponent: DropdownOption?,

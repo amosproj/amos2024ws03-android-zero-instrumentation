@@ -43,6 +43,8 @@ hyper-util = { workspace = true }
 tower = { workspace = true }
 garbage-collection = { workspace = true, features = ["serialize", "btf"] }
 ebpf-types = { workspace = true, features = ["user"]}
+paste.workspace = true
+nix = { workspace = true, features = ["time"] }
 
 [build-dependencies]
 cargo_metadata = { workspace = true }

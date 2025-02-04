@@ -27,7 +27,9 @@ import de.amosproj3.ziofa.ui.visualization.utils.toReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toSeconds
 import de.amosproj3.ziofa.ui.visualization.utils.toTimestampedSeries
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 
@@ -42,16 +44,16 @@ fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
             ChartMetadata(yLabel = "Sum of bytes written", xLabel = "File Descriptor Name")
 
         is BackendFeatureOptions.SendMessageOption ->
-            ChartMetadata(yLabel = "Average duration", xLabel = "Seconds since start")
+            ChartMetadata(yLabel = "Average duration ms", xLabel = "Seconds since start")
 
         is BackendFeatureOptions.JniReferencesOption ->
             ChartMetadata(yLabel = "# Indirect References", xLabel = "Seconds since start")
 
         is BackendFeatureOptions.OpenFileDescriptors ->
-            ChartMetadata(yLabel = "# Open File Descriptors", xLabel = "Seconds since start")
+            ChartMetadata(yLabel = "# Open FDs", xLabel = "Seconds since start")
 
         is BackendFeatureOptions.GcOption ->
-            ChartMetadata(yLabel = "Size of total heap / used heap", xLabel = "n-th GC invocation")
+            ChartMetadata(yLabel = "Heap size", xLabel = "n-th GC invocation")
 
         else -> {
             Timber.e("needs metadata!")
@@ -117,5 +119,5 @@ fun DataStreamProvider.getChartData(
                 }
 
         else -> null
-    }
+    }?.flowOn(Dispatchers.Default)
 }

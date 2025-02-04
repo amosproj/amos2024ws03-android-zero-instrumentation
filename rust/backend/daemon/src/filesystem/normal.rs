@@ -11,7 +11,6 @@ use shared::config::Configuration;
 
 use super::ConfigurationStorage;
 
-
 pub struct NormalConfigurationStorage;
 
 impl ConfigurationStorage for NormalConfigurationStorage {

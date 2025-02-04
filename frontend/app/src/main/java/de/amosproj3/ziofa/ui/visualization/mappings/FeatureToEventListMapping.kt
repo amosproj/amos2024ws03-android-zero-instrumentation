@@ -15,6 +15,7 @@ import de.amosproj3.ziofa.ui.visualization.utils.accumulateEvents
 import de.amosproj3.ziofa.ui.visualization.utils.bytesToHumanReadableSize
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
 import de.amosproj3.ziofa.ui.visualization.utils.nanosToSecondsStr
+import de.amosproj3.ziofa.ui.visualization.utils.toHRString
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -38,7 +39,7 @@ fun DropdownOption.Metric.getEventListMetadata(): EventListMetadata {
         is BackendFeatureOptions.SendMessageOption ->
             EventListMetadata(
                 label1 = "Process ID",
-                label2 = "File Descriptor",
+                label2 = "Thread ID",
                 label3 = "Event time since Boot in s",
                 label4 = "Duration in seconds",
             )
@@ -98,8 +99,8 @@ fun DataStreamProvider.getEventListData(
             this.vfsWriteEvents(pids = pids).map {
                 EventListEntry(
                     col1 = "${it.pid}",
-                    col2 = "${it.fp}",
-                    col3 = it.beginTimeStamp.nanosToSecondsStr(),
+                    col2 = it.fp,
+                    col3 = it.beginTimeStamp.toHRString(),
                     col4 = "${it.bytesWritten}",
                 )
             }
@@ -108,9 +109,9 @@ fun DataStreamProvider.getEventListData(
             this.sendMessageEvents(pids = pids).map {
                 EventListEntry(
                     col1 = "${it.pid}",
-                    col2 = "${it.fd}",
-                    col3 = it.beginTimeStamp.nanosToSecondsStr(),
-                    col4 = it.durationNanoSecs.nanosToSecondsStr(),
+                    col2 = "${it.tid}",
+                    col3 = it.beginTimeStamp.toHRString(),
+                    col4 = it.duration.inWholeNanoseconds.nanosToSecondsStr(),
                 )
             }
 
@@ -120,7 +121,7 @@ fun DataStreamProvider.getEventListData(
                     col1 = "${it.pid}",
                     col2 = "${it.tid}",
                     col3 = "${it.beginTimeStamp}",
-                    col4 = it.jniMethodName!!.name, // TODO why is this nullable??
+                    col4 = "${it.jniMethodName ?: "undefined"}",
                 )
             }
 
@@ -130,7 +131,7 @@ fun DataStreamProvider.getEventListData(
                     col1 = "${it.pid}",
                     col2 = "${it.tid}",
                     col3 = "${it.targetPid}",
-                    col4 = it.timeStamp.nanosToSecondsStr(),
+                    col4 = it.timeStamp.toHRString(),
                 )
             }
 
@@ -150,7 +151,7 @@ fun DataStreamProvider.getEventListData(
                 EventListEntry(
                     col1 = "${it.pid}",
                     col2 = "${it.tid}",
-                    col3 = it.timeStamp.nanosToSecondsStr(),
+                    col3 = it.timeStamp.toHRString(),
                     col4 = it.fdAction?.name.toString(),
                 )
             }

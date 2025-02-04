@@ -10,7 +10,7 @@ use aya::{
     EbpfError,
 };
 use ractor::ActorRef;
-use shared::config::SysSendmsgConfig;
+use shared::config::BlockingConfig;
 
 use crate::{
     features::Feature,
@@ -18,14 +18,14 @@ use crate::{
     symbols::actors::SymbolActorMsg,
 };
 
-pub struct SysSendmsgFeature {
+pub struct BlockingFeature {
     sys_enter_blocking: RegistryGuard<RawTracePoint>,
     sys_exit_blocking: RegistryGuard<RawTracePoint>,
     sys_enter_blocking_link: Option<RawTracePointLink>,
     sys_exit_blocking_link: Option<RawTracePointLink>,
 }
 
-impl SysSendmsgFeature {
+impl BlockingFeature {
     fn create(registry: &EbpfRegistry) -> Self {
         Self {
             sys_enter_blocking: registry.program.sys_enter_blocking.take(),
@@ -55,10 +55,10 @@ impl SysSendmsgFeature {
     }
 }
 
-impl Feature for SysSendmsgFeature {
-    type Config = SysSendmsgConfig;
+impl Feature for BlockingFeature {
+    type Config = BlockingConfig;
     fn init(registry: &EbpfRegistry, _: Option<ActorRef<SymbolActorMsg>>) -> Self {
-        SysSendmsgFeature::create(registry)
+        BlockingFeature::create(registry)
     }
 
     async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {

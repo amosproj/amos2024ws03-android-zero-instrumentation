@@ -54,8 +54,8 @@ fun Configuration.toUIOptionsForPids(
 fun VfsWriteConfig?.toBackendFeatureOption(relevantPids: List<UInt>?) =
     this?.let {
         BackendFeatureOptions.VfsWriteOption(
-            enabled = it.entries.keys.anyPidsEnabled(relevantPids),
-            pids = it.entries.keys,
+            enabled = it.pids.anyPidsEnabled(relevantPids),
+            pids = it.pids.toSet(),
         )
     } ?: BackendFeatureOptions.VfsWriteOption(enabled = false, pids = setOf())
 
