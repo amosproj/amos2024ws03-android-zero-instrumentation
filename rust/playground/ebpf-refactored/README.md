@@ -181,8 +181,8 @@ The exit program is necessary to extract the information from the `art::gc::Heap
 
 #### Finding the address of `CollectGarbageInternal`
 
-As of Android 15, `C++` code in the AOSP has two macros called `EXPORT` and `HIDDEN` that essentially expand to `__attribute__((visibility("default")))` and `__attribute__((visibility("hidden")))`.
-Apart from a few exported methods, most of the `art::gc::Heap` methods are hidden because of that macro, including `CollectGarbageInternal`.
+The `C++` code in the AOSP has two macros called `EXPORT` and `HIDDEN` that essentially expand to `__attribute__((visibility("default")))` and `__attribute__((visibility("hidden")))`.
+In newer versions of Android most of the `art::gc::Heap` methods are hidden because of that macro, including `CollectGarbageInternal`.
 
 To find the address regardless, there are two strategies:
 
@@ -240,6 +240,7 @@ void Heap::CollectGarbage(bool clear_soft_references, GcCause cause) {
 To access the relevant information necessary for the `GarbageCollect` event, access to fields of the `art::gc::Heap` is required.
 `libclang` is used to find the size and offset of the relevant fields.
 This information is then converted to `btf` information which is used to the field accesses inside the ebpf program.
+One could also compile `libart` with debug symbols enabled and use `pahole` to generate the `btf` information.
 This means essentially that the `art::gc::Heap` can be accessed like a normal struct from the ebpf side.
 
 ```rust
