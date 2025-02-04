@@ -6,6 +6,8 @@
 package de.amosproj3.ziofa.client
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.Instant
+import kotlin.time.Duration
 
 data class Configuration(
     val vfsWrite: VfsWriteConfig?,
@@ -36,23 +38,22 @@ sealed class Event {
     data class VfsWrite(
         val pid: UInt,
         val tid: UInt,
-        val beginTimeStamp: ULong,
-        val fp: ULong,
+        val beginTimeStamp: Instant,
+        val fp: String,
         val bytesWritten: ULong,
     ) : Event()
 
     data class SysSendmsg(
         val pid: UInt,
         val tid: UInt,
-        val beginTimeStamp: ULong,
-        val fd: ULong,
-        val durationNanoSecs: ULong,
+        val beginTimeStamp: Instant,
+        val duration: Duration,
     ) : Event()
 
     data class JniReferences(
         val pid: UInt,
         val tid: UInt,
-        val beginTimeStamp: ULong,
+        val beginTimeStamp: Instant,
         val jniMethodName: JniMethodName?,
     ) : Event() {
         enum class JniMethodName {
@@ -60,13 +61,14 @@ sealed class Event {
             DeleteLocalRef,
             AddGlobalRef,
             DeleteGlobalRef,
+            Undefined
         }
     }
 
     data class SysSigquit(
         val pid: UInt,
         val tid: UInt,
-        val timeStamp: ULong,
+        val timeStamp: Instant,
         val targetPid: ULong,
     ) : Event()
 
@@ -88,12 +90,13 @@ sealed class Event {
     data class SysFdTracking(
         val pid: UInt,
         val tid: UInt,
-        val timeStamp: ULong,
+        val timeStamp: Instant,
         val fdAction: SysFdAction?,
     ) : Event() {
         enum class SysFdAction {
             Created,
             Destroyed,
+            Undefined
         }
     }
 }

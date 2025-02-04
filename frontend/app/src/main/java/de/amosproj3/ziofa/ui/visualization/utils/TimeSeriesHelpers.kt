@@ -62,7 +62,7 @@ fun Flow<Number>.toTimestampedSeries(seriesSize: Int, secondsPerDatapoint: Float
 fun Flow<List<Event.SysSendmsg>>.averageMessageDuration() =
     this.map {
         if (it.isNotEmpty()) {
-            val avg = it.map { it.durationNanoSecs.toLong() }.average()
+            val avg = it.map { it.duration.inWholeNanoseconds }.average()
             if (avg != 0.0) avg.nanosToMillis() else avg
         } else 0.0
     }
@@ -84,7 +84,7 @@ fun Flow<Event.JniReferences>.toReferenceCount() =
                 Event.JniReferences.JniMethodName.DeleteLocalRef -> prev.first - 1 to prev.second
                 Event.JniReferences.JniMethodName.AddGlobalRef -> prev.first to prev.second + 1
                 Event.JniReferences.JniMethodName.DeleteGlobalRef -> prev.first to prev.second - 1
-                null -> prev
+                else -> prev
             }
         }
         .map { it.first + it.second }
@@ -97,7 +97,7 @@ fun Flow<Event.SysFdTracking>.countFileDescriptors() =
             when (next.fdAction) {
                 Event.SysFdTracking.SysFdAction.Created -> prev.first + 1 to prev.second
                 Event.SysFdTracking.SysFdAction.Destroyed -> prev.first - 1 to prev.second
-                null -> prev
+                else -> prev
             }
         }
         .map { it.first + it.second }
@@ -124,7 +124,7 @@ fun Flow<Pair<ULong, ULong>>.toCountedMultiSeries(seriesSize: Int) =
     }
 
 /** Sort the given flow of lists of [Pair] by the second element (y) and clip the result to the given [limit] */
-fun Flow<List<Pair<ULong, Double>>>.sortAndClip(limit: Int) =
+fun Flow<List<Pair<String, Double>>>.sortAndClip(limit: Int) =
     this.map { it.sortedBy { (fd, size) -> size }.reversed().take(limit) }.conflate()
 
 /** Check if the given list is the default series data */

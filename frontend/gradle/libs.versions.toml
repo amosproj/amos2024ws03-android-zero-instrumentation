@@ -21,6 +21,7 @@ junitVersion = "1.2.1"
 koin = "4.0.0"
 kotlin = "2.1.0"
 kotlinxCollectionsImmutable = "0.3.8"
+kotlinxDatetime = "0.6.1"
 ktfmt = "0.21.0"
 lifecycleRuntimeKtx = "2.8.7"
 timber = "5.0.1"
@@ -56,6 +57,7 @@ koin-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = 
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-test = { module = "io.insert-koin:koin-test-junit4", version.ref = "koin" }
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "vico" }
 vico-compose-m2 = { module = "com.patrykandpatrick.vico:compose-m2", version.ref = "vico" }
 vico-compose-m3 = { module = "com.patrykandpatrick.vico:compose-m3", version.ref = "vico" }

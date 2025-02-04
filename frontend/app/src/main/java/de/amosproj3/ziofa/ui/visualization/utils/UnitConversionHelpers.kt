@@ -6,6 +6,13 @@ package de.amosproj3.ziofa.ui.visualization.utils
 
 import androidx.compose.ui.text.intl.Locale
 import de.amosproj3.ziofa.ui.visualization.data.DropdownOption
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.byUnicodePattern
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration
 import kotlin.time.toDuration
 
 @Suppress("MagicNumber") // unit conversion
@@ -41,5 +48,9 @@ fun Number.bytesToHumanReadableSize(): String {
         else -> "$this bytes"
     }
 }
+
+fun Instant.toHRString() = this.toLocalDateTime(TimeZone.currentSystemDefault())
+    .format(LocalDateTime.Format { byUnicodePattern("yyyy:MM:dd HH:mm:ss.SSS") })
+
 
 fun ULong.bytesToHumanReadableSize() = this.toDouble().bytesToHumanReadableSize()

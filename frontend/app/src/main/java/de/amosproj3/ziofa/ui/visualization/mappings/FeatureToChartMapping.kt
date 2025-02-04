@@ -27,7 +27,9 @@ import de.amosproj3.ziofa.ui.visualization.utils.toReferenceCount
 import de.amosproj3.ziofa.ui.visualization.utils.toSeconds
 import de.amosproj3.ziofa.ui.visualization.utils.toTimestampedSeries
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 
@@ -117,5 +119,5 @@ fun DataStreamProvider.getChartData(
                 }
 
         else -> null
-    }
+    }?.flowOn(Dispatchers.Default)
 }
