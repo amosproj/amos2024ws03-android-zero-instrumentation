@@ -75,38 +75,28 @@ fn initialize_fdtracking_exit<'a>(
 
 pub fn get_file_op(syscall_number: i64) -> Option<FileDescriptorOp> {
     match syscall_number {
-        syscalls::SYS_pipe
         | syscalls::SYS_pipe2
         | syscalls::SYS_pidfd_getfd
         | syscalls::SYS_pidfd_open
         | syscalls::SYS_perf_event_open
-        | syscalls::SYS_signalfd
         | syscalls::SYS_signalfd4
         | syscalls::SYS_socket
         | syscalls::SYS_socketpair
         | syscalls::SYS_userfaultfd
         | syscalls::SYS_timerfd_create
         | syscalls::SYS_memfd_create
-        | syscalls::SYS_memfd_secret
         | syscalls::SYS_landlock_create_ruleset
         | syscalls::SYS_io_uring_setup
-        | syscalls::SYS_inotify_init
         | syscalls::SYS_inotify_init1
-        | syscalls::SYS_epoll_create
         | syscalls::SYS_epoll_create1
-        | syscalls::SYS_eventfd
         | syscalls::SYS_eventfd2
         | syscalls::SYS_execve
         | syscalls::SYS_execveat
         | syscalls::SYS_fanotify_init
         | syscalls::SYS_fcntl
-        | syscalls::SYS_fork
         | syscalls::SYS_dup
-        | syscalls::SYS_dup2
         | syscalls::SYS_dup3
-        | syscalls::SYS_open
         | syscalls::SYS_openat
-        | syscalls::SYS_creat
         | syscalls::SYS_openat2
         | syscalls::SYS_open_by_handle_at
         | syscalls::SYS_name_to_handle_at
@@ -116,6 +106,17 @@ pub fn get_file_op(syscall_number: i64) -> Option<FileDescriptorOp> {
         | syscalls::SYS_bpf
         | syscalls::SYS_accept4
         | syscalls::SYS_accept => Some(FileDescriptorOp::Open),
+        #[cfg(bpf_target_arch = "x86_64")]
+        syscalls::SYS_pipe
+        | syscalls::SYS_signalfd
+        | syscalls::SYS_memfd_secret
+        | syscalls::SYS_inotify_init
+        | syscalls::SYS_epoll_create
+        | syscalls::SYS_eventfd
+        | syscalls::SYS_fork
+        | syscalls::SYS_dup2
+        | syscalls::SYS_open
+        | syscalls::SYS_creat => Some(FileDescriptorOp::Open),
         syscalls::SYS_close | syscalls::SYS_close_range => Some(FileDescriptorOp::Close),
         _ => None,
     }

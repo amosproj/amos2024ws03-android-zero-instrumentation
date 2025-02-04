@@ -4,9 +4,14 @@
 
 use core::ptr::copy_nonoverlapping;
 
+#[cfg(bpf_target_arch = "x86_64")]
+use aya_ebpf::bindings::pt_regs;
+
+#[cfg(bpf_target_arch = "aarch64")]
+use aya_ebpf::bindings::user_pt_regs as pt_regs;
+
 use aya_ebpf::{
-    bindings::pt_regs,
-    helpers::{bpf_get_current_task, bpf_ktime_get_ns},
+    helpers::{bpf_get_current_task, bpf_ktime_get_ns, bpf_probe_read_user},
     macros::{raw_tracepoint, uprobe, uretprobe},
     programs::{ProbeContext, RawTracePointContext, RetProbeContext},
     EbpfContext, PtRegs,
@@ -296,17 +301,31 @@ fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
     let mut event = ScratchEventLocal::get::<GarbageCollect>()?;
     let event = unsafe {
         let heap = program_info.event_entry.data;
+
+        #[cfg(bpf_target_arch = "aarch64")]
+        #[inline(always)]
+        unsafe fn read<T>(ptr: *mut T) -> Option<T> {
+            bpf_probe_read_user(((ptr as usize) & 0xffffffffff) as *const T).ok()
+        }
+
+        #[cfg(bpf_target_arch = "x86_64")]
+        #[inline(always)]
+        unsafe fn read<T>(ptr: *mut T) -> Option<T> {
+            bpf_probe_read_user(ptr).ok()
+        }
+
         event.as_mut_ptr().write(GarbageCollect {
-            target_footprint: heap.target_footprint().ok()?,
-            num_bytes_allocated: heap.num_bytes_allocated().ok()?,
-            gc_cause: heap.gc_cause().ok()?,
-            duration_ns: heap.duration_ns().ok()?,
-            freed_objects: heap.freed_objects().ok()?,
-            freed_bytes: heap.freed_bytes().ok()?,
-            freed_los_objects: heap.freed_los_objects().ok()?,
-            freed_los_bytes: heap.freed_los_bytes().ok()?,
-            gcs_completed: heap.gcs_completed().ok()?,
+            target_footprint: read(heap.target_footprint())?,
+            num_bytes_allocated: read(heap.num_bytes_allocated())?,
+            gc_cause: read(heap.gc_cause())?,
+            duration_ns: read(heap.duration_ns())?,
+            freed_objects: read(heap.freed_objects())?,
+            freed_bytes: read(heap.freed_bytes())?,
+            freed_los_objects: read(heap.freed_los_objects())?,
+            freed_los_bytes: read(heap.freed_los_bytes())?,
+            gcs_completed: read(heap.gcs_completed())?,
         });
+
         event.assume_init_ref()
     };
 
