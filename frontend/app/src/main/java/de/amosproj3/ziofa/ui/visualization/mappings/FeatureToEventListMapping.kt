@@ -14,6 +14,7 @@ import de.amosproj3.ziofa.ui.visualization.utils.DEFAULT_EVENT_LIST_METADATA
 import de.amosproj3.ziofa.ui.visualization.utils.accumulateEvents
 import de.amosproj3.ziofa.ui.visualization.utils.bytesToHumanReadableSize
 import de.amosproj3.ziofa.ui.visualization.utils.getPIDsOrNull
+import de.amosproj3.ziofa.ui.visualization.utils.nanosToSecondsStr
 import de.amosproj3.ziofa.ui.visualization.utils.toHRString
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
@@ -110,7 +111,7 @@ fun DataStreamProvider.getEventListData(
                     col1 = "${it.pid}",
                     col2 = "${it.tid}",
                     col3 = it.beginTimeStamp.toHRString(),
-                    col4 = "${it.duration.inWholeNanoseconds}"
+                    col4 = it.duration.inWholeNanoseconds.nanosToSecondsStr()
                 )
             }
 

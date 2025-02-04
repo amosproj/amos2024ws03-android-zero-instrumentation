@@ -12,6 +12,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlin.time.Duration.Companion.nanoseconds
 
 object RustClient : Client {
     private var configuration: Configuration =
@@ -61,9 +64,17 @@ object RustClient : Client {
                     Event.VfsWrite(
                         pid = it,
                         tid = it + 1u,
-                        fp = listOf(1uL, 2uL, 3uL).random(),
+                        fp =
+                        listOf(
+                            "/data/vendor/navigationd/backup.sqlite",
+                            "/data/vendor/navigationd/backup.sqlite",
+                            "/data/vendor/navigationd/backup.sqlite",
+                            "/data/vendor/navigationd/backup.sqlite",
+                            "/data/vendor/navigationd/settings.sqlite",
+                            "/data/vendor/navigationd/keystore.sqlite"
+                        ).random(),
                         bytesWritten = listOf(10uL, 12uL, 8uL, 8uL).random(),
-                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        beginTimeStamp = Clock.System.now(),
                     )
                 )
             }
@@ -77,16 +88,15 @@ object RustClient : Client {
 
         while (true) {
 
-            val next = (Random.nextLong(40_000_000) * multiplier).toULong()
+            val next = (Random.nextLong(40_000_000) * multiplier).toLong()
 
             configuration.sysSendmsg?.entries?.keys?.forEach {
                 emit(
                     Event.SysSendmsg(
                         pid = it,
                         tid = it + 1u,
-                        fd = listOf(3uL, 4uL, 5uL, 6uL, 6uL, 6uL).random(),
-                        durationNanoSecs = 10_000_000u + next,
-                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        duration = 10_000_000.nanoseconds + next.nanoseconds,
+                        beginTimeStamp = Clock.System.now(),
                     )
                 )
             }
@@ -109,7 +119,7 @@ object RustClient : Client {
                     Event.JniReferences(
                         pid = it,
                         tid = it + 1u,
-                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        beginTimeStamp = Clock.System.now(),
                         jniMethodName = jniMethodName,
                     )
                 )
@@ -125,7 +135,7 @@ object RustClient : Client {
                     Event.SysSigquit(
                         pid = it,
                         tid = it + 1u,
-                        timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        timeStamp = Clock.System.now(),
                         targetPid = it.toULong(),
                     )
                 )
@@ -149,7 +159,7 @@ object RustClient : Client {
                         Event.SysFdTracking(
                             pid = it,
                             tid = it + 1u,
-                            timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                            timeStamp = Clock.System.now(),
                             fdAction = syFdMethod,
                         )
                     )
@@ -165,7 +175,7 @@ object RustClient : Client {
                         Event.SysFdTracking(
                             pid = it,
                             tid = it + 1u,
-                            timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                            timeStamp = Clock.System.now(),
                             fdAction = syFdMethod,
                         )
                     )

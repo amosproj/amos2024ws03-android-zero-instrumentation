@@ -44,16 +44,16 @@ fun DropdownOption.Metric.getChartMetadata(): ChartMetadata {
             ChartMetadata(yLabel = "Sum of bytes written", xLabel = "File Descriptor Name")
 
         is BackendFeatureOptions.SendMessageOption ->
-            ChartMetadata(yLabel = "Average duration", xLabel = "Seconds since start")
+            ChartMetadata(yLabel = "Average duration ms", xLabel = "Seconds since start")
 
         is BackendFeatureOptions.JniReferencesOption ->
             ChartMetadata(yLabel = "# Indirect References", xLabel = "Seconds since start")
 
         is BackendFeatureOptions.OpenFileDescriptors ->
-            ChartMetadata(yLabel = "# Open File Descriptors", xLabel = "Seconds since start")
+            ChartMetadata(yLabel = "# Open FDs", xLabel = "Seconds since start")
 
         is BackendFeatureOptions.GcOption ->
-            ChartMetadata(yLabel = "Size of total heap / used heap", xLabel = "n-th GC invocation")
+            ChartMetadata(yLabel = "Heap size", xLabel = "n-th GC invocation")
 
         else -> {
             Timber.e("needs metadata!")
