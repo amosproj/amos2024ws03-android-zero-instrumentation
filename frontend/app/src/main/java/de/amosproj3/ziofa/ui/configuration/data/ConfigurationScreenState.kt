@@ -14,8 +14,10 @@ sealed class ConfigurationScreenState {
     data class Valid(val options: ImmutableList<BackendFeatureOptions>) :
         ConfigurationScreenState()
 
-    /** Due to an error with the backend or a missing mapping, we cannot display the
-     * configuration screen and a error message is displayed instead. */
+    /**
+     * Due to an error with the backend or a missing mapping, we cannot display the configuration
+     * screen and a error message is displayed instead.
+     */
     data class Invalid(val errorMessage: String) : ConfigurationScreenState()
 
     /** An operation for retrieving the configuration data is pending */

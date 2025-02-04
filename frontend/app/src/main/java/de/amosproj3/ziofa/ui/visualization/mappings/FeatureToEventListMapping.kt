@@ -111,7 +111,7 @@ fun DataStreamProvider.getEventListData(
                     col1 = "${it.pid}",
                     col2 = "${it.tid}",
                     col3 = it.beginTimeStamp.toHRString(),
-                    col4 = it.duration.inWholeNanoseconds.nanosToSecondsStr()
+                    col4 = it.duration.inWholeNanoseconds.nanosToSecondsStr(),
                 )
             }
 

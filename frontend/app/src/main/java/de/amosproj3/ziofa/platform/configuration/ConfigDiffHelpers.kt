@@ -16,10 +16,12 @@ import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.shared.DURATION_THRESHOLD
 
-/** There has to be a cleaner way to do this, but for now it works.
- * Given a [ChangeFeature] action, apply the change to the [Configuration] and return changed configuration
- * The [ChangeFeature] action contains a "delta" that will be applied to the configuration.
- * (that may be removing or adding PIDs) */
+/**
+ * There has to be a cleaner way to do this, but for now it works. Given a [ChangeFeature] action,
+ * apply the change to the [Configuration] and return changed configuration The [ChangeFeature]
+ * action contains a "delta" that will be applied to the configuration. (that may be removing or
+ * adding PIDs)
+ */
 @Suppress("CyclomaticComplexMethod", "LongMethod")
 fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Configuration {
 

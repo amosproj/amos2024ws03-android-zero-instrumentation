@@ -23,9 +23,8 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
     DataStreamProvider {
 
     private val dataFlow =
-        flow {
-            emitAll(clientFactory.connect().initStream())
-        }.flowOn(Dispatchers.IO)
+        flow { emitAll(clientFactory.connect().initStream()) }
+            .flowOn(Dispatchers.IO)
             .shareIn(coroutineScope, SharingStarted.Lazily)
 
     override fun vfsWriteEvents(pids: List<UInt>?): Flow<Event.VfsWrite> =
@@ -53,7 +52,7 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
             .mapNotNull { it as? Event.Gc }
             .filter {
                 it.pid.isGlobalRequestedOrPidConfigured(pids) ||
-                        it.tid.isGlobalRequestedOrPidConfigured(pids)
+                    it.tid.isGlobalRequestedOrPidConfigured(pids)
             }
 
     override fun fileDescriptorTrackingEvents(pids: List<UInt>?): Flow<Event.SysFdTracking> =
@@ -61,7 +60,7 @@ class DataStreamManager(private val clientFactory: ClientFactory, coroutineScope
             .mapNotNull { it as? Event.SysFdTracking }
             .filter {
                 it.pid.isGlobalRequestedOrPidConfigured(pids) ||
-                        it.tid.isGlobalRequestedOrPidConfigured(pids)
+                    it.tid.isGlobalRequestedOrPidConfigured(pids)
             }
 
     private fun UInt.isGlobalRequestedOrPidConfigured(pids: List<UInt>?) =

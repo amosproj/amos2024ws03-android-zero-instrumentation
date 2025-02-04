@@ -7,6 +7,8 @@ package de.amosproj3.ziofa.ui.shared
 
 import de.amosproj3.ziofa.client.Configuration
 
-/** Empty configuration to set if there is no configuration set (initially) or if the configuration
- * is reset via the ResetScreen*/
+/**
+ * Empty configuration to set if there is no configuration set (initially) or if the configuration
+ * is reset via the ResetScreen
+ */
 val EMPTY_CONFIGURATION = Configuration(null, null, listOf(), null, null, null, null)

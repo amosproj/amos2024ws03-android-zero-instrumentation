@@ -6,7 +6,9 @@ package de.amosproj3.ziofa.api.processes
 
 import de.amosproj3.ziofa.client.Process
 
-/** Wrapper class for running components, that can either be groups of processes or single processes */
+/**
+ * Wrapper class for running components, that can either be groups of processes or single processes
+ */
 sealed class RunningComponent(val pids: List<UInt>) {
 
     /** Standalone process that does not belong to an app */

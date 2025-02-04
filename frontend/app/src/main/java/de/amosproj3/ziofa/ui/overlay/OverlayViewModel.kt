@@ -23,8 +23,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 
-/** View model for the overlay. Apart from the overlay settings, this is a simplified version of
- * the [VisualizationViewModel]. */
+/**
+ * View model for the overlay. Apart from the overlay settings, this is a simplified version of the
+ * [VisualizationViewModel].
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OverlayViewModel(
     val overlayManager: OverlayController,

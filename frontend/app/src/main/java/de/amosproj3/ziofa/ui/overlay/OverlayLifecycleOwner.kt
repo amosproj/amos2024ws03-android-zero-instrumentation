@@ -27,5 +27,4 @@ internal class OverlayLifecycleOwner : SavedStateRegistryOwner {
     fun performRestore(savedState: Bundle?) {
         savedStateRegistryController.performRestore(savedState)
     }
-
 }

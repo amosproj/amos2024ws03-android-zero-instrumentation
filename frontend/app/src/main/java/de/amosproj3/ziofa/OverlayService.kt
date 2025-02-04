@@ -25,21 +25,23 @@ import de.amosproj3.ziofa.ui.overlay.OverlayRoot
 import de.amosproj3.ziofa.ui.visualization.data.OverlayPosition
 import timber.log.Timber
 
-/** This service is required by the overlay for starting, stopping it and feeding it data.
- * The lifecycle of the ViewModels needs to be managed manually via the [lifecycleOwner]
- * Currently, the lifecycle of the overlay viewmodels is tied to the lifecycle of the service.
- * */
+/**
+ * This service is required by the overlay for starting, stopping it and feeding it data. The
+ * lifecycle of the ViewModels needs to be managed manually via the [lifecycleOwner] Currently, the
+ * lifecycle of the overlay viewmodels is tied to the lifecycle of the service.
+ */
 class OverlayService : Service() {
 
-    /** Required to manage the view models. **/
+    /** Required to manage the view models. * */
     class OverlayViewModelStoreOwner : ViewModelStoreOwner {
         override val viewModelStore: ViewModelStore =
             ViewModelStore().also { Timber.i("created viewmodel store $it") }
     }
 
-    /** The layout parameters for the overlay window.
-     * The position should a added later so we can change it.
-     * Currently, the overlay is touch-through and half-transparent. */
+    /**
+     * The layout parameters for the overlay window. The position should a added later so we can
+     * change it. Currently, the overlay is touch-through and half-transparent.
+     */
     private val layoutParams =
         WindowManager.LayoutParams(
             /* w = */ WindowManager.LayoutParams.WRAP_CONTENT,
@@ -56,7 +58,7 @@ class OverlayService : Service() {
     /** It is important that this is only initialized once and not created multiple times. */
     private val lifecycleOwner by lazy { OverlayLifecycleOwner() }
 
-    /** Keep the active View for tearing it down upon stopping the service*/
+    /** Keep the active View for tearing it down upon stopping the service */
     private var activeOverlay: View? = null
 
     override fun onCreate() {
@@ -64,9 +66,10 @@ class OverlayService : Service() {
         super.onCreate()
     }
 
-    /** When the service is started, the overlay will be rendered.
-     * By getting the extra from the intent, we set the position of the overlay.
-     * */
+    /**
+     * When the service is started, the overlay will be rendered. By getting the extra from the
+     * intent, we set the position of the overlay.
+     */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Timber.i("onStartCommand")
         setTheme(R.style.Theme_ZIOFA)
@@ -75,16 +78,20 @@ class OverlayService : Service() {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    /** First tear down any active overlays to prevent overlapping, then display the overlay with
-     *  the [layoutParams]. */
+    /**
+     * First tear down any active overlays to prevent overlapping, then display the overlay with the
+     * [layoutParams].
+     */
     private fun showOverlay() {
         val composeView = createComposeViewWithLifecycle { OverlayRoot() }
         teardownOverlay() // Make sure only one overlay window is active at a time
         setupOverlay(composeView, layoutParams)
     }
 
-    /** The service is stopped, we have to pass that lifecycle event to the [lifecycleOwner] as well
-     * and remove the active window. */
+    /**
+     * The service is stopped, we have to pass that lifecycle event to the [lifecycleOwner] as well
+     * and remove the active window.
+     */
     override fun onDestroy() {
         super.onDestroy()
         Timber.i("onDestroy()")
@@ -110,8 +117,10 @@ class OverlayService : Service() {
         activeOverlay = null
     }
 
-    /** Very important, the [lifecycleOwner] needs to be attached and the [Lifecycle.Event.ON_CREATE]
-     *  passed, otherwise the viewmodel will never be instantiated properly. */
+    /**
+     * Very important, the [lifecycleOwner] needs to be attached and the [Lifecycle.Event.ON_CREATE]
+     * passed, otherwise the viewmodel will never be instantiated properly.
+     */
     private fun createComposeViewWithLifecycle(content: @Composable () -> Unit): ComposeView {
         val composeView = ComposeView(this)
         lifecycleOwner.attach()
@@ -125,8 +134,10 @@ class OverlayService : Service() {
         return composeView
     }
 
-    /** Convert the overlay position passed via the intent into a gravity value for the layout params
-     * of the window. */
+    /**
+     * Convert the overlay position passed via the intent into a gravity value for the layout params
+     * of the window.
+     */
     private fun WindowManager.LayoutParams.applyOverlayPositionAsGravity(intent: Intent?) {
         val overlayPosition =
             intent?.getStringExtra(OVERLAY_POSITION_EXTRA)?.let { OverlayPosition.valueOf(it) }

@@ -5,9 +5,9 @@
 
 package de.amosproj3.ziofa.client
 
+import kotlin.time.Duration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Instant
-import kotlin.time.Duration
 
 data class Configuration(
     val vfsWrite: VfsWriteConfig?,
@@ -61,7 +61,7 @@ sealed class Event {
             DeleteLocalRef,
             AddGlobalRef,
             DeleteGlobalRef,
-            Undefined
+            Undefined,
         }
     }
 
@@ -96,7 +96,7 @@ sealed class Event {
         enum class SysFdAction {
             Created,
             Destroyed,
-            Undefined
+            Undefined,
         }
     }
 }

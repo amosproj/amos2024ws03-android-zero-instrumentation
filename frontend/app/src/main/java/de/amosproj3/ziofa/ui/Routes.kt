@@ -9,7 +9,10 @@ enum class Routes {
     /** Visualization screen */
     Visualize,
 
-    /** Configuration screen with options for the process, requires parameters for display name and pids */
+    /**
+     * Configuration screen with options for the process, requires parameters for display name and
+     * pids
+     */
     IndividualConfiguration,
 
     /** Home screen */
@@ -18,8 +21,10 @@ enum class Routes {
     /** Processes screen for selecting processes to configure */
     Processes,
 
-    /** Configuration menu that allows to navigate to [IndividualConfiguration] for a process or
-     * a global configuration */
+    /**
+     * Configuration menu that allows to navigate to [IndividualConfiguration] for a process or a
+     * global configuration
+     */
     Configuration,
 
     /** Symbols search screen for setting arbitrary uprobes */

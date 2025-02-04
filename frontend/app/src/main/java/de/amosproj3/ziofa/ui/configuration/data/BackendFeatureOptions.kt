@@ -12,14 +12,13 @@ enum class FeatureType(val displayName: String) {
     UPROBES("Uprobes"),
 }
 
-/** Central wrapper for backend features and their properties.
- * This class is widely used and is converted into from classes from the Client SDK, as well as the
- * other way around.
- * It amends the Client SDK configurations with additional information relevant for the UI,
- * such as the display name and the type of the feature. (for grouping)
- * When updating the properties of a Client SDk configuration, this class will likely have to be
- * updated as well.
- * */
+/**
+ * Central wrapper for backend features and their properties. This class is widely used and is
+ * converted into from classes from the Client SDK, as well as the other way around. It amends the
+ * Client SDK configurations with additional information relevant for the UI, such as the display
+ * name and the type of the feature. (for grouping) When updating the properties of a Client SDk
+ * configuration, this class will likely have to be updated as well.
+ */
 sealed class BackendFeatureOptions(
     val name: String,
     val type: FeatureType,

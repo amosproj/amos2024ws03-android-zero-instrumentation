@@ -9,19 +9,19 @@ import de.amosproj3.ziofa.api.configuration.GetSymbolsRequestState
 import de.amosproj3.ziofa.api.configuration.IndexingRequestState
 import de.amosproj3.ziofa.api.configuration.SymbolsAccess
 import de.amosproj3.ziofa.client.ClientFactory
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-/** Currently unused as there is no "uprobe event".
- * -> There is no point in setting uprobes from the UI.
- * */
+/**
+ * Currently unused as there is no "uprobe event". -> There is no point in setting uprobes from the
+ * UI.
+ */
 class UProbeManager(private val clientFactory: ClientFactory) : SymbolsAccess {
 
-
-    /** Currently unused as there is no "uprobe event".
-     * -> There is no point in setting uprobes from the UI.
-     * */
+    /**
+     * Currently unused as there is no "uprobe event". -> There is no point in setting uprobes from
+     * the UI.
+     */
     override fun searchSymbols(
         pids: List<UInt>,
         searchQuery: String,

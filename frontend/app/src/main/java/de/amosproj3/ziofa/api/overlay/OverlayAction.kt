@@ -7,7 +7,7 @@ package de.amosproj3.ziofa.api.overlay
 import de.amosproj3.ziofa.ui.visualization.data.OverlaySettings
 import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 
-/** Possible interaction with the overlay state*/
+/** Possible interaction with the overlay state */
 sealed class OverlayAction {
 
     /** Change the settings of the overlay, like size, position, etc. */

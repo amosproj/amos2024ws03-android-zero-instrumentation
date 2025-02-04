@@ -23,12 +23,12 @@ import de.amosproj3.ziofa.ui.visualization.data.GraphedData
 import org.koin.androidx.compose.koinViewModel
 import timber.log.Timber
 
-/** Root composable rendered into the overlay.
- * Depending on the overlayData and overlaySettings, we render the graphed data.
- * Currently, the overlay reuses the existing graphs that are also display in the app,
- * with the additional overlayMode=true flag on the graphs.
- * This flag will adjust the length of the data, as well as colors to improve contrast,
- * which is important as the background is transparent.
+/**
+ * Root composable rendered into the overlay. Depending on the overlayData and overlaySettings, we
+ * render the graphed data. Currently, the overlay reuses the existing graphs that are also display
+ * in the app, with the additional overlayMode=true flag on the graphs. This flag will adjust the
+ * length of the data, as well as colors to improve contrast, which is important as the background
+ * is transparent.
  */
 @Composable
 fun OverlayRoot(viewModel: OverlayViewModel = koinViewModel(), modifier: Modifier = Modifier) {

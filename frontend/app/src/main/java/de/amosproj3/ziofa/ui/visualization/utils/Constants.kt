@@ -13,7 +13,7 @@ import de.amosproj3.ziofa.ui.visualization.data.SelectionData
 import kotlin.time.DurationUnit
 import kotlinx.collections.immutable.persistentListOf
 
-/** The options displayed on the time*/
+/** The options displayed on the time */
 @Suppress("MagicNumber") // these are constants already
 val DEFAULT_TIMEFRAME_OPTIONS =
     persistentListOf(
@@ -25,7 +25,7 @@ val DEFAULT_TIMEFRAME_OPTIONS =
         DropdownOption.Timeframe(30, DurationUnit.SECONDS),
     )
 
-/** The time series data to show if there is no data yet*/
+/** The time series data to show if there is no data yet */
 val DEFAULT_TIMESERIES_DATA = persistentListOf(-1f to -1f)
 
 /** Graphed data to show if there is no data yet */
@@ -43,8 +43,7 @@ val DEFAULT_SELECTION_DATA =
     )
 
 /** Chart metadata to show if there are no labels mapped for a graph */
-val DEFAULT_CHART_METADATA =
-    ChartMetadata(xLabel = "x", yLabel = "y")
+val DEFAULT_CHART_METADATA = ChartMetadata(xLabel = "x", yLabel = "y")
 
 /** Event list labels to show if there are no labels mapped for a graph */
 val DEFAULT_EVENT_LIST_METADATA = EventListMetadata("unknown", "unknown", "unknown", "unknown")

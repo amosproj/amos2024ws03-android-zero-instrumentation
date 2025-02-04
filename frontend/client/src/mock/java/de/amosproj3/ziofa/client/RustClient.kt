@@ -6,15 +6,13 @@
 
 package de.amosproj3.ziofa.client
 
-import android.os.SystemClock
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.nanoseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlin.time.Duration.Companion.nanoseconds
 
 object RustClient : Client {
     private var configuration: Configuration =
@@ -65,14 +63,15 @@ object RustClient : Client {
                         pid = it,
                         tid = it + 1u,
                         fp =
-                        listOf(
-                            "/data/vendor/navigationd/backup.sqlite",
-                            "/data/vendor/navigationd/backup.sqlite",
-                            "/data/vendor/navigationd/backup.sqlite",
-                            "/data/vendor/navigationd/backup.sqlite",
-                            "/data/vendor/navigationd/settings.sqlite",
-                            "/data/vendor/navigationd/keystore.sqlite"
-                        ).random(),
+                            listOf(
+                                    "/data/vendor/navigationd/backup.sqlite",
+                                    "/data/vendor/navigationd/backup.sqlite",
+                                    "/data/vendor/navigationd/backup.sqlite",
+                                    "/data/vendor/navigationd/backup.sqlite",
+                                    "/data/vendor/navigationd/settings.sqlite",
+                                    "/data/vendor/navigationd/keystore.sqlite",
+                                )
+                                .random(),
                         bytesWritten = listOf(10uL, 12uL, 8uL, 8uL).random(),
                         beginTimeStamp = Clock.System.now(),
                     )
