@@ -141,7 +141,7 @@ object RustClient : Client {
 
             val rnd1 = Random.nextFloat()
 
-            if (rnd1 >= 0.5f) {
+            if (rnd1 >= 0.3f) {
                 configuration.sysFdTracking?.pids?.forEach {
                     val rnd = Random.nextFloat()
                     val syFdMethod =
