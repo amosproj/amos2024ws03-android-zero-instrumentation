@@ -18,9 +18,20 @@ use crate::{
     symbols::actors::SymbolActorMsg,
 };
 
-/// Offset of the collect_garbage_internal function in libart.so
-/// Found via disassembling and looking at the exported CollectGc method
+// Offset of the collect_garbage_internal function in libart.so
+// Found via disassembling and looking at the exported CollectGc method
+#[cfg(target_arch = "x86_64")]
 const COLLECT_GC_INTERNAL_OFFSET: u64 = 0x57ad10;
+
+// 00000000004aaaf0 <art::gc::Heap::CollectGarbage(bool, art::gc::GcCause)>:
+// 4aaaf0: f9419408     	ldr	x8, [x0, #0x328]
+// 4aaaf4: 2a0103e3     	mov	w3, w1
+// 4aaaf8: 12800004     	mov	w4, #-0x1               // =-1
+// 4aaafc: b85fc108     	ldur	w8, [x8, #-0x4]
+// 4aab00: 2a0803e1     	mov	w1, w8
+// 4aab04: 17fffafb     	b	0x4a96f0 <art::gc::Heap::WaitForGcToComplete(art::gc::GcCause, art::Thread*)+0x990>
+#[cfg(target_arch = "aarch64")]
+const COLLECT_GC_INTERNAL_OFFSET: u64 = 0x4a96f0;
 
 pub struct GarbageCollectFeature {
     trace_gc_enter: RegistryGuard<UProbe>,

@@ -159,6 +159,8 @@ pub fn load_and_pin() -> Result<EbpfRegistry, EbpfError> {
         )))
         .unwrap();
 
+    EbpfLogger::init(&mut ebpf).unwrap();
+
     ebpf.pin_map("PID_FILTER", ZIOFA_EBPF_PATH).unwrap();
     ebpf.pin_map("COMM_FILTER", ZIOFA_EBPF_PATH).unwrap();
     ebpf.pin_map("EXE_PATH_FILTER", ZIOFA_EBPF_PATH).unwrap();
@@ -168,8 +170,6 @@ pub fn load_and_pin() -> Result<EbpfRegistry, EbpfError> {
     ebpf.pin_map("EVENTS", ZIOFA_EBPF_PATH).unwrap();
     ebpf.pin_map("GLOBAL_BLOCKING_THRESHOLD", ZIOFA_EBPF_PATH)
         .unwrap();
-
-    EbpfLogger::init(&mut ebpf).unwrap();
 
     ebpf.load_and_pin::<RawTracePoint>("sys_enter_write", ZIOFA_EBPF_PATH)
         .unwrap();

@@ -128,6 +128,7 @@ pub fn parse(base: Option<String>) -> Result<HeapMetadata, ParseError> {
         .chain(get_includes(base.as_deref()))
         .chain(raw_args);
 
+
     let clang = Clang::new().unwrap();
     let index = Index::new(&clang, false, false);
 
