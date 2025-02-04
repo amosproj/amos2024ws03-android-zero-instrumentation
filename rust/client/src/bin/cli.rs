@@ -4,13 +4,15 @@
 //
 // SPDX-License-Identifier: MIT
 
+
 use clap::Parser;
 use clap::Subcommand;
 use client::Client;
 use client::ClientError;
-use shared::config::SysFdTrackingConfig;
-use shared::config::{Configuration, SysSendmsgConfig, VfsWriteConfig, SysSigquitConfig};
-use std::collections::HashMap;
+use shared::config::BlockingConfig;
+use shared::config::Configuration;
+use shared::config::Filter;
+use shared::config::UInt32Filter;
 use tokio_stream::StreamExt;
 
 pub type Result<T> = core::result::Result<T, ClientError>;
@@ -41,7 +43,7 @@ enum Commands {
 
     /// List all running processes
     Processes {
-        /// Only output number of processes
+        /// Only output number of processe
         #[arg(short, long)]
         silent: bool,
     },
@@ -71,17 +73,17 @@ enum Commands {
 async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
     client
         .set_configuration(Configuration {
-            uprobes: vec![],
-            vfs_write: Some(VfsWriteConfig {
-                entries: HashMap::from([(pid, 0)]),
+            blocking_config: Some(BlockingConfig {
+                filter: Some(Filter {
+                    pid_filter: Some(UInt32Filter {
+                        r#match: vec![pid],
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+                threshold: Some(32_000_000),
             }),
-            sys_sendmsg: Some(SysSendmsgConfig {
-                entries: HashMap::from([(pid, 0)]),
-            }),
-            jni_references: None,
-            sys_sigquit: Some(SysSigquitConfig { pids: vec![pid] }),
-            gc: None,
-            sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![pid] }),
+            ..Default::default()
         })
         .await?;
 
@@ -95,21 +97,7 @@ async fn sendmsg(client: &mut Client, pid: u32) -> Result<()> {
 }
 
 async fn set_config(client: &mut Client) -> Result<()> {
-    client
-        .set_configuration(Configuration {
-            uprobes: vec![],
-            vfs_write: Some(VfsWriteConfig {
-                entries: HashMap::new(),
-            }),
-            sys_sendmsg: Some(SysSendmsgConfig {
-                entries: HashMap::new(),
-            }),
-            jni_references: None,
-            sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-            gc: None,
-            sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
-        })
-        .await?;
+    client.set_configuration(Configuration::default()).await?;
     println!("Success");
     Ok(())
 }

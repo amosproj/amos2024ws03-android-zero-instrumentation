@@ -7,7 +7,7 @@ use std::{pin::Pin, sync::Arc};
 
 use shared::{
     config::Configuration,
-    events::{jni_references_event::JniMethodName, sys_fd_tracking_event::SysFdAction, Event},
+    events::{jni_references_event::JniMethodName, file_descriptor_change_event::FileDescriptorOp, Event},
     symbols::search_symbols_response::Symbol, 
     processes::Process,
 };
@@ -100,6 +100,6 @@ pub fn jni_method_name_from_i32(num: i32) -> JniMethodName {
 }
 
 #[uniffi::export]
-pub fn sys_fd_action_from_i32(num: i32) -> SysFdAction {
-    SysFdAction::try_from(num).unwrap()
+pub fn file_descriptor_change_op_from_i32(num: i32) -> FileDescriptorOp {
+    FileDescriptorOp::try_from(num).unwrap()
 }

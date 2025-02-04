@@ -26,7 +26,7 @@ enum JNIMethod {
     DelGlobal,
 }
 
-pub struct JNIReferencesFeature {
+pub struct JniReferencesFeatures {
     trace_jni_add_local: RegistryGuard<UProbe>,
     trace_jni_del_local: RegistryGuard<UProbe>,
     trace_jni_add_global: RegistryGuard<UProbe>,
@@ -38,7 +38,7 @@ pub struct JNIReferencesFeature {
     symbol_actor_ref: ActorRef<SymbolActorMsg>,
 }
 
-impl JNIReferencesFeature {
+impl JniReferencesFeatures {
     fn create(registry: &EbpfRegistry, symbol_actor_ref: ActorRef<SymbolActorMsg>) -> Self {
         Self {
             trace_jni_add_local: registry.program.trace_jni_add_local.take(),
@@ -147,11 +147,11 @@ impl JNIReferencesFeature {
     }
 }
 
-impl Feature for JNIReferencesFeature {
+impl Feature for JniReferencesFeatures {
     type Config = JniReferencesConfig;
 
     fn init(registry: &EbpfRegistry, symbol_actor_ref: Option<ActorRef<SymbolActorMsg>>) -> Self {
-        JNIReferencesFeature::create(
+        JniReferencesFeatures::create(
             registry,
             symbol_actor_ref.expect("Symbol actor must be given."),
         )

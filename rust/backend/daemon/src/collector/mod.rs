@@ -4,16 +4,14 @@
 //
 // SPDX-License-Identifier: MIT
 
+use std::{sync::LazyLock, time::Duration};
+
 use aya::maps::ring_buf::RingBufItem;
+use procfs::boot_time_secs;
+use shared::{events::{file_descriptor_change_event, jni_references_event, BlockingEvent, FileDescriptorChangeEvent, GarbageCollectEvent, JniReferencesEvent, SignalEvent}, google::{self, protobuf::Timestamp}};
 use bytemuck::checked;
 use ebpf_types::{
-    Blocking, Event as EbpfEvent, EventKind, FileDescriptorChange, FileDescriptorOp,
-    GarbageCollect, Jni, Signal, Write,
-};
-use shared::events::{
-    event::EventType, jni_references_event::JniMethodName, log_event::EventData,
-    sys_fd_tracking_event::SysFdAction, Event, GcEvent, JniReferencesEvent, LogEvent,
-    SysFdTrackingEvent, SysSendmsgEvent, SysSigquitEvent, VfsWriteEvent,
+    Blocking, Event as EbpfEvent, EventKind as EbpfEventKind, FileDescriptorChange, FileDescriptorOp, GarbageCollect, JniReferences, Signal, Write, WriteSource
 };
 
 mod aggregator;
@@ -22,7 +20,20 @@ mod ring_buf;
 mod supervisor;
 mod time_series;
 
+use shared::events::{event::EventData, log_event::LogEventData, Event, EventContext, LogEvent, WriteEvent};
 pub use supervisor::{CollectorSupervisor, CollectorSupervisorArguments};
+
+static BOOT_TIME: LazyLock<u64> = LazyLock::new(|| {
+    boot_time_secs().unwrap()
+});
+
+fn duration_since_boot_to_timestamp(nanos: u64) -> google::protobuf::Timestamp {
+
+    Timestamp {
+        seconds: (*BOOT_TIME + nanos / 1_000_000_000) as i64,
+        nanos: (nanos % 1_000_000_000) as i32,
+    }
+}
 
 pub trait IntoEvent {
     fn into_event(self) -> Event;
@@ -30,18 +41,20 @@ pub trait IntoEvent {
 
 impl IntoEvent for RingBufItem<'_> {
     fn into_event(self) -> Event {
-        let kind = checked::from_bytes::<EventKind>(&self[..size_of::<EventKind>()]);
+        let kind = checked::from_bytes::<EbpfEventKind>(&self[..size_of::<EbpfEventKind>()]);
         match *kind {
-            EventKind::Write => checked::from_bytes::<EbpfEvent<Write>>(&self).into_event(),
-            EventKind::Blocking => checked::from_bytes::<EbpfEvent<Blocking>>(&self).into_event(),
-            EventKind::Signal => checked::from_bytes::<EbpfEvent<Signal>>(&self).into_event(),
-            EventKind::GarbageCollect => {
+            EbpfEventKind::Write => checked::from_bytes::<EbpfEvent<Write>>(&self).into_event(),
+            EbpfEventKind::Blocking => checked::from_bytes::<EbpfEvent<Blocking>>(&self).into_event(),
+            EbpfEventKind::Signal => checked::from_bytes::<EbpfEvent<Signal>>(&self).into_event(),
+            EbpfEventKind::GarbageCollect => {
                 checked::from_bytes::<EbpfEvent<GarbageCollect>>(&self).into_event()
             }
-            EventKind::FileDescriptorChange => {
+            EbpfEventKind::FileDescriptorChange => {
                 checked::from_bytes::<EbpfEvent<FileDescriptorChange>>(&self).into_event()
             }
-            EventKind::Jni => checked::from_bytes::<EbpfEvent<Jni>>(&self).into_event(),
+            EbpfEventKind::JniReferences => {
+                checked::from_bytes::<EbpfEvent<JniReferences>>(&self).into_event()
+            }
             _ => todo!(),
         }
     }
@@ -50,13 +63,22 @@ impl IntoEvent for RingBufItem<'_> {
 impl IntoEvent for EbpfEvent<Write> {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(LogEvent {
-                event_data: Some(EventData::VfsWrite(VfsWriteEvent {
+            event_data: Some(EventData::Log(LogEvent {
+                context: Some(EventContext {
                     pid: self.context.task.pid,
                     tid: self.context.task.tid,
-                    begin_time_stamp: self.context.timestamp,
-                    fp: self.data.file_descriptor,
+                    timestamp: Some(duration_since_boot_to_timestamp(self.context.timestamp)),
+                }),
+                log_event_data: Some(LogEventData::Write(WriteEvent {
                     bytes_written: self.data.bytes_written,
+                    file_descriptor: self.data.file_descriptor,
+                    file_path: String::from_utf8_lossy(&self.data.file_path).to_string(),
+                    source: match self.data.source {
+                        WriteSource::Write => shared::events::write_event::WriteSource::Write,
+                        WriteSource::Write64 => shared::events::write_event::WriteSource::Write64,
+                        WriteSource::WriteV => shared::events::write_event::WriteSource::Writev,
+                        WriteSource::WriteV2 => shared::events::write_event::WriteSource::Writev2,
+                    }.into(),
                 })),
             })),
         }
@@ -66,13 +88,15 @@ impl IntoEvent for EbpfEvent<Write> {
 impl IntoEvent for EbpfEvent<Signal> {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(LogEvent {
-                event_data: Some(EventData::SysSigquit(SysSigquitEvent {
+            event_data: Some(EventData::Log(LogEvent {
+                context: Some(EventContext {
                     pid: self.context.task.pid,
                     tid: self.context.task.tid,
-                    time_stamp: self.context.timestamp,
-                    target_pid: self.data.target_pid as u64, // TODO: negative value
-                                                             // TODO: signal kind
+                    timestamp: Some(duration_since_boot_to_timestamp(self.context.timestamp)),
+                }),
+                log_event_data: Some(LogEventData::Signal(SignalEvent {
+                    target_pid: self.data.target_pid,
+                    signal: self.data.signal,
                 })),
             })),
         }
@@ -82,10 +106,13 @@ impl IntoEvent for EbpfEvent<Signal> {
 impl IntoEvent for EbpfEvent<GarbageCollect> {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(LogEvent {
-                event_data: Some(EventData::Gc(GcEvent {
+            event_data: Some(EventData::Log(LogEvent {
+                context: Some(EventContext {
                     pid: self.context.task.pid,
                     tid: self.context.task.tid,
+                    timestamp: Some(duration_since_boot_to_timestamp(self.context.timestamp)),
+                }),
+                log_event_data: Some(LogEventData::GarbageCollect(GarbageCollectEvent {
                     target_footprint: self.data.target_footprint,
                     num_bytes_allocated: self.data.num_bytes_allocated,
                     gc_cause: self.data.gc_cause,
@@ -97,7 +124,7 @@ impl IntoEvent for EbpfEvent<GarbageCollect> {
                     freed_los_objects: self.data.freed_los_objects,
                     gcs_completed: self.data.gcs_completed,
                 })),
-            })),
+            }))
         }
     }
 }
@@ -105,39 +132,42 @@ impl IntoEvent for EbpfEvent<GarbageCollect> {
 impl IntoEvent for EbpfEvent<FileDescriptorChange> {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(LogEvent {
-                event_data: Some(EventData::SysFdTracking(SysFdTrackingEvent {
+            event_data: Some(EventData::Log(LogEvent {
+                context: Some(EventContext {
                     pid: self.context.task.pid,
                     tid: self.context.task.tid,
-                    time_stamp: self.context.timestamp,
-                    fd_action: match self.data.operation {
-                        FileDescriptorOp::Open => SysFdAction::Created,
-                        FileDescriptorOp::Close => SysFdAction::Destroyed,
-                    }
-                    .into(),
+                    timestamp: Some(duration_since_boot_to_timestamp(self.context.timestamp)),
+                }),
+                log_event_data: Some(LogEventData::FileDescriptorChange(FileDescriptorChangeEvent {
+                    open_file_descriptors: self.data.open_fds,
+                    operation: match self.data.operation {
+                        FileDescriptorOp::Open => file_descriptor_change_event::FileDescriptorOp::Open,
+                        FileDescriptorOp::Close => file_descriptor_change_event::FileDescriptorOp::Close,
+                    }.into(),
                 })),
-            })),
+            }))
         }
     }
 }
 
-impl IntoEvent for EbpfEvent<Jni> {
+impl IntoEvent for EbpfEvent<JniReferences> {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(LogEvent {
-                event_data: Some(EventData::JniReferences(JniReferencesEvent {
+            event_data: Some(EventData::Log(LogEvent {
+                context: Some(EventContext {
                     pid: self.context.task.pid,
                     tid: self.context.task.tid,
-                    begin_time_stamp: self.context.timestamp,
-                    jni_method_name: match self.data {
-                        Jni::AddLocalRef => JniMethodName::AddLocalRef,
-                        Jni::DeleteLocalRef => JniMethodName::DeleteLocalRef,
-                        Jni::AddGlobalRef => JniMethodName::AddGlobalRef,
-                        Jni::DeleteGlobalRef => JniMethodName::DeleteGlobalRef,
-                    }
-                    .into(),
+                    timestamp: Some(duration_since_boot_to_timestamp(self.context.timestamp)),
+                }),
+                log_event_data: Some(LogEventData::JniReferences(JniReferencesEvent {
+                    method_name: match self.data {
+                        JniReferences::AddLocalRef => jni_references_event::JniMethodName::AddLocalRef,
+                        JniReferences::DeleteLocalRef => jni_references_event::JniMethodName::DeleteLocalRef,
+                        JniReferences::AddGlobalRef => jni_references_event::JniMethodName::AddGlobalRef,
+                        JniReferences::DeleteGlobalRef => jni_references_event::JniMethodName::DeleteGlobalRef,
+                    }.into(),
                 })),
-            })),
+            }))
         }
     }
 }
@@ -145,15 +175,16 @@ impl IntoEvent for EbpfEvent<Jni> {
 impl IntoEvent for EbpfEvent<Blocking> {
     fn into_event(self) -> Event {
         Event {
-            event_type: Some(EventType::Log(LogEvent {
-                event_data: Some(EventData::SysSendmsg(SysSendmsgEvent {
+            event_data: Some(EventData::Log(LogEvent {
+                context: Some(EventContext {
                     pid: self.context.task.pid,
                     tid: self.context.task.tid,
-                    begin_time_stamp: self.context.timestamp,
-                    fd: self.data.syscall_id, // TODO: we have blocking event now
-                    duration_nano_sec: self.data.duration,
+                    timestamp: Some(duration_since_boot_to_timestamp(self.context.timestamp)),
+                }),
+                log_event_data: Some(LogEventData::Blocking(BlockingEvent {
+                    duration: Some(Duration::from_nanos(self.data.duration).into()),
                 })),
-            })),
+            }))
         }
     }
 }

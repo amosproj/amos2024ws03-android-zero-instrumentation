@@ -10,7 +10,7 @@ use aya::{
     EbpfError,
 };
 use ractor::ActorRef;
-use shared::config::VfsWriteConfig;
+use shared::config::WriteConfig;
 
 use crate::{
     features::Feature,
@@ -18,14 +18,14 @@ use crate::{
     symbols::actors::SymbolActorMsg,
 };
 
-pub struct VfsWriteFeature {
+pub struct WriteFeature {
     sys_enter_write: RegistryGuard<RawTracePoint>,
     sys_exit_write: RegistryGuard<RawTracePoint>,
     sys_enter_write_link: Option<RawTracePointLink>,
     sys_exit_write_link: Option<RawTracePointLink>,
 }
 
-impl VfsWriteFeature {
+impl WriteFeature {
     pub fn create(registry: &EbpfRegistry) -> Self {
         Self {
             sys_enter_write: registry.program.sys_enter_write.take(),
@@ -55,11 +55,11 @@ impl VfsWriteFeature {
     }
 }
 
-impl Feature for VfsWriteFeature {
-    type Config = VfsWriteConfig;
+impl Feature for WriteFeature {
+    type Config = WriteConfig;
 
     fn init(registry: &EbpfRegistry, _: Option<ActorRef<SymbolActorMsg>>) -> Self {
-        VfsWriteFeature::create(registry)
+        WriteFeature::create(registry)
     }
 
     async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {

@@ -11,7 +11,7 @@ use aya::{
     Ebpf, EbpfError,
 };
 use ractor::{call, Actor, ActorRef, RactorErr};
-use shared::config::SysFdTrackingConfig;
+use shared::config::FileDescriptorChangeConfig;
 use tracing_subscriber::{registry, Registry};
 
 use crate::{
@@ -20,14 +20,14 @@ use crate::{
     symbols::actors::{GetOffsetRequest, SymbolActorMsg},
 };
 
-pub struct SysFdTrackingFeature {
+pub struct FileDescriptorChangeFeature {
     sys_enter_fdtracking: RegistryGuard<RawTracePoint>,
     sys_exit_fdtracking: RegistryGuard<RawTracePoint>,
     sys_enter_fdtracking_link: Option<RawTracePointLink>,
     sys_exit_fdtracking_link: Option<RawTracePointLink>,
 }
 
-impl SysFdTrackingFeature {
+impl FileDescriptorChangeFeature {
     fn create(registry: &EbpfRegistry) -> Self {
         Self {
             sys_enter_fdtracking: registry.program.sys_enter_fdtracking.take(),
@@ -56,11 +56,11 @@ impl SysFdTrackingFeature {
     }
 }
 
-impl Feature for SysFdTrackingFeature {
-    type Config = SysFdTrackingConfig;
+impl Feature for FileDescriptorChangeFeature {
+    type Config = FileDescriptorChangeConfig;
 
     fn init(registry: &EbpfRegistry, _: Option<ActorRef<SymbolActorMsg>>) -> Self {
-        SysFdTrackingFeature::create(registry)
+        FileDescriptorChangeFeature::create(registry)
     }
 
     async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {

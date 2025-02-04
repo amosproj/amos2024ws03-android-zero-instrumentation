@@ -112,7 +112,7 @@ pub struct Blocking {
 
 #[derive(Debug, Clone, Copy, CheckedBitPattern)]
 #[repr(u8)]
-pub enum Jni {
+pub enum JniReferences {
     AddLocalRef,
     DeleteLocalRef,
     AddGlobalRef,
@@ -162,7 +162,7 @@ pub enum EventKind {
     Signal,
     GarbageCollect,
     FileDescriptorChange,
-    Jni,
+    JniReferences,
     MAX,
 }
 
@@ -186,7 +186,7 @@ impl_event_data! {
     Signal,
     GarbageCollect,
     FileDescriptorChange,
-    Jni
+    JniReferences
 }
 
 #[derive(Debug, Clone, Copy, Default, AnyBitPattern)]
@@ -244,7 +244,7 @@ macro_rules! unpack_event {
             EventKind::FileDescriptorChange => {
                 Box::new(*checked::from_bytes::<Event<FileDescriptorChange>>(&$rbe))
             }
-            EventKind::Jni => Box::new(*checked::from_bytes::<Event<Jni>>(&$rbe)),
+            EventKind::JniReferences => Box::new(*checked::from_bytes::<Event<JniReferences>>(&$rbe)),
             EventKind::Blocking => Box::new(*checked::from_bytes::<Event<Blocking>>(&$rbe)),
             EventKind::MAX => unreachable!(),
         }

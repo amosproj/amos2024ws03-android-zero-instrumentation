@@ -29,25 +29,32 @@ static UNIFFI_RECORDS: LazyLock<Vec<&str>> = LazyLock::new(|| {
 
             // config.proto
             "Configuration",
-            "VfsWriteConfig",
-            "SysSendmsgConfig",
+            "WriteConfig",
+            "BlockingConfig",
             "JniReferencesConfig",
-            "SysSigquitConfig",
+            "SignalConfig",
             "UprobeConfig",
-            "GcConfig",
-            "SysFdTrackingConfig",
+            "GarbageCollectConfig",
+            "FileDescriptorChangeConfig",
+            "StringFilter",
+            "UInt32Filter",
+            "Filter",
             
             // events.proto
             "Event",
+            "EventContext",
             "TimeSeriesEvent",
-            "TimeSeriesType",
+            "TimeSeriesData",
             "LogEvent",
-            "VfsWriteEvent",
-            "SysSendmsgEvent",
+            "WriteEvent",
+            "BlockingEvent",
             "JniReferencesEvent",
-            "SysSigquitEvent",
-            "GcEvent",
-            "SysFdTrackingEvent",
+            "SignalEvent",
+            "GarbageCollectEvent",
+            "FileDescriptorChangeEvent",
+            
+            "Duration",
+            "Timestamp",
         ]
     } else {
         vec![]
@@ -61,11 +68,11 @@ static UNIFFI_ENUMS: LazyLock<Vec<&str>> = LazyLock::new(|| {
          */
         vec![
             "Process.cmd",
+            "MissingBehavior",
             "Event.event_data",
-            "JniReferencesEvent.JniMethodName",
-            "Event.event_type",
-            "LogEvent.event_data",
-            "SysFdTrackingEvent.SysFdAction",
+            "LogEvent.log_event_data",
+            "JniMethodName",
+            "FileDescriptorOp",
             ]
     } else {
         vec![]
@@ -91,7 +98,8 @@ fn main() {
 
     builder = builder
         .protoc_arg("--experimental_allow_proto3_optional")
-        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]");
+        .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .compile_well_known_types(true);
 
     builder = derive_records(builder);
     builder = derive_enums(builder);

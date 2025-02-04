@@ -2,12 +2,10 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::io;
-
-use std::collections::HashMap;
-use tokio::sync::RwLock;
+use std::{collections::HashMap, io};
 
 use shared::config::Configuration;
+use tokio::sync::RwLock;
 
 use super::ConfigurationStorage;
 
@@ -28,9 +26,10 @@ impl ConfigurationStorage for MemoryConfigurationStorage {
     async fn load(&self, path: &str) -> io::Result<Configuration> {
         tokio::task::block_in_place(|| {
             let storage = self.storage.blocking_read();
-            storage.get(path).cloned().ok_or_else(|| {
-                io::Error::new(io::ErrorKind::NotFound, "Configuration not found")
-            })
+            storage
+                .get(path)
+                .cloned()
+                .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Configuration not found"))
         })
     }
 

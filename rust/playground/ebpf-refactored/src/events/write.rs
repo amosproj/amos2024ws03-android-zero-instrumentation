@@ -97,6 +97,16 @@ fn initialize_write_exit<'a>(
         (&raw mut (*ptr).bytes_written).write(write_entry.data.bytes_written);
         (&raw mut (*ptr).file_descriptor).write(write_entry.data.file_descriptor);
 
+        if (*ptr).file_path[0] != b'/' {
+            return None;
+        }
+        if &(*ptr).file_path[0..4] == b"/dev" {
+            return None;
+        }
+        if &(*ptr).file_path[0..5] == b"/proc" {
+            return None;
+        }
+
         Some(write_data.assume_init_ref())
     }
 }

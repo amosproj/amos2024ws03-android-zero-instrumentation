@@ -10,7 +10,7 @@ use aya::{
     EbpfError,
 };
 use ractor::ActorRef;
-use shared::config::GcConfig;
+use shared::config::GarbageCollectConfig;
 
 use crate::{
     features::Feature,
@@ -22,14 +22,14 @@ use crate::{
 /// Found via disassembling and looking at the exported CollectGc method
 const COLLECT_GC_INTERNAL_OFFSET: u64 = 0x57ad10;
 
-pub struct GcFeature {
+pub struct GarbageCollectFeature {
     trace_gc_enter: RegistryGuard<UProbe>,
     trace_gc_exit: RegistryGuard<UProbe>,
     trace_enter_gc_link: Option<UProbeLink>,
     trace_exit_gc_link: Option<UProbeLink>,
 }
 
-impl GcFeature {
+impl GarbageCollectFeature {
     fn create(registry: &EbpfRegistry) -> Self {
         Self {
             trace_gc_enter: registry.program.trace_gc_enter.take(),
@@ -69,11 +69,11 @@ impl GcFeature {
     }
 }
 
-impl Feature for GcFeature {
-    type Config = GcConfig;
+impl Feature for GarbageCollectFeature {
+    type Config = GarbageCollectConfig;
 
     fn init(registry: &EbpfRegistry, _: Option<ActorRef<SymbolActorMsg>>) -> Self {
-        GcFeature::create(registry)
+        GarbageCollectFeature::create(registry)
     }
 
     async fn apply(&mut self, config: &Option<Self::Config>) -> Result<(), EbpfError> {

@@ -13,8 +13,8 @@ use aya_ebpf::{
 };
 use ebpf_relocation_helpers::{ffi::art_heap, ArtHeap, TaskStruct};
 use ebpf_types::{
-    Blocking, Event, EventData, FileDescriptorChange, GarbageCollect, Jni, ProcessContext, Signal,
-    TaskContext, Write,
+    Blocking, Event, EventData, FileDescriptorChange, GarbageCollect, JniReferences,
+    ProcessContext, Signal, TaskContext, Write,
 };
 
 use crate::{
@@ -234,15 +234,15 @@ pub fn sys_exit_fdtracking(ctx: RawTracePointContext) -> Option<()> {
     sys_exit::<FileDescriptorChange>(&ctx, |_| Some(()))
 }
 
-unsafe fn trace_jni_enter(data: Jni) -> Option<()> {
+unsafe fn trace_jni_enter(data: JniReferences) -> Option<()> {
     let task = current_task();
     let program_info = ProgramInfo::new(task)?;
 
-    if EventFilter::filter_many::<Jni>(&program_info.filters()) {
+    if EventFilter::filter_many::<JniReferences>(&program_info.filters()) {
         return None;
     }
 
-    let mut event = ScratchEventLocal::get::<Jni>()?;
+    let mut event = ScratchEventLocal::get::<JniReferences>()?;
     event.as_mut_ptr().write(data);
     let event = event.assume_init_ref();
 
@@ -251,19 +251,19 @@ unsafe fn trace_jni_enter(data: Jni) -> Option<()> {
 
 #[uprobe]
 fn trace_jni_add_local(_: ProbeContext) -> Option<()> {
-    unsafe { trace_jni_enter(Jni::AddLocalRef) }
+    unsafe { trace_jni_enter(JniReferences::AddLocalRef) }
 }
 #[uprobe]
 fn trace_jni_del_local(_: ProbeContext) -> Option<()> {
-    unsafe { trace_jni_enter(Jni::DeleteLocalRef) }
+    unsafe { trace_jni_enter(JniReferences::DeleteLocalRef) }
 }
 #[uprobe]
 fn trace_jni_add_global(_: ProbeContext) -> Option<()> {
-    unsafe { trace_jni_enter(Jni::AddGlobalRef) }
+    unsafe { trace_jni_enter(JniReferences::AddGlobalRef) }
 }
 #[uprobe]
 fn trace_jni_del_global(_: ProbeContext) -> Option<()> {
-    unsafe { trace_jni_enter(Jni::DeleteGlobalRef) }
+    unsafe { trace_jni_enter(JniReferences::DeleteGlobalRef) }
 }
 
 impl EventLocalData for GarbageCollect {
@@ -289,10 +289,9 @@ fn trace_gc_exit(_: RetProbeContext) -> Option<()> {
     let task = unsafe { current_task() };
     let program_info = ProgramInfoExit::<GarbageCollect>::new(task)?;
 
-    // TODO: Currently the frontend expects all gc events
-    // if EventFilter::filter_many::<GarbageCollect>(&program_info.info.filters()) {
-    //     return None;
-    // }
+    if EventFilter::filter_many::<GarbageCollect>(&program_info.info.filters()) {
+        return None;
+    }
 
     let mut event = ScratchEventLocal::get::<GarbageCollect>()?;
     let event = unsafe {
