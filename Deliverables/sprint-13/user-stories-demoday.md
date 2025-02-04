@@ -10,7 +10,9 @@ SPDX-License-Identifier: MIT
 Before starting with the demo: Note that our "users" are software developers for a niche topic. 
 We tried our best to make it as understandable as possible for you, but keep that in mind when you don't understand all information displayed in the UI.
 
-I'm a such a software developer at eSolutions and my task is to integrate the software we get from our suppliers into the infotainment system. 
+I am a software developer at eSolutions and my task is to integrate the software we get from our suppliers into the infotainment system. 
+
+Please note that the following user stories are extremely simplified and fictive. They may not reflect the real implementations of eSolutions Infotainment Software. 
 
 ## 1. rear view camera is laggy
 One of the many software suppliers has delivered its new rear-view camera system. Since its integration the UI's response time worsened and the camera pictures are laggy.
