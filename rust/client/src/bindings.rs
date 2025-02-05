@@ -7,9 +7,11 @@ use std::{pin::Pin, sync::Arc};
 
 use shared::{
     config::Configuration,
-    events::{jni_references_event::JniMethodName, file_descriptor_change_event::FileDescriptorOp, Event},
-    symbols::search_symbols_response::Symbol, 
+    events::{
+        file_descriptor_change_event::FileDescriptorOp, jni_references_event::JniMethodName, Event,
+    },
     processes::Process,
+    symbols::search_symbols_response::Symbol,
 };
 use tokio::sync::Mutex;
 use tokio_stream::{Stream, StreamExt};

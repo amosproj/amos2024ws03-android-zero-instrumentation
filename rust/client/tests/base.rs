@@ -5,8 +5,7 @@
 // SPDX-License-Identifier: MIT
 
 use client::Client;
-use shared::config::Configuration;
-use shared::processes::process::Cmd;
+use shared::{config::Configuration, processes::process::Cmd};
 
 // client tests assume daemon is running!
 async fn setup() -> Client {
@@ -19,7 +18,10 @@ async fn setup() -> Client {
 async fn list_processes() {
     let mut client = setup().await;
 
-    let processes = client.list_processes().await.expect("processes should be available");
+    let processes = client
+        .list_processes()
+        .await
+        .expect("processes should be available");
 
     let server_process = processes.iter().find(|process| match &process.cmd {
         Some(Cmd::Cmdline(d)) => {
@@ -54,11 +56,12 @@ async fn set_get_empty_config() {
     assert_eq!(res_config, default_config);
 }
 
-
-
 #[tokio::test]
 async fn init_stream() {
     let mut client = setup().await;
 
-    let _ = client.init_stream().await.expect("init_stream should return a stream");
+    let _ = client
+        .init_stream()
+        .await
+        .expect("init_stream should return a stream");
 }
