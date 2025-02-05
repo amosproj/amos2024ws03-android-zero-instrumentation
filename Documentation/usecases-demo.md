@@ -122,4 +122,4 @@ ORDER BY SUM(bytes_written) DESC;
 #### Conclusion
 
 - Reiterate: High Level of modularity, writing such this tool on top of the existing work is easy (the sqlite collection took 1 evening)
-- Target are developers: Developers want to tailor the tool to their needs (this project is just a building block for eSolutions)
+- Target are developers: Developers want to tailor the tool to their needs (this project is just a building block for e.solutions)
