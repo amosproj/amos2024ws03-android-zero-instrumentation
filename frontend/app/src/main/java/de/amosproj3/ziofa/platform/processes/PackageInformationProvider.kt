@@ -31,6 +31,7 @@ class PackageInformationProvider(private val packageManager: PackageManager) {
         return InstalledPackageInfo(displayName, appIcon)
     }
 
+    /** Retrieve the [InstalledPackageInfo] for a given [packageName] from the cache. */
     fun getPackageInfo(packageName: String): InstalledPackageInfo? {
         return installedPackagesCache[packageName]
     }

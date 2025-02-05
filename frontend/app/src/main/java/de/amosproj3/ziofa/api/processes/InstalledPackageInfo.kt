@@ -6,4 +6,5 @@ package de.amosproj3.ziofa.api.processes
 
 import android.graphics.drawable.Drawable
 
+/** Wrapper class for app information */
 data class InstalledPackageInfo(val displayName: String, val icon: Drawable)

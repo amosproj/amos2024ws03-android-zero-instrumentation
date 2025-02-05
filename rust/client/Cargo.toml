@@ -28,10 +28,12 @@ shared = { workspace = true }
 clap = { workspace = true, optional = true, default-features = true, features = [
   "derive",
 ] }
+chrono = { version = "0.4.39", features = ["clock"] }
+rusqlite = { version = "0.33.0", features = ["bundled"] }
 
 [features]
 uniffi = ["dep:uniffi", "shared/uniffi"]
-cli = ["dep:clap", "tokio/rt-multi-thread", "tokio/signal"]
+cli = ["dep:clap", "tokio/rt-multi-thread", "tokio/signal", "tokio/fs", "tokio/sync"]
 
 [[bin]]
 name = "client"

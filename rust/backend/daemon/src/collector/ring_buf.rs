@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 use std::io;
 
 use ractor::{cast, Actor, ActorRef};
-use shared::ziofa::Event;
+use shared::events::Event;
 use tokio::io::unix::AsyncFd;
 
 use super::IntoEvent;

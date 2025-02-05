@@ -46,7 +46,7 @@ import timber.log.Timber
 @Composable
 fun VicoBar(
     chartMetadata: ChartMetadata,
-    seriesData: ImmutableList<Pair<ULong, Double>>,
+    seriesData: ImmutableList<Pair<String, Double>>,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -59,7 +59,7 @@ fun VicoBar(
             modelProducer.SeriesUpdate(seriesData.map { it.second.toInt() })
             modelProducer.TimeSeriesChart(
                 chartMetadata = chartMetadata,
-                xLabels = seriesData.map { it.first.toString() }.toImmutableList(),
+                xLabels = seriesData.map { it.first }.toImmutableList(),
                 modifier.fillMaxSize(),
             )
         } else WaitingForDataHint()

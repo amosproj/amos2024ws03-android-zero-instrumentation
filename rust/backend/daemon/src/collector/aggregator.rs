@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
@@ -9,11 +10,8 @@ use ractor::{
     concurrency::{Duration, JoinHandle},
     Actor, ActorProcessingErr, ActorRef,
 };
-use shared::ziofa::{
-    event::EventType,
-    log_event::EventData,
-    time_series_event::{EventTypeEnum, TimeSeriesType},
-    Event, TimeSeriesEvent as ZioTimeSeriesEvent,
+use shared::events::{
+    event::EventData, time_series_event::{EventKind, TimeSeriesData}, Event, TimeSeriesEvent as ZioTimeSeriesEvent
 };
 use tokio::time;
 
@@ -23,8 +21,8 @@ pub struct Aggregator;
 impl Aggregator {
     fn convert_map_to_prototype(
         time_series_map: HashMap<u32, TimeSeries>,
-    ) -> HashMap<u32, TimeSeriesType> {
-        let mut map = HashMap::<u32, TimeSeriesType>::with_capacity(time_series_map.len());
+    ) -> HashMap<u32, TimeSeriesData> {
+        let mut map = HashMap::<u32, TimeSeriesData>::with_capacity(time_series_map.len());
         for (id, time_series) in time_series_map {
             map.insert(id, time_series.into());
         }
@@ -39,7 +37,7 @@ impl Default for Aggregator {
 }
 
 pub struct AggregatorState {
-    event_type: EventTypeEnum,
+    event_type: EventKind,
     event_count_map: HashMap<u32, u64>, // map pid to count
     timeframe: Duration,
     event_actor: ActorRef<Event>,
@@ -50,14 +48,14 @@ pub struct AggregatorState {
 pub struct AggregatorArguments {
     event_actor: ActorRef<Event>,
     timeframe: time::Duration,
-    event_type_enum: EventTypeEnum,
+    event_type_enum: EventKind,
 }
 
 impl AggregatorArguments {
     pub fn _new(
         event_actor: ActorRef<Event>,
         timeframe: Duration,
-        event_type_enum: EventTypeEnum,
+        event_type_enum: EventKind,
     ) -> Self {
         AggregatorArguments {
             event_actor,
@@ -99,7 +97,7 @@ impl Actor for Aggregator {
         myself: ActorRef<Self::Msg>,
         state: &mut Self::State,
     ) -> Result<(), ActorProcessingErr> {
-        state.timer = Some(myself.send_interval(state.timeframe, || Event { event_type: None }));
+        state.timer = Some(myself.send_interval(state.timeframe, || Event { event_data: None }));
         Ok(())
     }
 
@@ -120,20 +118,11 @@ impl Actor for Aggregator {
         msg: Self::Msg,
         state: &mut AggregatorState,
     ) -> Result<(), ActorProcessingErr> {
-        match msg.event_type {
-            Some(EventType::Log(event)) => {
-                let pid = match event.event_data.clone() {
-                    Some(EventData::VfsWrite(item)) => item.pid,
-                    Some(EventData::SysSendmsg(item)) => item.pid,
-                    Some(EventData::JniReferences(item)) => item.pid,
-                    Some(EventData::SysSigquit(item)) => item.pid,
-                    Some(EventData::Gc(item)) => item.pid,
-                    _ => {
-                        panic!("unexpected event type");
-                    }
-                };
+        match msg.event_data {
+            Some(EventData::Log(event)) => {
+                let pid = event.context.unwrap().pid;
 
-                let msg_event_type = EventTypeEnum::from(event);
+                let msg_event_type = EventKind::from(&event);
 
                 if msg_event_type != state.event_type {
                     panic!(
@@ -156,10 +145,10 @@ impl Actor for Aggregator {
                 }
 
                 //convert type for sending
-                //ziofa::time_series_event::TimeSeries
+                //events::time_series_event::TimeSeries
 
                 let time_series = ZioTimeSeriesEvent {
-                    event_type_enum: state.event_type.into(),
+                    event_kind: state.event_type.into(),
                     timeframe_ms: state.timeframe.as_millis() as u32,
                     time_series_map: Self::convert_map_to_prototype(state.time_series_map.clone()),
                 };
@@ -167,7 +156,7 @@ impl Actor for Aggregator {
                 cast!(
                     state.event_actor,
                     Event {
-                        event_type: Some(EventType::TimeSeries(time_series))
+                        event_data: Some(EventData::TimeSeries(time_series))
                     }
                 )
                 .map_err(|_| ActorProcessingErr::from("Failed to send metric to event actor"))?;

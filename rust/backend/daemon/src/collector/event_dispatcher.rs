@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 use async_broadcast::Sender;
 use ractor::Actor;
-use shared::ziofa::Event;
+use shared::events::Event;
 use tonic::Status;
 
 pub struct EventDispatcher;

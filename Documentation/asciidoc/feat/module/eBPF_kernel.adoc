@@ -1,6 +1,6 @@
 === eBPF programs (Kernel)
 
-WARNING: following requirements are not tested ideas. Please not, that implementing some requirements might not be possible as requested.
+WARNING: following requirements are not tested ideas. Please note, that implementing some requirements might not be possible as requested.
 
 ==== Overview
 

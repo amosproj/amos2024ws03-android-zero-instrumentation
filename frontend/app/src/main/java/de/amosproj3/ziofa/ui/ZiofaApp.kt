@@ -15,7 +15,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import de.amosproj3.ziofa.ui.about.AboutScreen
 import de.amosproj3.ziofa.ui.configuration.ConfigurationScreen
 import de.amosproj3.ziofa.ui.init.InitScreen
 import de.amosproj3.ziofa.ui.navigation.ConfigurationMenu
@@ -90,9 +89,6 @@ fun ZIOFAApp() {
             }
             screenWithDefaultAnimations(Routes.Visualize.name) {
                 VisualizationScreen(Modifier.padding(innerPadding))
-            }
-            screenWithDefaultAnimations(Routes.About.name) {
-                AboutScreen(Modifier.padding(innerPadding))
             }
             screenWithDefaultAnimations(Routes.Processes.name) {
                 ProcessesScreen(

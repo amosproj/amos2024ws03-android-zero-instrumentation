@@ -199,16 +199,16 @@ class VisualizationViewModel(
     private fun updateOverlayState(shouldBeActive: Boolean) {
         viewModelScope.launch {
             if (shouldBeActive) {
-                overlayController.dispatchAction(OverlayAction.Enable(selectionData.value))
+                overlayController.performAction(OverlayAction.Enable(selectionData.value))
             } else {
-                overlayController.dispatchAction(OverlayAction.Disable)
+                overlayController.performAction(OverlayAction.Disable)
             }
         }
     }
 
     private fun changeOverlaySettings(newSettings: OverlaySettings) {
         viewModelScope.launch {
-            overlayController.dispatchAction(OverlayAction.ChangeSettings(newSettings))
+            overlayController.performAction(OverlayAction.ChangeSettings(newSettings))
         }
     }
 

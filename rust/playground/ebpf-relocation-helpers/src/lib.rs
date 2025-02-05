@@ -349,15 +349,15 @@ gen_accessors!(fdtable => {
 });
 
 gen_accessors!(art_heap => {
-    plain target_footprint: u64,
-    plain num_bytes_allocated: u64,
-    plain gc_cause: u32,
-    plain duration_ns: u64,
-    plain freed_objects: u64,
-    plain freed_bytes: u64,
-    plain freed_los_objects: u64,
-    plain freed_los_bytes: u64,
-    plain gcs_completed: u32,
-    plain pause_times_begin: u64,
-    plain pause_times_end: u64,
+    no_read target_footprint: *mut u64,
+    no_read num_bytes_allocated: *mut u64,
+    no_read gc_cause: *mut u32,
+    no_read duration_ns: *mut u64,
+    no_read freed_objects: *mut u64,
+    no_read freed_bytes: *mut u64,
+    no_read freed_los_objects: *mut u64,
+    no_read freed_los_bytes: *mut u64,
+    no_read gcs_completed: *mut u32,
+    no_read pause_times_begin: *mut u64,
+    no_read pause_times_end: *mut u64,
 });

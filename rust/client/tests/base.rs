@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
 //
 // SPDX-License-Identifier: MIT
 
 use client::Client;
-use shared::config::{Configuration, GcConfig, SysFdTrackingConfig, SysSendmsgConfig, SysSigquitConfig, VfsWriteConfig};
-use shared::ziofa::process::Cmd;
+use shared::{config::Configuration, processes::process::Cmd};
 
 // client tests assume daemon is running!
 async fn setup() -> Client {
@@ -19,7 +18,10 @@ async fn setup() -> Client {
 async fn list_processes() {
     let mut client = setup().await;
 
-    let processes = client.list_processes().await.expect("processes should be available");
+    let processes = client
+        .list_processes()
+        .await
+        .expect("processes should be available");
 
     let server_process = processes.iter().find(|process| match &process.cmd {
         Some(Cmd::Cmdline(d)) => {
@@ -36,29 +38,10 @@ async fn list_processes() {
 }
 
 #[tokio::test]
-async fn check_server() {
-    let mut client = setup().await;
-    client.check_server().await.expect("should work");
-}
-
-#[tokio::test]
 async fn set_get_empty_config() {
     let mut client = setup().await;
 
-    let default_config = Configuration {
-        uprobes: vec![],
-        vfs_write: Some(VfsWriteConfig {
-            entries: std::collections::HashMap::new(),
-        }),
-        sys_sendmsg: Some(SysSendmsgConfig {
-            entries: std::collections::HashMap::new(),
-        }),
-        // jni_references: Some(JniReferencesConfig { pids: vec![] }),
-        jni_references: None,
-        sys_sigquit: Some(SysSigquitConfig { pids: vec![] }),
-        gc: Some(GcConfig { }),
-        sys_fd_tracking: Some(SysFdTrackingConfig { pids: vec![] }),
-    };
+    let default_config = Configuration::default();
 
     client
         .set_configuration(default_config.clone())
@@ -73,11 +56,12 @@ async fn set_get_empty_config() {
     assert_eq!(res_config, default_config);
 }
 
-
-
 #[tokio::test]
 async fn init_stream() {
     let mut client = setup().await;
 
-    let _ = client.init_stream().await.expect("init_stream should return a stream");
+    let _ = client
+        .init_stream()
+        .await
+        .expect("init_stream should return a stream");
 }

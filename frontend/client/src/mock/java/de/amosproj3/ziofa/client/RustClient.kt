@@ -6,16 +6,13 @@
 
 package de.amosproj3.ziofa.client
 
-import android.os.SystemClock
 import kotlin.random.Random
-import kotlin.random.nextULong
+import kotlin.time.Duration.Companion.nanoseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.merge
-
-var gcPids = setOf<UInt>()
+import kotlinx.datetime.Clock
 
 object RustClient : Client {
     private var configuration: Configuration =
@@ -28,36 +25,6 @@ object RustClient : Client {
             gc = null,
             sysFdTracking = null,
         )
-
-    override suspend fun serverCount(): Flow<UInt> = flowOf()
-
-    override suspend fun load() {
-        // NOP
-    }
-
-    override suspend fun attach(iface: String) {
-        // NOP
-    }
-
-    override suspend fun unload() {
-        // NOP
-    }
-
-    override suspend fun detach(iface: String) {
-        // NOP
-    }
-
-    override suspend fun startCollecting() {
-        // NOP
-    }
-
-    override suspend fun stopCollecting() {
-        // NOP
-    }
-
-    override suspend fun checkServer() {
-        // NOP
-    }
 
     override suspend fun indexSymbols() {
         // NOP
@@ -80,24 +47,33 @@ object RustClient : Client {
 
     override suspend fun initStream(): Flow<Event> =
         merge(
-            vfsWriteMockEvents(500),
+            vfsWriteMockEvents(1000),
             sendMsgMockEvents(500),
             jniReferencesMockEvents(700),
             sysSigQuitMockEvents(5000),
-            sysFdTrackingMockEvents(2500),
+            sysFdTrackingMockEvents(1000),
             gcMockEvents(4000),
         )
 
     private fun vfsWriteMockEvents(emissionDelayBoundMillis: Int) = flow {
         while (true) {
-            configuration.vfsWrite?.entries?.keys?.forEach {
+            configuration.vfsWrite?.pids?.forEach {
                 emit(
                     Event.VfsWrite(
                         pid = it,
                         tid = it + 1u,
-                        fp = listOf(0uL, 1uL, 2uL, 3uL, 0uL, 0uL, 0uL).random(),
-                        bytesWritten = listOf(8uL, 16uL, 32uL, 64uL).random(),
-                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        fp =
+                            listOf(
+                                    "/data/vendor/navigationd/backup.sqlite",
+                                    "/data/vendor/navigationd/backup.sqlite",
+                                    "/data/vendor/navigationd/backup.sqlite",
+                                    "/data/vendor/navigationd/backup.sqlite",
+                                    "/data/vendor/navigationd/settings.sqlite",
+                                    "/data/vendor/navigationd/keystore.sqlite",
+                                )
+                                .random(),
+                        bytesWritten = listOf(10uL, 12uL, 8uL, 8uL).random(),
+                        beginTimeStamp = Clock.System.now(),
                     )
                 )
             }
@@ -106,17 +82,26 @@ object RustClient : Client {
     }
 
     private fun sendMsgMockEvents(emissionDelayBoundMillis: Int) = flow {
+        var ctr = 0
+        var multiplier = 1.3
+
         while (true) {
+
+            val next = (Random.nextLong(40_000_000) * multiplier).toLong()
+
             configuration.sysSendmsg?.entries?.keys?.forEach {
                 emit(
                     Event.SysSendmsg(
                         pid = it,
                         tid = it + 1u,
-                        fd = listOf(3uL, 4uL, 5uL, 6uL, 6uL, 6uL).random(),
-                        durationNanoSecs = 10_000_000u + Random.nextULong(40_000_000u),
-                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        duration = 10_000_000.nanoseconds + next.nanoseconds,
+                        beginTimeStamp = Clock.System.now(),
                     )
                 )
+            }
+            ctr++
+            if (ctr % 15 == 0) {
+                multiplier *= 1.3
             }
             delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
@@ -133,7 +118,7 @@ object RustClient : Client {
                     Event.JniReferences(
                         pid = it,
                         tid = it + 1u,
-                        beginTimeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        beginTimeStamp = Clock.System.now(),
                         jniMethodName = jniMethodName,
                     )
                 )
@@ -149,7 +134,7 @@ object RustClient : Client {
                     Event.SysSigquit(
                         pid = it,
                         tid = it + 1u,
-                        timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
+                        timeStamp = Clock.System.now(),
                         targetPid = it.toULong(),
                     )
                 )
@@ -160,21 +145,42 @@ object RustClient : Client {
 
     private fun sysFdTrackingMockEvents(emissionDelayBoundMillis: Int) = flow {
         while (true) {
-            configuration.sysFdTracking?.pids?.forEach {
-                val rnd = Random.nextFloat()
-                val syFdMethod =
-                    if (rnd > 0.33f) Event.SysFdTracking.SysFdAction.Created
-                    else Event.SysFdTracking.SysFdAction.Destroyed
-                emit(
-                    Event.SysFdTracking(
-                        pid = it,
-                        tid = it + 1u,
-                        timeStamp = SystemClock.elapsedRealtimeNanos().toULong(),
-                        fdAction = syFdMethod,
+
+            val rnd1 = Random.nextFloat()
+
+            if (rnd1 >= 0.3f) {
+                configuration.sysFdTracking?.pids?.forEach {
+                    val rnd = Random.nextFloat()
+                    val syFdMethod =
+                        if (rnd > 0.20f) Event.SysFdTracking.SysFdAction.Created
+                        else Event.SysFdTracking.SysFdAction.Destroyed
+                    emit(
+                        Event.SysFdTracking(
+                            pid = it,
+                            tid = it + 1u,
+                            timeStamp = Clock.System.now(),
+                            fdAction = syFdMethod,
+                        )
                     )
-                )
+                }
+                delay((Random.nextFloat() * (emissionDelayBoundMillis / 5)).toLong())
+            } else {
+                configuration.sysFdTracking?.pids?.forEach {
+                    val rnd = Random.nextFloat()
+                    val syFdMethod =
+                        if (rnd > 0.40f) Event.SysFdTracking.SysFdAction.Created
+                        else Event.SysFdTracking.SysFdAction.Destroyed
+                    emit(
+                        Event.SysFdTracking(
+                            pid = it,
+                            tid = it + 1u,
+                            timeStamp = Clock.System.now(),
+                            fdAction = syFdMethod,
+                        )
+                    )
+                }
+                delay((Random.nextFloat() * (emissionDelayBoundMillis)).toLong())
             }
-            delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
     }
 
@@ -208,12 +214,6 @@ object RustClient : Client {
             delay((Random.nextFloat() * emissionDelayBoundMillis).toLong())
         }
     }
-
-    override suspend fun getOdexFiles(pid: UInt): Flow<String> = mockOdexFileFlow
-
-    override suspend fun getSoFiles(pid: UInt): Flow<String> = mockSoFileFlow
-
-    override suspend fun getSymbols(filePath: String): Flow<Symbol> = mockSymbolFlow
 }
 
 class RustClientFactory(val url: String) : ClientFactory {

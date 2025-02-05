@@ -116,8 +116,7 @@ dependencies {
     detektPlugins(libs.detekt.compose.rules)
     implementation(libs.kotlinx.collections.immutable)
     implementation(libs.ycharts)
-
-
+    implementation(libs.kotlinx.datetime)
 }
 
 tasks.cyclonedxBom {

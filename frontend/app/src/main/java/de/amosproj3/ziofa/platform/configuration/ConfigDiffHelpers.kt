@@ -16,6 +16,12 @@ import de.amosproj3.ziofa.client.VfsWriteConfig
 import de.amosproj3.ziofa.ui.configuration.data.BackendFeatureOptions
 import de.amosproj3.ziofa.ui.shared.DURATION_THRESHOLD
 
+/**
+ * There has to be a cleaner way to do this, but for now it works. Given a [ChangeFeature] action,
+ * apply the change to the [Configuration] and return changed configuration The [ChangeFeature]
+ * action contains a "delta" that will be applied to the configuration. (that may be removing or
+ * adding PIDs)
+ */
 @Suppress("CyclomaticComplexMethod", "LongMethod")
 fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Configuration {
 
@@ -28,12 +34,8 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
             this.copy(
                 vfsWrite =
                     this.vfsWrite.updatePIDs(
-                        pidsToAdd =
-                            if (enable) pids.associateWith { DURATION_THRESHOLD }.entries
-                            else setOf(),
-                        pidsToRemove =
-                            if (!enable) pids.associateWith { DURATION_THRESHOLD }.entries
-                            else setOf(),
+                        pidsToAdd = if (enable) pids else setOf(),
+                        pidsToRemove = if (!enable) pids else setOf(),
                     )
             )
 
@@ -110,16 +112,11 @@ fun Configuration.applyChange(action: ConfigurationAction.ChangeFeature): Config
 }
 
 fun VfsWriteConfig?.updatePIDs(
-    pidsToAdd: Set<Map.Entry<UInt, ULong>> = setOf(),
-    pidsToRemove: Set<Map.Entry<UInt, ULong>> = setOf(),
+    pidsToAdd: Set<UInt> = setOf(),
+    pidsToRemove: Set<UInt> = setOf(),
 ): VfsWriteConfig {
-    val config = this ?: VfsWriteConfig(mapOf())
-    return config.copy(
-        entries =
-            config.entries.entries.plus(pidsToAdd).minus(pidsToRemove).associate {
-                it.key to it.value
-            }
-    )
+    val config = this ?: VfsWriteConfig(listOf())
+    return config.copy(pids = config.pids.plus(pidsToAdd).minus(pidsToRemove))
 }
 
 fun SysSendmsgConfig?.updatePIDs(

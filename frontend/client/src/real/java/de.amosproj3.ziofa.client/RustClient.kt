@@ -5,21 +5,24 @@
 
 package de.amosproj3.ziofa.client
 
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.nanoseconds
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.Instant
+import uniffi.client.fileDescriptorChangeOpFromI32
 import uniffi.client.jniMethodNameFromI32
-import uniffi.client.sysFdActionFromI32
 import uniffi.shared.Cmd
 import uniffi.shared.EventData
-import uniffi.shared.EventType
+import uniffi.shared.FileDescriptorOp
+import uniffi.shared.Filter
 import uniffi.shared.JniMethodName
-import uniffi.shared.SysFdAction
-
-var gcPids = setOf<UInt>()
+import uniffi.shared.LogEventData
+import uniffi.shared.MissingBehavior
+import uniffi.shared.UInt32Filter
 
 private fun uniffi.shared.Process.into() =
     Process(
@@ -35,100 +38,118 @@ private fun uniffi.shared.Process.into() =
     )
 
 private fun uniffi.shared.Event.into() =
-    when (val x = eventType) {
-        is EventType.Log ->
-            when (val d = x.v1.eventData) {
-                is EventData.VfsWrite ->
-                    Event.VfsWrite(
-                        pid = d.v1.pid,
-                        tid = d.v1.tid,
-                        beginTimeStamp = d.v1.beginTimeStamp,
-                        fp = d.v1.fp,
-                        bytesWritten = d.v1.bytesWritten,
-                    )
+    when (val d = eventData) {
+        is EventData.TimeSeries -> null
+        is EventData.Log ->
+            run {
+                val context = d.v1.context ?: return null
+                val data = d.v1.logEventData ?: return null
+                when (data) {
+                    is LogEventData.Blocking ->
+                        Event.SysSendmsg(
+                            pid = context.pid,
+                            tid = context.tid,
+                            beginTimeStamp = context.timestamp.into(),
+                            duration = data.v1.duration.into(),
+                        )
 
-                is EventData.SysSendmsg ->
-                    Event.SysSendmsg(
-                        pid = d.v1.pid,
-                        tid = d.v1.tid,
-                        beginTimeStamp = d.v1.beginTimeStamp,
-                        fd = d.v1.fd,
-                        durationNanoSecs = d.v1.durationNanoSec,
-                    )
+                    is LogEventData.FileDescriptorChange ->
+                        Event.SysFdTracking(
+                            pid = context.pid,
+                            tid = context.tid,
+                            timeStamp = context.timestamp.into(),
+                            fdAction =
+                                when (fileDescriptorChangeOpFromI32(data.v1.operation)) {
+                                    FileDescriptorOp.OPEN -> Event.SysFdTracking.SysFdAction.Created
+                                    FileDescriptorOp.CLOSE ->
+                                        Event.SysFdTracking.SysFdAction.Destroyed
+                                    FileDescriptorOp.UNDEFINED ->
+                                        Event.SysFdTracking.SysFdAction.Undefined
+                                },
+                        )
 
-                is EventData.JniReferences ->
-                    Event.JniReferences(
-                        pid = d.v1.pid,
-                        tid = d.v1.tid,
-                        beginTimeStamp = d.v1.beginTimeStamp,
-                        jniMethodName =
-                            when (jniMethodNameFromI32(d.v1.jniMethodName)) {
-                                JniMethodName.ADD_LOCAL_REF ->
-                                    Event.JniReferences.JniMethodName.AddLocalRef
-
-                                JniMethodName.DELETE_LOCAL_REF ->
-                                    Event.JniReferences.JniMethodName.DeleteLocalRef
-
-                                JniMethodName.ADD_GLOBAL_REF ->
-                                    Event.JniReferences.JniMethodName.AddGlobalRef
-
-                                JniMethodName.DELETE_GLOBAL_REF ->
-                                    Event.JniReferences.JniMethodName.DeleteGlobalRef
-
-                                JniMethodName.UNDEFINED -> null
-                            },
-                    )
-
-                is EventData.SysSigquit ->
-                    Event.SysSigquit(
-                        pid = d.v1.pid,
-                        tid = d.v1.tid,
-                        timeStamp = d.v1.timeStamp,
-                        targetPid = d.v1.targetPid,
-                    )
-
-                is EventData.Gc ->
-                    Event.Gc(
-                        pid = d.v1.pid,
-                        tid = d.v1.tid,
-                        targetFootprint = d.v1.targetFootprint,
-                        numBytesAllocated = d.v1.numBytesAllocated,
-                        gcsCompleted = d.v1.gcsCompleted,
-                        gcCause = d.v1.gcCause,
-                        durationNs = d.v1.durationNs,
-                        freedObjects = d.v1.freedObjects,
-                        freedBytes = d.v1.freedBytes,
-                        freedLosObjects = d.v1.freedLosObjects,
-                        freedLosBytes = d.v1.freedLosBytes,
-                        pauseTimes = d.v1.pauseTimes,
-                    )
-
-                is EventData.SysFdTracking ->
-                    Event.SysFdTracking(
-                        pid = d.v1.pid,
-                        tid = d.v1.tid,
-                        timeStamp = d.v1.timeStamp,
-                        fdAction =
-                            when (sysFdActionFromI32(d.v1.fdAction)) {
-                                SysFdAction.CREATED -> Event.SysFdTracking.SysFdAction.Created
-                                SysFdAction.DESTROYED -> Event.SysFdTracking.SysFdAction.Destroyed
-                                SysFdAction.UNDEFINED -> null
-                            },
-                    )
-
-                null -> null
+                    is LogEventData.GarbageCollect ->
+                        Event.Gc(
+                            pid = context.pid,
+                            tid = context.tid,
+                            numBytesAllocated = data.v1.numBytesAllocated,
+                            targetFootprint = data.v1.targetFootprint,
+                            gcsCompleted = data.v1.gcsCompleted,
+                            gcCause = data.v1.gcCause,
+                            durationNs = data.v1.durationNs,
+                            freedObjects = data.v1.freedObjects,
+                            freedBytes = data.v1.freedBytes,
+                            freedLosObjects = data.v1.freedLosObjects,
+                            freedLosBytes = data.v1.freedLosBytes,
+                            pauseTimes = data.v1.pauseTimes,
+                        )
+                    is LogEventData.JniReferences ->
+                        Event.JniReferences(
+                            pid = context.pid,
+                            tid = context.tid,
+                            beginTimeStamp = context.timestamp.into(),
+                            jniMethodName =
+                                when (jniMethodNameFromI32(data.v1.methodName)) {
+                                    JniMethodName.ADD_LOCAL_REF ->
+                                        Event.JniReferences.JniMethodName.AddLocalRef
+                                    JniMethodName.DELETE_LOCAL_REF ->
+                                        Event.JniReferences.JniMethodName.DeleteLocalRef
+                                    JniMethodName.ADD_GLOBAL_REF ->
+                                        Event.JniReferences.JniMethodName.AddGlobalRef
+                                    JniMethodName.DELETE_GLOBAL_REF ->
+                                        Event.JniReferences.JniMethodName.DeleteGlobalRef
+                                    JniMethodName.UNDEFINED ->
+                                        Event.JniReferences.JniMethodName.Undefined
+                                },
+                        )
+                    is LogEventData.Signal ->
+                        Event.SysSigquit(
+                            pid = context.pid,
+                            tid = context.tid,
+                            timeStamp = context.timestamp.into(),
+                            targetPid = data.v1.targetPid.toULong(),
+                        )
+                    is LogEventData.Write ->
+                        Event.VfsWrite(
+                            pid = context.pid,
+                            tid = context.tid,
+                            beginTimeStamp = context.timestamp.into(),
+                            fp = data.v1.filePath,
+                            bytesWritten = data.v1.bytesWritten,
+                        )
+                }
             }
 
-        is EventType.TimeSeries -> null
         null -> null
     }
 
+private inline fun <reified T> uniffi.shared.Timestamp?.into(): T =
+    when (T::class.java) {
+        Instant::class.java ->
+            this?.let {
+                Instant.fromEpochMilliseconds(it.seconds * 1000 + it.nanos / 1_000_000) as T
+            } ?: Instant.DISTANT_PAST as T
+
+        else -> {
+            throw Exception()
+        }
+    }
+
+private fun uniffi.shared.Duration?.into() = this?.let { it.nanos.nanoseconds } ?: Duration.ZERO
+
 private fun uniffi.shared.Configuration.into() =
     Configuration(
-        vfsWrite = vfsWrite?.let { VfsWriteConfig(entries = it.entries) },
-        sysSendmsg = sysSendmsg?.let { SysSendmsgConfig(entries = it.entries) },
+        vfsWrite = writeConfig?.let { VfsWriteConfig(pids = it.filter.toPidList()) },
+        sysSendmsg =
+            blockingConfig?.let { config ->
+                config.filter.toPidList().let {
+                    SysSendmsgConfig(
+                        entries = it.associateWith { config.threshold ?: 32_000_000UL }
+                    )
+                }
+            },
         uprobes =
-            uprobes.map {
+            uprobeConfigs.map {
                 UprobeConfig(
                     fnName = it.fnName,
                     offset = it.offset,
@@ -136,17 +157,24 @@ private fun uniffi.shared.Configuration.into() =
                     pid = it.pid,
                 )
             },
-        jniReferences = jniReferences?.let { JniReferencesConfig(it.pids) },
-        sysSigquit = sysSigquit?.let { SysSigquitConfig(pids = it.pids) },
-        gc = gc?.let { GcConfig(gcPids) },
-        sysFdTracking = sysFdTracking?.let { SysFdTrackingConfig(it.pids) },
+        jniReferences = jniReferencesConfig?.let { JniReferencesConfig(it.filter.toPidList()) },
+        sysSigquit = signalConfig?.let { SysSigquitConfig(pids = it.filter.toPidList()) },
+        gc = garbageCollectConfig?.let { GcConfig(it.filter.toPidList().toSet()) },
+        sysFdTracking =
+            fileDescriptorChangeConfig?.let { SysFdTrackingConfig(it.filter.toPidList()) },
     )
 
 private fun Configuration.into() =
     uniffi.shared.Configuration(
-        vfsWrite = vfsWrite?.let { uniffi.shared.VfsWriteConfig(it.entries) },
-        sysSendmsg = sysSendmsg?.let { uniffi.shared.SysSendmsgConfig(it.entries) },
-        uprobes =
+        writeConfig = vfsWrite?.let { uniffi.shared.WriteConfig(it.pids.toPidFilter()) },
+        blockingConfig =
+            sysSendmsg?.let {
+                uniffi.shared.BlockingConfig(
+                    it.entries.keys.toPidFilter(),
+                    it.entries.values.firstOrNull() ?: 32_000_000U,
+                )
+            },
+        uprobeConfigs =
             uprobes.map {
                 uniffi.shared.UprobeConfig(
                     fnName = it.fnName,
@@ -155,38 +183,33 @@ private fun Configuration.into() =
                     pid = it.pid,
                 )
             },
-        jniReferences = jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids) },
-        sysSigquit = sysSigquit?.let { uniffi.shared.SysSigquitConfig(it.pids) },
-        gc =
-            gc?.let {
-                gcPids = it.pids
-                uniffi.shared.GcConfig()
-            },
-        sysFdTracking = sysFdTracking?.let { uniffi.shared.SysFdTrackingConfig(it.pids) },
+        jniReferencesConfig =
+            jniReferences?.let { uniffi.shared.JniReferencesConfig(it.pids.toPidFilter()) },
+        signalConfig = sysSigquit?.let { uniffi.shared.SignalConfig(it.pids.toPidFilter()) },
+        garbageCollectConfig =
+            gc?.let { uniffi.shared.GarbageCollectConfig(it.pids.toPidFilter()) },
+        fileDescriptorChangeConfig =
+            sysFdTracking?.let { uniffi.shared.FileDescriptorChangeConfig(it.pids.toPidFilter()) },
     )
 
-private fun uniffi.shared.StringResponse.into() = StringResponse(name)
+private fun Filter?.toPidList() = this?.pidFilter?.match ?: listOf()
+
+private fun Collection<UInt>.toPidFilter() =
+    Filter(
+        pidFilter =
+            UInt32Filter(
+                missingBehavior = MissingBehavior.NOT_MATCH.value,
+                match = this.toList(),
+                notMatch = listOf(),
+            ),
+        commFilter = null,
+        exePathFilter = null,
+        cmdlineFilter = null,
+    )
 
 private fun uniffi.shared.Symbol.into() = Symbol(method, offset)
 
 class RustClient(private val inner: uniffi.client.Client) : Client {
-
-    override suspend fun serverCount(): Flow<UInt> = inner.serverCountFlow()
-
-    override suspend fun load() = inner.load()
-
-    override suspend fun attach(iface: String) = inner.attach(iface)
-
-    override suspend fun unload() = inner.unload()
-
-    override suspend fun detach(iface: String) = inner.detach(iface)
-
-    override suspend fun startCollecting() = inner.startCollecting()
-
-    override suspend fun stopCollecting() = inner.stopCollecting()
-
-    override suspend fun checkServer() = inner.checkServer()
-
     override suspend fun listProcesses(): List<Process> = inner.listProcesses().map { it.into() }
 
     override suspend fun getConfiguration(): Configuration = inner.getConfiguration().into()
@@ -194,15 +217,6 @@ class RustClient(private val inner: uniffi.client.Client) : Client {
     // TODO remove the workarounds
     override suspend fun setConfiguration(configuration: Configuration) =
         inner.setConfiguration(configuration.into())
-
-    override suspend fun getOdexFiles(pid: UInt): Flow<String> =
-        inner.getOdexFilesFlow(pid).mapNotNull { it.into().name }
-
-    override suspend fun getSoFiles(pid: UInt): Flow<String> =
-        inner.getSoFilesFlow(pid).mapNotNull { it.into().name }
-
-    override suspend fun getSymbols(filePath: String): Flow<Symbol> =
-        inner.getSymbolFlow(filePath).mapNotNull { it.into() }
 
     override suspend fun indexSymbols() {
         inner.indexSymbols()
@@ -232,42 +246,10 @@ class RustClientFactory(val url: String) : ClientFactory {
     }
 }
 
-fun uniffi.client.Client.serverCountFlow() = flow {
-    serverCount().use { stream ->
-        while (true) {
-            stream.next()?.also { count -> emit(count) } ?: break
-        }
-    }
-}
-
 fun uniffi.client.Client.initStreamFlow() = flow {
     initStream().use { stream ->
         while (true) {
             stream.next()?.also { event -> emit(event) } ?: break
-        }
-    }
-}
-
-fun uniffi.client.Client.getOdexFilesFlow(pid: UInt) = flow {
-    getOdexFiles(pid).use { stream ->
-        while (true) {
-            stream.next()?.also { file -> emit(file) } ?: break
-        }
-    }
-}
-
-fun uniffi.client.Client.getSoFilesFlow(pid: UInt) = flow {
-    getOdexFiles(pid).use { stream ->
-        while (true) {
-            stream.next()?.also { file -> emit(file) } ?: break
-        }
-    }
-}
-
-fun uniffi.client.Client.getSymbolFlow(filePath: String) = flow {
-    getSymbols(filePath).use { stream ->
-        while (true) {
-            stream.next()?.also { symbol -> emit(symbol) } ?: break
         }
     }
 }

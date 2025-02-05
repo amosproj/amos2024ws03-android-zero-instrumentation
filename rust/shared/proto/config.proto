@@ -1,50 +1,98 @@
 // SPDX-FileCopyrightText: 2024 Benedikt Zinn <benedikt.wh.zinn@gmail.com>
 // SPDX-FileCopyrightText: 2024 Felix Hilgers <felix.hilgers@fau.de>
 // SPDX-FileCopyrightText: 2024 Franz Schlicht <franz.schlicht@gmail.de>
-// SPDX-FileCopyrightText: 2024 Robin Seidl <robin.seidl@fau.de>
+// SPDX-FileCopyrightText: 2025 Robin Seidl <robin.seidl@fau.de>
 // SPDX-FileCopyrightText: 2024 Tom Weisshuhn <tom.weisshuhn@fau.de>
 //
 // SPDX-License-Identifier: MIT
 
 syntax = "proto3";
-
 package config;
 
-message UprobeConfig {
-  string fn_name = 1;
-  uint64 offset = 2;                      // offset of the aya attach function
-  string target = 3;                      // target of the aya attach function
-  optional uint32 pid = 4;                 // pid of the aya attach function
-}
-
+// The configs are set globally. Each seperate sub-config can be omitted in
+// which case the associated feature will be disabled. In the case of a given
+// sub-config the feature will be enabled in compliance with it.
 message Configuration {
-  optional VfsWriteConfig vfs_write = 1;
-  optional SysSendmsgConfig sys_sendmsg = 2;
-  optional JniReferencesConfig jniReferences = 3;
-  optional SysSigquitConfig sys_sigquit = 4;
-  repeated UprobeConfig uprobes = 5;
-  optional GcConfig gc = 6;
-  optional SysFdTrackingConfig sys_fd_tracking = 7;
+  // VFS Write Analysis (sys_vfswrite) config
+  optional WriteConfig write_config = 1;
+  // Unix Domain Socket (sys_sendmsg) config
+  optional BlockingConfig blocking_config = 2;
+  // Indirect JNI References config
+  optional JniReferencesConfig jni_references_config = 3;
+  // SIQUIT config
+  optional SignalConfig signal_config = 4;
+  // U-Probe configs
+  repeated UprobeConfig uprobe_configs = 5;
+  // Garbage Collection Analysis config
+  optional GarbageCollectConfig garbage_collect_config = 6;
+  // Open File Descriptors config
+  optional FileDescriptorChangeConfig file_descriptor_change_config = 7;
 }
 
-message VfsWriteConfig {
-  map<uint32, uint64> entries = 1;
+// VFS Write Analysis (sys_vfswrite) config
+message WriteConfig {
+  Filter filter = 1;
 }
 
-message SysSendmsgConfig {
-  map<uint32, uint64> entries = 1;
+// Unix Domain Socket (sys_sendmsg) config
+message BlockingConfig {
+  Filter filter = 1;
+  optional uint64 threshold = 2;
 }
 
+// Indirect JNI References config
 message JniReferencesConfig {
-  repeated uint32 pids = 1;
+  Filter filter = 1;
 }
 
-message SysSigquitConfig {
-  repeated uint32 pids = 1;
+// SIQUIT config
+message SignalConfig {
+  Filter filter = 1;
 }
 
-message GcConfig { }
+// U-Probe config
+message UprobeConfig {
+  // Function name
+  string fn_name = 1;
+  // Offset of the aya attach function
+  uint64 offset = 2;
+  // Target of the aya attach function
+  string target = 3;
+  // PID of the aya attach function
+  optional uint32 pid = 4;
+}
 
-message SysFdTrackingConfig {
-  repeated uint32 pids = 1;
+// Garbage Collection Analysis config
+message GarbageCollectConfig {
+  Filter filter = 1;
+}
+
+// Open File Descriptors config
+message FileDescriptorChangeConfig {
+  Filter filter = 1;
+}
+
+message Filter {
+  StringFilter comm_filter = 1;
+  StringFilter exe_path_filter = 2;
+  StringFilter cmdline_filter = 3;
+  UInt32Filter pid_filter = 4;
+}
+
+message StringFilter {
+  MissingBehavior missing_behavior = 1;
+  repeated string match = 2;
+  repeated string not_match = 3;
+}
+
+message UInt32Filter {
+  MissingBehavior missing_behavior = 1;
+  repeated uint32 match = 2;
+  repeated uint32 not_match = 3;
+}
+
+enum MissingBehavior {
+  MISSING_BEHAVIOR_UNSPECIFIED = 0;
+  MISSING_BEHAVIOR_MATCH = 1;
+  MISSING_BEHAVIOR_NOT_MATCH = 2;
 }

@@ -20,7 +20,7 @@ sealed class GraphedData {
     ) : GraphedData()
 
     data class HistogramData(
-        val seriesData: ImmutableList<Pair<ULong, Double>>,
+        val seriesData: ImmutableList<Pair<String, Double>>,
         val metaData: ChartMetadata,
     ) : GraphedData()
 
