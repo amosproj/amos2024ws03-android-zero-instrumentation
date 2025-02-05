@@ -355,7 +355,7 @@ trait AsNanos {
 impl AsNanos for Option<Timestamp> {
     fn as_nanos(&self) -> u64 {
         self.map(|t| {
-            (t.seconds as u64 * 1_000_000) + t.nanos as u64
+            (t.seconds as u64 * 1_000_000_000) + t.nanos as u64
         }).unwrap_or_default()
     }
 }
@@ -363,7 +363,7 @@ impl AsNanos for Option<Timestamp> {
 impl AsNanos for Option<Duration> {
     fn as_nanos(&self) -> u64 {
         self.map(|t| {
-            (t.seconds as u64 * 1_000_000) + t.nanos as u64
+            (t.seconds as u64 * 1_000_000_000) + t.nanos as u64
         }).unwrap_or_default()
     }
 }
