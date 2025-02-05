@@ -49,7 +49,10 @@ pub fn run(opts: Options) -> Result<Option<Sender<()>>> {
         
         let spec = HostSpec {
             args: Vec::default(),
-            env: HashMap::from([("RUST_LOG".to_string(), "error".to_string())]),
+            env: HashMap::from([
+                ("RUST_LOG".to_string(), "error".to_string()),
+                ("RUST_BACKTRACE".to_string(), "1".to_string()),
+            ]),
             root: true,
             runner_path: android_server
         };

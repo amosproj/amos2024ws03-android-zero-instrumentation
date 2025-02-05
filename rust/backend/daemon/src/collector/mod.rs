@@ -4,7 +4,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-use std::{sync::LazyLock, time::Duration};
+use std::{ffi::CStr, sync::LazyLock, time::Duration};
 
 use aya::maps::ring_buf::RingBufItem;
 use procfs::boot_time_secs;
@@ -72,7 +72,7 @@ impl IntoEvent for EbpfEvent<Write> {
                 log_event_data: Some(LogEventData::Write(WriteEvent {
                     bytes_written: self.data.bytes_written,
                     file_descriptor: self.data.file_descriptor,
-                    file_path: String::from_utf8_lossy(&self.data.file_path).to_string(),
+                    file_path: CStr::from_bytes_until_nul(&self.data.file_path).unwrap().to_string_lossy().to_string(),
                     source: match self.data.source {
                         WriteSource::Write => shared::events::write_event::WriteSource::Write,
                         WriteSource::Write64 => shared::events::write_event::WriteSource::Write64,
